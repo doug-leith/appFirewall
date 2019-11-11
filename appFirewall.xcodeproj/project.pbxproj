@@ -1,0 +1,604 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB2236AB280002E50A8 /* AppDelegate.swift */; };
+		91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */; };
+		91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91607BB6236AB282002E50A8 /* Assets.xcassets */; };
+		91607BBA236AB282002E50A8 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 91607BB8236AB282002E50A8 /* Main.storyboard */; };
+		91607BC4236AB2D1002E50A8 /* pid_conn_info.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BC3236AB2D1002E50A8 /* pid_conn_info.c */; };
+		91607BC6236AB7C1002E50A8 /* BlockListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */; };
+		91607BC8236AB7CA002E50A8 /* LogViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BC7236AB7CA002E50A8 /* LogViewController.swift */; };
+		91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BC9236AD08F002E50A8 /* sniffer_blocker.c */; };
+		91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
+		91607BE2236B691A002E50A8 /* libnet in Resources */ = {isa = PBXBuildFile; fileRef = 91607BE1236B691A002E50A8 /* libnet */; };
+		91607BF3237140A4002E50A8 /* blocklist.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF2237140A4002E50A8 /* blocklist.c */; };
+		91607BF6237142A0002E50A8 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF5237142A0002E50A8 /* log.c */; };
+		91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF923714D46002E50A8 /* dns_sniffer.c */; };
+		91607C2B2372FF7F002E50A8 /* libnet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607C252372FF7E002E50A8 /* libnet.a */; };
+		91607C2C2372FF7F002E50A8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C262372FF7E002E50A8 /* main.c */; };
+		91607C2D2372FFAE002E50A8 /* com.leith.appFirewall-Helper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		91607C2F2373FD09002E50A8 /* error_alert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607C2E2373FD09002E50A8 /* error_alert.swift */; };
+		91607C312374080C002E50A8 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C302374080B002E50A8 /* util.c */; };
+		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
+		91ABB26E237680B7007F8FFE /* table.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB26C237680B7007F8FFE /* table.c */; };
+		91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */; };
+		91ABB293237734DE007F8FFE /* BlackLists in Resources */ = {isa = PBXBuildFile; fileRef = 91ABB292237734DE007F8FFE /* BlackLists */; };
+		91ABB2952377350A007F8FFE /* BlackLists in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91ABB292237734DE007F8FFE /* BlackLists */; };
+		91ABB29823773595007F8FFE /* hostlists.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB29723773595007F8FFE /* hostlists.c */; };
+		91B67F2823793C1C00706027 /* TODO in Resources */ = {isa = PBXBuildFile; fileRef = 91B67F2723793C1C00706027 /* TODO */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		91607C182372EA7D002E50A8 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchServices;
+			dstSubfolderSpec = 1;
+			files = (
+				91607C2D2372FFAE002E50A8 /* com.leith.appFirewall-Helper in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91607C1C2372FF40002E50A8 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		91ABB294237734F6007F8FFE /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				91ABB2952377350A007F8FFE /* BlackLists in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		91607BB2236AB280002E50A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveConnsViewController.swift; sourceTree = "<group>"; };
+		91607BB6236AB282002E50A8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		91607BB9236AB282002E50A8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		91607BBB236AB282002E50A8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		91607BBC236AB282002E50A8 /* appFirewall.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = appFirewall.entitlements; sourceTree = "<group>"; };
+		91607BC2236AB2D1002E50A8 /* appFirewall-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "appFirewall-Bridging-Header.h"; sourceTree = "<group>"; };
+		91607BC3236AB2D1002E50A8 /* pid_conn_info.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = pid_conn_info.c; sourceTree = "<group>"; };
+		91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BlockListViewController.swift; sourceTree = "<group>"; };
+		91607BC7236AB7CA002E50A8 /* LogViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LogViewController.swift; sourceTree = "<group>"; };
+		91607BC9236AD08F002E50A8 /* sniffer_blocker.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sniffer_blocker.c; sourceTree = "<group>"; };
+		91607BCD236AD702002E50A8 /* libpcap.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libpcap.tbd; path = usr/lib/libpcap.tbd; sourceTree = SDKROOT; };
+		91607BCE236AD717002E50A8 /* libpcap.A.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libpcap.A.tbd; path = usr/lib/libpcap.A.tbd; sourceTree = SDKROOT; };
+		91607BE1236B691A002E50A8 /* libnet */ = {isa = PBXFileReference; lastKnownFileType = folder; path = libnet; sourceTree = "<group>"; };
+		91607BEA236B8D73002E50A8 /* pid_conn_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pid_conn_info.h; sourceTree = "<group>"; };
+		91607BEB236B8F0A002E50A8 /* sniffer_blocker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sniffer_blocker.h; sourceTree = "<group>"; };
+		91607BF1237140A4002E50A8 /* blocklist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = blocklist.h; sourceTree = "<group>"; };
+		91607BF2237140A4002E50A8 /* blocklist.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = blocklist.c; sourceTree = "<group>"; };
+		91607BF4237142A0002E50A8 /* log.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = log.h; sourceTree = "<group>"; };
+		91607BF5237142A0002E50A8 /* log.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = log.c; sourceTree = "<group>"; };
+		91607BF7237144D2002E50A8 /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		91607BF823714D46002E50A8 /* dns_sniffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dns_sniffer.h; sourceTree = "<group>"; };
+		91607BF923714D46002E50A8 /* dns_sniffer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns_sniffer.c; sourceTree = "<group>"; };
+		91607C0B2372AC51002E50A8 /* libnet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnet.a; path = appFirewall_Helper/libnet.a; sourceTree = "<group>"; };
+		91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "com.leith.appFirewall-Helper"; sourceTree = BUILT_PRODUCTS_DIR; };
+		91607C252372FF7E002E50A8 /* libnet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libnet.a; sourceTree = "<group>"; };
+		91607C262372FF7E002E50A8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		91607C272372FF7F002E50A8 /* launchd.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = launchd.plist; sourceTree = "<group>"; };
+		91607C282372FF7F002E50A8 /* libnet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libnet.h; sourceTree = "<group>"; };
+		91607C292372FF7F002E50A8 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		91607C2A2372FF7F002E50A8 /* libnet */ = {isa = PBXFileReference; lastKnownFileType = folder; path = libnet; sourceTree = "<group>"; };
+		91607C2E2373FD09002E50A8 /* error_alert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = error_alert.swift; sourceTree = "<group>"; };
+		91607C302374080B002E50A8 /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
+		91607C3723741D65002E50A8 /* OSLog.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OSLog.framework; path = System/Library/Frameworks/OSLog.framework; sourceTree = SDKROOT; };
+		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
+		91ABB26D237680B7007F8FFE /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
+		91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceViewController.swift; sourceTree = "<group>"; };
+		91ABB292237734DE007F8FFE /* BlackLists */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BlackLists; sourceTree = "<group>"; };
+		91ABB29623773595007F8FFE /* hostlists.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hostlists.h; sourceTree = "<group>"; };
+		91ABB29723773595007F8FFE /* hostlists.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = hostlists.c; sourceTree = "<group>"; };
+		91B67F2723793C1C00706027 /* TODO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		91607BAC236AB280002E50A8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91607C1B2372FF40002E50A8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */,
+				91607C2B2372FF7F002E50A8 /* libnet.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		91607BA6236AB280002E50A8 = {
+			isa = PBXGroup;
+			children = (
+				91607BB1236AB280002E50A8 /* appFirewall */,
+				91607C1F2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
+				91607BB0236AB280002E50A8 /* Products */,
+				91607BCB236AD6BA002E50A8 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		91607BB0236AB280002E50A8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				91607BAF236AB280002E50A8 /* appFirewall.app */,
+				91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		91607BB1236AB280002E50A8 /* appFirewall */ = {
+			isa = PBXGroup;
+			children = (
+				91ABB292237734DE007F8FFE /* BlackLists */,
+				91607BE1236B691A002E50A8 /* libnet */,
+				91607BEA236B8D73002E50A8 /* pid_conn_info.h */,
+				91607BC3236AB2D1002E50A8 /* pid_conn_info.c */,
+				91607BF1237140A4002E50A8 /* blocklist.h */,
+				91607BF2237140A4002E50A8 /* blocklist.c */,
+				91607BF823714D46002E50A8 /* dns_sniffer.h */,
+				91607BF923714D46002E50A8 /* dns_sniffer.c */,
+				91607BEB236B8F0A002E50A8 /* sniffer_blocker.h */,
+				91607BC9236AD08F002E50A8 /* sniffer_blocker.c */,
+				91ABB29623773595007F8FFE /* hostlists.h */,
+				91ABB29723773595007F8FFE /* hostlists.c */,
+				91607BF4237142A0002E50A8 /* log.h */,
+				91607BF5237142A0002E50A8 /* log.c */,
+				91607BF7237144D2002E50A8 /* util.h */,
+				91607C302374080B002E50A8 /* util.c */,
+				91ABB26D237680B7007F8FFE /* table.h */,
+				91ABB26C237680B7007F8FFE /* table.c */,
+				91B67F2723793C1C00706027 /* TODO */,
+				91607C2E2373FD09002E50A8 /* error_alert.swift */,
+				91607BB2236AB280002E50A8 /* AppDelegate.swift */,
+				91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */,
+				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
+				91607BC7236AB7CA002E50A8 /* LogViewController.swift */,
+				91607BB6236AB282002E50A8 /* Assets.xcassets */,
+				91607BB8236AB282002E50A8 /* Main.storyboard */,
+				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
+				91607BBB236AB282002E50A8 /* Info.plist */,
+				91607BBC236AB282002E50A8 /* appFirewall.entitlements */,
+				91607BC2236AB2D1002E50A8 /* appFirewall-Bridging-Header.h */,
+			);
+			path = appFirewall;
+			sourceTree = "<group>";
+		};
+		91607BCB236AD6BA002E50A8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				91607C3723741D65002E50A8 /* OSLog.framework */,
+				91607C0B2372AC51002E50A8 /* libnet.a */,
+				91607BCE236AD717002E50A8 /* libpcap.A.tbd */,
+				91607BCD236AD702002E50A8 /* libpcap.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		91607C1F2372FF40002E50A8 /* com.leith.appFirewall-Helper */ = {
+			isa = PBXGroup;
+			children = (
+				91607C272372FF7F002E50A8 /* launchd.plist */,
+				91607C292372FF7F002E50A8 /* Info.plist */,
+				91607C2A2372FF7F002E50A8 /* libnet */,
+				91607C252372FF7E002E50A8 /* libnet.a */,
+				91607C282372FF7F002E50A8 /* libnet.h */,
+				91607C262372FF7E002E50A8 /* main.c */,
+			);
+			path = "com.leith.appFirewall-Helper";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		91607BAE236AB280002E50A8 /* appFirewall */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 91607BBF236AB282002E50A8 /* Build configuration list for PBXNativeTarget "appFirewall" */;
+			buildPhases = (
+				91607BAB236AB280002E50A8 /* Sources */,
+				91607BAC236AB280002E50A8 /* Frameworks */,
+				91607BAD236AB280002E50A8 /* Resources */,
+				91607C182372EA7D002E50A8 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = appFirewall;
+			productName = appFirewall;
+			productReference = 91607BAF236AB280002E50A8 /* appFirewall.app */;
+			productType = "com.apple.product-type.application";
+		};
+		91607C1D2372FF40002E50A8 /* com.leith.appFirewall-Helper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 91607C222372FF40002E50A8 /* Build configuration list for PBXNativeTarget "com.leith.appFirewall-Helper" */;
+			buildPhases = (
+				91607C1A2372FF40002E50A8 /* Sources */,
+				91607C1B2372FF40002E50A8 /* Frameworks */,
+				91607C1C2372FF40002E50A8 /* CopyFiles */,
+				91ABB294237734F6007F8FFE /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "com.leith.appFirewall-Helper";
+			productName = "com.leith.appFirewall-Helper";
+			productReference = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		91607BA7236AB280002E50A8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1110;
+				LastUpgradeCheck = 1110;
+				ORGANIZATIONNAME = "Doug Leith";
+				TargetAttributes = {
+					91607BAE236AB280002E50A8 = {
+						CreatedOnToolsVersion = 11.1;
+						LastSwiftMigration = 1110;
+					};
+					91607C1D2372FF40002E50A8 = {
+						CreatedOnToolsVersion = 11.1;
+					};
+				};
+			};
+			buildConfigurationList = 91607BAA236AB280002E50A8 /* Build configuration list for PBXProject "appFirewall" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 91607BA6236AB280002E50A8;
+			productRefGroup = 91607BB0236AB280002E50A8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				91607BAE236AB280002E50A8 /* appFirewall */,
+				91607C1D2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		91607BAD236AB280002E50A8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91607BE2236B691A002E50A8 /* libnet in Resources */,
+				91B67F2823793C1C00706027 /* TODO in Resources */,
+				91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */,
+				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
+				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		91607BAB236AB280002E50A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91ABB26E237680B7007F8FFE /* table.c in Sources */,
+				91607BF6237142A0002E50A8 /* log.c in Sources */,
+				91607C2F2373FD09002E50A8 /* error_alert.swift in Sources */,
+				91ABB29823773595007F8FFE /* hostlists.c in Sources */,
+				91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */,
+				91607BC4236AB2D1002E50A8 /* pid_conn_info.c in Sources */,
+				91607BC8236AB7CA002E50A8 /* LogViewController.swift in Sources */,
+				91607BF3237140A4002E50A8 /* blocklist.c in Sources */,
+				91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */,
+				91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */,
+				91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */,
+				91607C312374080C002E50A8 /* util.c in Sources */,
+				91607BC6236AB7C1002E50A8 /* BlockListViewController.swift in Sources */,
+				91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91607C1A2372FF40002E50A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91607C2C2372FF7F002E50A8 /* main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		91607BB8236AB282002E50A8 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				91607BB9236AB282002E50A8 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		91607BBD236AB282002E50A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		91607BBE236AB282002E50A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		91607BC0236AB282002E50A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = appFirewall/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/appFirewall",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "appFirewall/appFirewall-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		91607BC1236AB282002E50A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = appFirewall/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/appFirewall",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "appFirewall/appFirewall-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		91607C232372FF40002E50A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
+				);
+				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[arch=*]" = (
+					"-sectcreate",
+					__TEXT,
+					__info_plist,
+					"com.leith.appFirewall-Helper/Info.plist",
+					"-sectcreate",
+					__TEXT,
+					__launchd_plist,
+					"com.leith.appFirewall-Helper/launchd.plist",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.leith.appFirewall-Helper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		91607C242372FF40002E50A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
+				);
+				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[arch=*]" = (
+					"-sectcreate",
+					__TEXT,
+					__info_plist,
+					"com.leith.appFirewall-Helper/Info.plist",
+					"-sectcreate",
+					__TEXT,
+					__launchd_plist,
+					"com.leith.appFirewall-Helper/launchd.plist",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.leith.appFirewall-Helper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		91607BAA236AB280002E50A8 /* Build configuration list for PBXProject "appFirewall" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91607BBD236AB282002E50A8 /* Debug */,
+				91607BBE236AB282002E50A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		91607BBF236AB282002E50A8 /* Build configuration list for PBXNativeTarget "appFirewall" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91607BC0236AB282002E50A8 /* Debug */,
+				91607BC1236AB282002E50A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		91607C222372FF40002E50A8 /* Build configuration list for PBXNativeTarget "com.leith.appFirewall-Helper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91607C232372FF40002E50A8 /* Debug */,
+				91607C242372FF40002E50A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 91607BA7236AB280002E50A8 /* Project object */;
+}

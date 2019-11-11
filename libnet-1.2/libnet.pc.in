@@ -1,0 +1,14 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: @PACKAGE@
+Version: @VERSION@
+Description: Portable Packet Construction and Injection API
+URL: @PACKAGE_URL@
+
+Requires: 
+Libs: -L${libdir} -lnet @PKG_CONFIG_LIBS@
+Cflags: -I${includedir} @PKG_CONFIG_DEFINES@ @PKG_CONFIG_CFLAGS@
+
