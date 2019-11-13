@@ -1,4 +1,5 @@
 // TO DO:
+// send RST to localhost (silently dropped just now)
 // import of app blocklist
 // reseting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 

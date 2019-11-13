@@ -20,6 +20,9 @@
 #include "dns_sniffer.h"
 #include "libnet.h"
 
+#define RST_PORT 2
+#define PCAP_PORT 3
+
 void init_sniffer_blocker(char* filter_exp);
 void sniffer_blocker_callback(u_char *args, const struct pcap_pkthdr *pkthdr, 	const 			u_char* pkt);
 void *listener(void *ptr);
@@ -27,8 +30,5 @@ void *listener(void *ptr);
 void start_listener(void);
 void stop_listener(void);
 int listener_error(void);
-
-#define RST_PORT 2
-#define PCAP_PORT 3
 
 #endif

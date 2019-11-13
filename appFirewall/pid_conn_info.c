@@ -28,10 +28,10 @@ int get_pid_name(int pid, char* name) {
 		struct proc_bsdshortinfo proc;
     int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &proc, 				PROC_PIDT_SHORTBSDINFO_SIZE);
     if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
-        WARN("Cannot get process info for PID %d, likely has died.\n",pid);
+        //WARN("Cannot get process info for PID %d, likely has died.\n",pid);
         return -1;
     }
-    strcpy(name,proc.pbsi_comm);
+    strlcpy(name,proc.pbsi_comm,MAXCOMLEN);
     return 0;
 }
 
@@ -106,7 +106,7 @@ int refresh_active_conns(int localhost) {
 				continue; // TCP, but not an established connection. don't log it
 
 			c.pid=pid;
-			strcpy(c.name, name);
+			strlcpy(c.name, name, MAXCOMLEN);
 			struct in_sockinfo* sockinfo = &socketInfo.psi.soi_proto.pri_tcp.tcpsi_ini;
 			c.af=socketInfo.psi.soi_family;
 			memset(&c.src_addr,0,sizeof(struct in6_addr));
@@ -150,7 +150,7 @@ int refresh_active_conns(int localhost) {
 				sprintf(dns2," (%s)",dns);
 			}
 
-			strcpy(c.domain,dns2);
+			strlcpy(c.domain,dns2,BUFSIZE);
 			sprintf(c.pid_name,"%s(%d)",c.name,c.pid);
 			sprintf(c.conn_name,"%s:%d -> %s%s:%d %s",
 								c.src_name,c.sport,
@@ -183,11 +183,11 @@ conn_info_t get_conns(int row) {
 	res.pid = conns[row].pid;
 	res.af = conns[row].af;
 	res.addr = conns[row].dst_addr;
-	strcpy(res.name,conns[row].name);
-	strcpy(res.pid_name,conns[row].pid_name);
-	strcpy(res.addr_name,conns[row].addr_name);
-	strcpy(res.conn_name,conns[row].conn_name);
-	strcpy(res.domain,conns[row].domain);
+	strlcpy(res.name,conns[row].name,BUFSIZE);
+	strlcpy(res.pid_name,conns[row].pid_name,BUFSIZE);
+	strlcpy(res.addr_name,conns[row].addr_name,BUFSIZE);
+	strlcpy(res.conn_name,conns[row].conn_name,BUFSIZE);
+	strlcpy(res.domain,conns[row].domain,BUFSIZE);
 	return res;
 }
 
@@ -267,7 +267,7 @@ int find_conn(conn_raw_t *c, char* name, int *pid_hint, int udp) {
 	// in packet sniffing fast path
 	// pid_hint is a guess as to the right pid, we check this first.  its just the pid of the
 	// last connection found, but this already works pretty well.
-		
+	
 	if (find_pid_conn(c, name, *pid_hint, udp)==1) {
 		if (get_pid_name(*pid_hint, name)<0) return -1;
 		return 1; // found it first time !
@@ -288,17 +288,8 @@ int find_conn(conn_raw_t *c, char* name, int *pid_hint, int udp) {
 			return 1; // matched
 		}
 	}
+	*pid_hint = -1; // not found
 	return 0;
-}
-
-inline int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2) {
-	if (af==AF_INET) { // IPv4
-		uint32_t _addr1 = ((struct in_addr*)addr1)->s_addr;
-		uint32_t _addr2 = ((struct in_addr*)addr2)->s_addr;
-		return (_addr1==_addr2);
-	} else { // IPv6
-		return (memcmp(&addr1->s6_addr, &addr2->s6_addr, 16)==0);
-	}
 }
 
 int _find_pid_name(conn_raw_t *c) {
@@ -326,7 +317,7 @@ int find_pid(conn_raw_t *c, char*name, int udp){
 	int res = _find_pid_name(c);
 	if (res>=0) {
 		last_pid = conns[res].pid;
-		strcpy(name,conns[res].name);
+		strlcpy(name,conns[res].name,BUFSIZE);
 		return 1;
 	}
 

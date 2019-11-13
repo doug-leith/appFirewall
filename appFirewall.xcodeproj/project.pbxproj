@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9139F670237BB18600600D37 /* dtrace.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F66F237BB18600600D37 /* dtrace.c */; };
+		9139F673237BB1BB00600D37 /* pcap_sniffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F672237BB1BB00600D37 /* pcap_sniffer.c */; };
+		9139F676237BB20F00600D37 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F675237BB20F00600D37 /* util.c */; };
+		9139F679237BB9A800600D37 /* send_rst.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F678237BB9A800600D37 /* send_rst.c */; };
+		9139F67C237BC41300600D37 /* dtrace.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F67B237BC41300600D37 /* dtrace.c */; };
+		9139F67F237BC49A00600D37 /* helper.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F67E237BC49A00600D37 /* helper.c */; };
 		91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB2236AB280002E50A8 /* AppDelegate.swift */; };
 		91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */; };
 		91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91607BB6236AB282002E50A8 /* Assets.xcassets */; };
@@ -67,6 +73,18 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9139F66E237BB18600600D37 /* dtrace.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dtrace.h; sourceTree = "<group>"; };
+		9139F66F237BB18600600D37 /* dtrace.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dtrace.c; sourceTree = "<group>"; };
+		9139F671237BB1BB00600D37 /* pcap_sniffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pcap_sniffer.h; sourceTree = "<group>"; };
+		9139F672237BB1BB00600D37 /* pcap_sniffer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pcap_sniffer.c; sourceTree = "<group>"; };
+		9139F674237BB20F00600D37 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		9139F675237BB20F00600D37 /* util.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
+		9139F677237BB9A800600D37 /* send_rst.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = send_rst.h; sourceTree = "<group>"; };
+		9139F678237BB9A800600D37 /* send_rst.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = send_rst.c; sourceTree = "<group>"; };
+		9139F67A237BC41300600D37 /* dtrace.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dtrace.h; sourceTree = "<group>"; };
+		9139F67B237BC41300600D37 /* dtrace.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dtrace.c; sourceTree = "<group>"; };
+		9139F67D237BC49A00600D37 /* helper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = helper.h; sourceTree = "<group>"; };
+		9139F67E237BC49A00600D37 /* helper.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = helper.c; sourceTree = "<group>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91607BB2236AB280002E50A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveConnsViewController.swift; sourceTree = "<group>"; };
@@ -164,6 +182,10 @@
 				91607BF923714D46002E50A8 /* dns_sniffer.c */,
 				91607BEB236B8F0A002E50A8 /* sniffer_blocker.h */,
 				91607BC9236AD08F002E50A8 /* sniffer_blocker.c */,
+				9139F67D237BC49A00600D37 /* helper.h */,
+				9139F67E237BC49A00600D37 /* helper.c */,
+				9139F67A237BC41300600D37 /* dtrace.h */,
+				9139F67B237BC41300600D37 /* dtrace.c */,
 				91ABB29623773595007F8FFE /* hostlists.h */,
 				91ABB29723773595007F8FFE /* hostlists.c */,
 				91607BF4237142A0002E50A8 /* log.h */,
@@ -208,6 +230,14 @@
 				91607C252372FF7E002E50A8 /* libnet.a */,
 				91607C282372FF7F002E50A8 /* libnet.h */,
 				91607C262372FF7E002E50A8 /* main.c */,
+				9139F671237BB1BB00600D37 /* pcap_sniffer.h */,
+				9139F672237BB1BB00600D37 /* pcap_sniffer.c */,
+				9139F66E237BB18600600D37 /* dtrace.h */,
+				9139F66F237BB18600600D37 /* dtrace.c */,
+				9139F674237BB20F00600D37 /* util.h */,
+				9139F675237BB20F00600D37 /* util.c */,
+				9139F677237BB9A800600D37 /* send_rst.h */,
+				9139F678237BB9A800600D37 /* send_rst.c */,
 			);
 			path = "com.leith.appFirewall-Helper";
 			sourceTree = "<group>";
@@ -318,9 +348,11 @@
 				91607BC8236AB7CA002E50A8 /* LogViewController.swift in Sources */,
 				91607BF3237140A4002E50A8 /* blocklist.c in Sources */,
 				91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */,
+				9139F67F237BC49A00600D37 /* helper.c in Sources */,
 				91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */,
 				91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */,
 				91607C312374080C002E50A8 /* util.c in Sources */,
+				9139F67C237BC41300600D37 /* dtrace.c in Sources */,
 				91607BC6236AB7C1002E50A8 /* BlockListViewController.swift in Sources */,
 				91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */,
 			);
@@ -330,7 +362,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9139F670237BB18600600D37 /* dtrace.c in Sources */,
+				9139F676237BB20F00600D37 /* util.c in Sources */,
 				91607C2C2372FF7F002E50A8 /* main.c in Sources */,
+				9139F673237BB1BB00600D37 /* pcap_sniffer.c in Sources */,
+				9139F679237BB9A800600D37 /* send_rst.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -465,6 +501,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
 				CODE_SIGN_IDENTITY = "-";
@@ -492,6 +529,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
 				CODE_SIGN_IDENTITY = "-";
@@ -517,6 +555,8 @@
 		91607C232372FF40002E50A8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_FLOAT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";
@@ -544,6 +584,8 @@
 		91607C242372FF40002E50A8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_FLOAT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";

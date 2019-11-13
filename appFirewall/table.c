@@ -1,5 +1,6 @@
 
 #include "table.h"
+#define STR_SIZE 1024
 
 Hashtable*
 hashtable_new(int hint) {
@@ -34,13 +35,33 @@ hashtable_free(Hashtable *table) {
 	free(table);
 }
 
+void dump_hashtable(Hashtable *table){
+		Bucket *p, *q;
+		if (!table) {
+			printf("empty table\n");
+			return;
+		}
+		for (uint32_t i = 0; i < table->size; i++) {
+			for (p = table->buckets[i]; p; p = q) {
+				q = p->link;
+				if (p->value) {
+					//free(p->value);
+				}
+				if (p->key_string) {
+					printf("key: %lu, key_string: %s\n", p->key, p->key_string);
+				}
+			}
+		}
+}
+
 void*
 hashtable_remove(Hashtable *table, const char* key_string) {
 	Bucket **pp;
 	Key key = hash(key_string);
 	uint32_t i = key%table->size;
 	for (pp = &table->buckets[i]; *pp; pp = &(*pp)->link)
-		if ((key == (*pp)->key) && !strcmp(key_string,(*pp)->key_string)) {
+		if ((key == (*pp)->key) && (strcmp(key_string,(*pp)->key_string)==0) ) {
+			// found a match
 			Bucket *p = *pp;
 			free(p->key_string);
 			void *value = p->value;
@@ -57,7 +78,7 @@ hashtable_get(Hashtable *table, const char* key_string) {
 	Key key = hash(key_string);
 	uint32_t i = key%table->size;
 	for (p = table->buckets[i]; p; p = p->link)
-		if ((key == p->key) && !strcmp(key_string,p->key_string))
+		if ((key == p->key) && (strcmp(key_string,p->key_string)==0) )
 			break;
 	return p ? p->value : NULL;
 }
@@ -69,13 +90,15 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 	Key key = hash(key_string);
 	uint32_t i = key%table->size;
 	for (p = table->buckets[i]; p; p = p->link)
-		if (key == p->key) 
-			break;
+		if ((key == p->key) && (strcmp(key_string,p->key_string)==0))
+			break; // already exists, overwrite value
 	if (p == NULL) {
 		p = calloc(1, sizeof(Bucket));
 		p->key = key;
-		p->key_string = malloc(strlen(key_string)+1);
-		strcpy(p->key_string,key_string);
+		int len = (int)strlen(key_string)+1;
+		if (len>STR_SIZE) len = STR_SIZE;
+		p->key_string = malloc(len);
+		strlcpy(p->key_string,key_string,len);
 		p->link = table->buckets[i];
 		table->buckets[i] = p;
 		prev = NULL;
@@ -88,10 +111,10 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 unsigned long hash(const char *str) {
 		// djb2 hash of Dan Bernstein http://www.cse.yorku.ca/~oz/hash.html
     unsigned long hash = 5381;
-    int c;
-
-    while (c = *str++)
+    int c, count=0;
+    while ( (c = *str) && (count<STR_SIZE) ) {
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
+				str++;
+		}
     return hash;
 }

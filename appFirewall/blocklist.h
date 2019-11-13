@@ -11,6 +11,7 @@
 #include "table.h"
 #include "util.h"
 #include "pid_conn_info.h"
+#include "dtrace.h"
 
 // file for maintaining state over restarts
 #define BLOCKLISTFILE "blocklist.dat"
@@ -29,7 +30,7 @@ int get_blocklist_size(void);
 bl_item_t get_blocklist_item(int row);
 void add_blockitem(bl_item_t item);
 int on_blocklist(bl_item_t item); // walks the list
-bl_item_t* in_blocklist_htab(const bl_item_t *item); // looks up hash table, faster
+bl_item_t* in_blocklist_htab(const bl_item_t *item,int debug); // looks up hash table, faster
 int del_blockitem(bl_item_t item);
 void save_blocklist(void);
 void load_blocklist(void);

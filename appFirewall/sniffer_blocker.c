@@ -3,9 +3,9 @@
 // libpcap tutorial: https://www.tcpdump.org/pcap.html
 
 // globals
-pthread_t thread; // handle to listener thread
-int r_sock, p_sock;
-int is_running=0;
+static pthread_t thread; // handle to listener thread
+static int r_sock, p_sock;
+static int is_running=0;
 
 typedef struct udp_conn_t {
 	int af;
@@ -18,73 +18,6 @@ int udp_cache_size=0, udp_cache_start=0;
 
 //--------------------------------------------------------
 // private functions
-
-int connect_to_helper(int port) {
-	// open socket to helper process (that has priviledge to use raw socket)
-	char err_msg[1024];
-	
-	int sock=-1;
-	INFO("Trying to connect to appFirewall-Helper on port %d ...\n", port);
-	#define MAXTRIES 30
-	int tries=0;
-	while (tries < MAXTRIES) {
-		DEBUG2("Try %d\n",tries);
-		tries++;
-		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-			ERR("socket: %s", strerror(errno));
-			 // tell GUI to popup error to user
-			sprintf(err_msg,"Problem connecting to appFirewall-Helper, socket: %s", strerror(errno));
-			set_error_msg(err_msg);
-			return -1;
-		}
-		struct sockaddr_in remote;
-		memset(&remote,0,sizeof(remote));
-		remote.sin_family = AF_INET;
-		remote.sin_port = htons(port);
-		remote.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-		//char buf[256];
-		//printf("%s",inet_ntop(AF_INET,&remote.sin_addr.s_addr,buf,245));
-		if (connect(sock, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
-			DEBUG2("Connecting to helper process on port %d: %s\n", port, strerror(errno));
-			if (errno == ECONNREFUSED || errno == ETIMEDOUT || errno == ECONNRESET) {
-				// helper hasn't started yet, try again
-				sleep(1);
-				close(sock); // if don't close and reopen sock we get error
-				continue;
-			} else {
-				// a more serious problem, bail.
-				sprintf(err_msg,"Problem connecting to appFirewall-Helper on port %d: %s\n", port, strerror(errno));
-				set_error_msg(err_msg);
-				return -1;
-			}
-		}
-		break;
-	}
-	if (tries == MAXTRIES) {
-		ERR("Failed to connect to appFirewall-Helper after %d tries\n",tries);
-		sprintf(err_msg,"Failed to connect to appFirewall-Helper after %d tries\n",tries);
-		set_error_msg(err_msg);
-		return -1;
-	}
-	INFO("connected.\n");
-	return sock;
-}
-
-int readn(int fd, void* buf, int n) {
- // read n bytes from socket fd
-	int res=0, posn=0;;
-	while (posn<n) {
-		//printf("posn=%d,n=%d\n",posn,n);
-		res = (int)recv(fd, buf+posn, n-res, 0);
-		if (res <= 0) {
-			//printf("res=%d\n",res);
-			return res;
-		}
-		posn+=res;
-	}
-	//printf("return pos=%d\n", posn);
-	return posn;
-}
 
 void *listener(void *ptr) {
 	struct pcap_pkthdr pkthdr;
@@ -115,7 +48,7 @@ void *listener(void *ptr) {
 		// we got a pkt, let's process it ...
 		const int pcap_off = 14; // ethernet link layer offset
 		
-		//clock_t begin = clock();
+		clock_t begin = clock();
 		
 		int version = (*(pkt + pcap_off))>>4; // get IP version
 		int proto, af;
@@ -182,6 +115,9 @@ void *listener(void *ptr) {
 					sprintf(str,"%s UDP/QUIC %s:%d -> %s:%d", c.name, dn, ntohs(udp->uh_sport),
 									c.addr_name, ntohs(udp->uh_dport));
 					append_log(str, &c, 0); // can't block QUIC yet ...
+					
+					clock_t endu = clock();
+					printf("t (UDP not blocked) %f\n",(endu - begin)*1.0 / CLOCKS_PER_SEC);
 				}
 			}
 			continue;
@@ -203,28 +139,23 @@ void *listener(void *ptr) {
 		// on blocklist ?
 		conn_raw_t cr;
 		cr.af=af; cr.src_addr=dst; cr.dst_addr=src; cr.sport=ntohs(tcp->th_dport); cr.dport=ntohs(tcp->th_sport);
+		// the following call is by far the most time-consuminng part of our packet
+		//processing since it usually entails a call to proc_pid.
 		bl_item_t c = create_blockitem_from_addr(&cr, 0);
 
-		//clock_t end01 = clock();
-		//printf("t (b_item) %f ... ",(end01 - begin)*1.0 / CLOCKS_PER_SEC);
+		clock_t end01 = clock();
+		printf("t (b_item) %f ... ",(end01 - begin)*1.0 / CLOCKS_PER_SEC);
 
 		int blocked=0;
 		//if (on_blocklist(c)>=0) { // list lookup, old style
-		if (in_blocklist_htab(&c)!=NULL) { // table lookup, faster !
+		if (in_blocklist_htab(&c,0)!=NULL) { // table lookup, faster !
 			blocked=1;
-		}
-		DEBUG2("%s %s %d\n",c.name,c.addr_name,blocked);
-
-		//clock_t end1 = clock();
-		//printf("(lookup 1) %f ... ",(end1 - begin)*1.0 / CLOCKS_PER_SEC);
-
-		// on hosts list ?
-		if (in_hostlist_htab(c.domain) != NULL) {
+			in_blocklist_htab(&c,1);
+		} else if (in_hostlist_htab(c.domain) != NULL) {
+			// on hosts list
 			blocked = 2;
 		}
-
-		//clock_t end2 = clock();
-		//printf("(lookup 2) %f ... ",(end2 - begin)*1.0 / CLOCKS_PER_SEC);
+		DEBUG2("%s %s %d\n",c.name,c.addr_name,blocked);
 
 		// log the connection
 		char str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN];
@@ -234,8 +165,8 @@ void *listener(void *ptr) {
 		append_log(str, &c, blocked);
 
 		if (!blocked) {
-			//clock_t end = clock();
-			//printf("t (not blocked) %f\n",(end - begin)*1.0 / CLOCKS_PER_SEC);
+			clock_t end = clock();
+			printf("t (not blocked) %f\n",(end - begin)*1.0 / CLOCKS_PER_SEC);
 			continue; // nothing more needs done
 		}
 		
@@ -255,8 +186,8 @@ void *listener(void *ptr) {
 		if (send(r_sock, &ack, sizeof(uint32_t),0)<0) goto err_r;
 		if (send(r_sock, &seq, sizeof(uint32_t),0)<0) goto err_r;
 		
-		//clock_t end = clock();
-		//printf("t (blocked) %f\n",(end - begin)*1.0 / CLOCKS_PER_SEC);
+		clock_t end = clock();
+		printf("t (blocked) %f\n",(end - begin)*1.0 / CLOCKS_PER_SEC);
 		continue;
 
 	err_p:
@@ -291,12 +222,13 @@ void stop_listener() {
 }
 
 int listener_error() {
-	// nb: we can only raise signal that generates error popup from within
-	// the main GUI thread, not from within listener() thread.
+	// nb: we can only raise signal that generates error popup from
+	// within the main GUI thread, not from within listener() thread.
 	// so we get GUI thread to poll listener status using this routing
 	return !is_running; // should really take a lock on this, but its just an int so
 											// almost certainly updated by thread atomically
 }
+
 
 //--------------------------------------------------------
 

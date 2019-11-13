@@ -19,8 +19,9 @@ class PreferenceViewController: NSViewController {
 		["Name": "Goodbye Ads by Jerryn70 (Recommended)","File":"GoodbyeAds.txt",  "URL":"https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Hosts/GoodbyeAds.txt","Tip":"Blocks mobile ads and trackers, including blocks ads by Facebook.  Includes Irish specific trackers such as adservice.google.ie"],
 		["Name": "Dan Pollock's hosts file","File": "hosts","URL":"http://someonewhocares.org/hosts/zero/hosts","Tip":"A balanced ad blocking hosts file.  Try this if other ones are blocking too much."],
 		["Name": "AdAway","File":"hosts.txt","URL":"https://adaway.org/hosts.txt","Tip":"Blocks ads and some analytics but quite limited (only 525 hosts)"],
-		["Name": "hpHosts","File": "ad_servers.txt" ,"URL":"http://hosts-file.net/ad_servers.txt", "Tip":"Ad and trackers list from hpHosts, moderately sizesd (45K hosts)."]
-		//["Name": ,"File": ,"URL":]
+		["Name": "hpHosts","File": "ad_servers.txt" ,"URL":"http://hosts-file.net/ad_servers.txt", "Tip":"Ad and trackers list from hpHosts, moderately sizesd (45K hosts)."],
+		["Name": "Doug's List","File": "dougs_list.txt","URL": "", "Tip": "Based on MAC OS application traffic."]
+		//["Name": "","File": "","URL": "", "Tip": ""]
 	]
 	
 	var EnabledLists : [String] = []
@@ -51,8 +52,7 @@ class PreferenceViewController: NSViewController {
 		
 		// set default host list(s) to use
 		UserDefaults.standard.register(defaults: [
-			"host_lists":["Steve Black Unified"],
-			"host_lists_fnames":["steve_black_unified.txt"]
+			"host_lists":["Goodbye Ads by Jerryn70 (Recommended)"],
 		])
 		// reload enabled lists, persistent across runs of app
 		// and wil default to above if not previously set

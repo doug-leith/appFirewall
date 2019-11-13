@@ -4,6 +4,7 @@
 
 #include <limits.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -28,5 +29,6 @@ void* hashtable_remove(Hashtable *table, const char* key_string);
 void* hashtable_get(Hashtable *table, const char* key_string);
 void* hashtable_put(Hashtable *table, const char* key_string, void *value);
 unsigned long hash(const char *str);
+void dump_hashtable(Hashtable *table);
 
 #endif

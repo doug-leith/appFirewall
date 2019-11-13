@@ -6,6 +6,8 @@ dns_item_t dns_cache[DNS_CACHE_SIZE];
 int dns_cache_size=0;
 int dns_cache_start=0;
 
+#define STR_SIZE 1024
+
 // DNS header struct
 struct dnshdr {
 	uint16_t id;
@@ -58,7 +60,7 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	int row=0;
 	if ( (row=lookup_dns_row(af,addr))>=0) {
 		DEBUG2("append_dns() item %s exists, overwriting.\n", name);
-		strcpy(dns_cache[row%DNS_CACHE_SIZE].name,name);
+		strlcpy(dns_cache[row%DNS_CACHE_SIZE].name,name,BUFSIZE);
 		return;
 	}
 	if (dns_cache_size == DNS_CACHE_SIZE) {
@@ -68,13 +70,14 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	int end = dns_cache_start+dns_cache_size;
 	dns_cache[end%DNS_CACHE_SIZE].af = af;
 	memcpy(&dns_cache[end%DNS_CACHE_SIZE].addr,&addr,sizeof(addr));
-	strcpy(dns_cache[end%DNS_CACHE_SIZE].name,name);
+	strlcpy(dns_cache[end%DNS_CACHE_SIZE].name,name,BUFSIZE);
 	dns_cache_size++;
 }
 
 void save_dns_cache(void) {
-	char path[1024]; strcpy(path,get_path());
-	FILE *fp = fopen(strcat(path,DNSFILE),"w");
+	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,DNSFILE,STR_SIZE);
+	FILE *fp = fopen(path,"w");
 	if (fp==NULL) {
 		WARN("Problem opening %s for writing: %s\n", DNSFILE, strerror(errno));
 		return;
@@ -102,8 +105,9 @@ void save_dns_cache(void) {
 
 void load_dns_cache(void) {
 	//return;
-	char path[1024]; strcpy(path,get_path());
-	FILE *fp = fopen(strcat(path,DNSFILE),"r");
+	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,DNSFILE,STR_SIZE);
+	FILE *fp = fopen(path,"r");
 	if (fp==NULL) {
 		WARN("Problem opening %s for reading: %s\n", DNSFILE, strerror(errno));
 		return;

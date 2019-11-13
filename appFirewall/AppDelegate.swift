@@ -47,6 +47,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		sigaction(SIGCHLD, &action, nil)
 	}
 	
+	func is_helper_running(Name: String)->Bool {
+		// is helper binary there ?
+		let path = "/Library/PrivilegedHelperTools/"+Name
+		//print(path)
+		if !FileManager.default.fileExists(atPath: path) { return false }
+		//print("found")
+		
+		// is it running ?
+		let task = Process();
+		task.launchPath = "/usr/bin/pgrep"
+		task.arguments = [Name]
+		let pipe = Pipe()
+		task.standardOutput = pipe
+		task.launch()
+		let resp = pipe.fileHandleForReading.readDataToEndOfFile()
+		task.waitUntilExit()
+		let pid_str = (String(data: resp, encoding: .utf8) ?? "-1").trimmingCharacters(in: .whitespacesAndNewlines)
+		//print("c=",resp.count,"s=",pid_str)
+		if (resp.count == 0) { return false }
+		let pid = Int(pid_str) ?? -1
+		//print("pid=",pid)
+		if (pid  < 0) { return false }
+		return true
+	}
+	
+	func get_helper_version(Name: String)->Int {
+		// we extract this from the helper Info.plist
+		let path = "/Library/LaunchDaemons/"+Name+".plist"
+		if let dict = NSDictionary(contentsOfFile: path) as? Dictionary<String, AnyObject> {
+				//print(dict)
+				guard let version:Int = dict["Version"] as? Int else {return -1}
+				//print("v=",version)
+				return version
+		} else {
+			return -1
+		}
+	}
+	
 	func start_helper() {
 		// install appFirewall-Helper if not already installed
 		
@@ -56,14 +94,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				UserDefaults.standard.removePersistentDomain(forName: bundleID)
 		}*/
 		
-		let app_version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
-		let helper_version = UserDefaults.standard.string(forKey: "helper_version")
-		os_log(.info, "app version %s, helper version %s", app_version, (helper_version ?? "-"))
-		if (helper_version == app_version) {
-			os_log(.info,"helper already installed")
-			return // helper already installed
+		/*let app_version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
+			let helper_version = UserDefaults.standard.string(forKey: "helper_version")
+			os_log(.info, "app version %s, helper version %s", app_version, (helper_version ?? "-"))*/
+		let kHelperToolName:String = "com.leith.appFirewall-Helper"
+
+		let REQUIRED_VERSION = 1
+		//print("is running=",is_helper_running(Name: kHelperToolName),"v=",get_helper_version(Name: kHelperToolName))
+		if (is_helper_running(Name: kHelperToolName)) {
+			let version = get_helper_version(Name: kHelperToolName)
+			if (version == REQUIRED_VERSION) {
+				os_log(.info, "helper %s, version %d already installed.", kHelperToolName, version)
+				//return // right version of helper already installed
+			}
 		}
-		//return // for running daemon as normal process when testing
 		
 		// ask user for authorisation to install helper
 		var authRef:AuthorizationRef?
@@ -89,17 +133,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			// is extracted and placed in /Library/LaunchDaemons and then loaded. The
 			// helper executable is placed in /Library/PrivilegedHelperTools.
 			// See https://developer.apple.com/documentation/servicemanagement/1431078-smjobbless
-			let kHelperToolName:String = "com.leith.appFirewall-Helper"
 			var cfError: Unmanaged<CFError>? = nil
 			if !SMJobBless(kSMDomainSystemLaunchd, kHelperToolName as CFString, authRef, &cfError) {
 				let blessError = cfError!.takeRetainedValue()
-				exit_popup(msg:"Problem installing help: \(blessError), exiting.")
-
+				exit_popup(msg:"Problem installing helper: \(blessError), exiting.")
 			}else{
 				os_log(.info,"%s installed successfully",kHelperToolName)
-				// and keep a record of fact that its installed so we don't keep
-				// asking to reinstall it !
-				UserDefaults.standard.set(app_version, forKey: "helper_version")
 			}
 		}
 	}
@@ -140,7 +179,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		setup_sigterm_handler()
 		
 		// start pcap listener 
-		start_listener()
+		//start_listener()
+		start_helper_listeners()
 		
 		// schedule house-keeping ...
 		timer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
@@ -214,7 +254,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// Insert code here to tear down your application
 		// NB: don't think this function is *ever* called
 		print("stopping")
-		stop_listener()
+		//stop_listener()
+		stop_helper_listeners()
 	}
 	
 	func applicationDidEnterBackground(_ aNotification: Notification) {
@@ -246,7 +287,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			c.copy(sender: nil)
 		}
 	}
-
-	
 }
 

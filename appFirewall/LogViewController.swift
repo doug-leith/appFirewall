@@ -53,7 +53,8 @@ class LogViewController: NSViewController {
 		let row = sender.tag;
 		var item = get_log_item(Int32(row))
 		let name = String(cString: &item.bl_item.name.0)
-		if name.count==0 {
+		if ((name.count==0) || name.contains("<unknown>") ) {
+			print("Tried to block item with process name <unknown> or ''")
 			return // PID name is missing, we can't add this to block list
 		}
 		//let addr_name = String(cString: &item.bl_item.addr_name.0)

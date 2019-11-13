@@ -5,14 +5,16 @@
 static bl_item_t block_list[MAXBLOCKLIST];
 static int block_list_size=0;
 Hashtable *bl_htab=NULL; // hash table of pointers into block list for fast lookup
+#define STR_SIZE 1024
+int dtrace_misses=0;
 
 bl_item_t conn_to_bl_item(conn_info_t item) {
 		bl_item_t bl;
-		strcpy(bl.name, item.name);
-		strcpy(bl.addr_name, item.addr_name);
+		strlcpy(bl.name, item.name,BUFSIZE);
+		strlcpy(bl.addr_name, item.addr_name,BUFSIZE);
 		bl.af = item.af;
 		memcpy(&bl.addr, &item.addr, sizeof(bl.addr));
-		strcpy(bl.domain, item.domain);
+		strlcpy(bl.domain, item.domain,BUFSIZE);
 		return bl;
 }
 
@@ -40,15 +42,21 @@ int on_blocklist(bl_item_t item) {
 
 char* hash_item(const bl_item_t *item) {
 	// generate table lookup key string from block list item PID name and dest address
-	char* temp = malloc(strlen(item->name)+strlen(item->addr_name_clean)+1);
-	strcpy(temp,item->name);
-	strcat(temp,item->addr_name_clean);
+	int len = (int)(strlen(item->name)+strlen(item->addr_name_clean)+2);
+	if (len>STR_SIZE) len=STR_SIZE; // just to be safe !
+	char* temp = malloc(len);
+	strlcpy(temp,item->name, len);
+	strlcat(temp,item->addr_name_clean, len);
 	return temp;
 }
 
-bl_item_t * in_blocklist_htab(const bl_item_t *item) {
+bl_item_t * in_blocklist_htab(const bl_item_t *item, int debug) {
 	if (block_list_size>0) {
 		char *temp = hash_item(item);
+		if (debug) {
+			//printf("name=%s, addr=%s, hash_item=%s\n", item->name, item->addr_name_clean, temp);
+			//dump_hashtable(bl_htab);
+		}
 		bl_item_t * res = hashtable_get(bl_htab, temp);
 		free(temp);
 		return res;
@@ -69,10 +77,10 @@ void add_blockitem_to_htab(bl_item_t *item) {
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int udp) {
 	// create a new blocklist item from raw connection info (assumed to be
 	// outgoing connection, so src is local and dst is remote)
+	// populates all of blocklist item except for PID name -- since this is the
+	// most costly step by far we separate it out
 	bl_item_t c;
 	memset(&c,0,sizeof(c));
-
-	//clock_t begin = clock();
 
 	c.af=cr->af;
 	// get human readable form of dest adddr
@@ -83,20 +91,26 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int udp) {
 	else
 		memcpy(&c.addr,&cr->dst_addr,sizeof(struct in6_addr));
 	
-	// try to get PID info
-	int res=find_pid(cr,c.name, udp);
-	//clock_t end1 = clock();
+	// can we get PID from dtrace cache ?
+	int res=lookup_dtrace(cr, c.name);
 	if (res==0) {
-		strcpy(c.name,"<unknown>");
+		printf("%s:%d NOT found in dtrace cache (%d misses), trying procinfo.\n", c.addr_name_clean,cr->sport,dtrace_misses);
+		dtrace_misses++;
+		// try to get PID info
+		res=find_pid(cr,c.name, udp);
+		//clock_t end1 = clock();
+		if (res==0) {
+			strcpy(c.name,"<unknown>");
+		}
+	} else {
+		printf("%s:%d found in dtrace cache: %s\n",c.addr_name_clean,cr->sport,c.name);
 	}
+
 	// try to get domain name
 	char* dns =lookup_dns_name(c.af, c.addr);
 	if (dns!=NULL) {
-		strcpy(c.domain,dns);
+		strlcpy(c.domain,dns,BUFSIZE);
 	}
-
-	//clock_t end = clock();
-	//printf("pid2 %f/%f ... ",(end1 - begin)*1.0 / CLOCKS_PER_SEC,(end - begin)*1.0 / CLOCKS_PER_SEC);
 	
 	// and store long form of dest addr (i.e. addr plus dns name)
 	// for use in displaying on GUI etc
@@ -122,6 +136,10 @@ void add_blockitem(bl_item_t item) {
 	//return;
 	if (on_blocklist(item)>=0) {
 		WARN("add_blockitem() item exists.\n");
+		return;
+	}
+	if (strcmp(item.name,"<unknown>")==0) {
+		WARN("add_blockitem() item has process name <unknown>.\n");
 		return;
 	}
 	if (block_list_size < MAXBLOCKLIST) {
@@ -159,8 +177,10 @@ bl_item_t get_blocklist_item(int row) {
 
 void save_blocklist(void) {
 	//printf("saving block_list\n");
-	char path[1024]; strcpy(path,get_path());
-	FILE *fp = fopen(strcat(path,BLOCKLISTFILE),"w");
+	#define STR_SIZE 1024
+	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,BLOCKLISTFILE,STR_SIZE);
+	FILE *fp = fopen(path,"w");
 	//char cwd[1024];
 	//getcwd(cwd, sizeof(cwd));
 	//printf("Current working dir: %s\n", cwd);
@@ -193,8 +213,11 @@ void load_blocklist(void) {
 	//return;
 
 	// open and read file
-	char path[1024]; strcpy(path,get_path());
-	FILE *fp = fopen(strcat(path,BLOCKLISTFILE),"r");
+	#define STR_SIZE 1024
+	char path[STR_SIZE];
+	strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,BLOCKLISTFILE,STR_SIZE);
+	FILE *fp = fopen(path,"r");
 	if (fp==NULL) {
 		WARN("Problem opening %s for reading: %s\n", BLOCKLISTFILE, strerror(errno));
 		return;
