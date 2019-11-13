@@ -78,10 +78,7 @@ int main(int argc, char *argv[]) {
 
 
 	INFO("appFilter-Helper started.\n");
-	
-	// disable SIGPIPE, we'll catch such errors ourselves
-	//signal(SIGPIPE, SIG_IGN);
-		
+			
 	struct sigaction action;
 	memset(&action, 0, sizeof(action));
 	sigemptyset(&action.sa_mask);
@@ -90,9 +87,10 @@ int main(int argc, char *argv[]) {
 	action.sa_handler = SIG_IGN;
 	// disable SIGPIPE, we'll catch such errors ourselves
 	sigaction(SIGPIPE, &action, NULL);
-	// disable SIGCHLD, will be generated if we kill forked
+	// disable SIGCHLD, will be generated when we kill forked
 	// dtrace process but we don't want to respond to it
-	// nb: and we do want to set SA_RESTART for it !
+	// nb: and we do want to set SA_RESTART for it or accept()
+	// is messed up by the signal!
 	sigaction(SIGCHLD, &action, NULL);
 
 	// set up SIGTERM handler

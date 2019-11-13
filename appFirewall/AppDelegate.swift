@@ -101,11 +101,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 		let REQUIRED_VERSION = 1
 		//print("is running=",is_helper_running(Name: kHelperToolName),"v=",get_helper_version(Name: kHelperToolName))
+		//return;
 		if (is_helper_running(Name: kHelperToolName)) {
 			let version = get_helper_version(Name: kHelperToolName)
 			if (version == REQUIRED_VERSION) {
 				os_log(.info, "helper %s, version %d already installed.", kHelperToolName, version)
-				//return // right version of helper already installed
+				return // right version of helper already installed
 			}
 		}
 		
