@@ -86,3 +86,4 @@ inline int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2)
 		return (memcmp(&addr1->s6_addr, &addr2->s6_addr, 16)==0);
 	}
 }
+

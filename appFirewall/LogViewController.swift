@@ -60,7 +60,8 @@ class LogViewController: NSViewController {
 		//let addr_name = String(cString: &item.bl_item.addr_name.0)
 		//print("name=",name, addr_name)
 		var on_list: Int = 0
-		if (on_blocklist(item.bl_item) >= 0) {
+		//if (on_blocklist(item.bl_item) >= 0) {
+		if (in_blocklist_htab(&item.bl_item, 0) != nil) {
 			on_list = 1
 		}
 		if (on_list==1) {
@@ -100,13 +101,13 @@ extension LogViewController: NSTableViewDelegate {
 		// we display log in reverse order, i.e. youngest first
 		let log_last = Int(get_log_size())-1
 		if (row>log_last) { return nil	}
-		let item = get_log_item(Int32(log_last-row))
+		var item = get_log_item(Int32(log_last-row))
 		let time_str = String(cString: item.time_str)
 		let log_line = String(cString: item.log_line)
 		
 		let blocked = Int(item.blocked)
 		var on_list: Int = 0
-		if (on_blocklist(item.bl_item) >= 0) {
+		if (in_blocklist_htab(&item.bl_item, 0) != nil) {
 			on_list = 1
 		}
 		
@@ -163,6 +164,10 @@ extension LogViewController: NSTableViewDelegate {
 		let pasteBoard = NSPasteboard.general
 		pasteBoard.clearContents()
 		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
+	}
+	
+	func selectall(sender: AnyObject?){
+		tableView.selectAll(nil)
 	}
 	
 }

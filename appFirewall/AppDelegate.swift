@@ -32,6 +32,52 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		//print("clear log")
 		clear_log()
 	}
+		
+	@IBAction func copy(_ sender: Any) {
+			// handle Copy menu item by passing on to relevant view
+			// (automated handling doesn't work for some reason)
+			//print("copy AppDelegate")
+			let app = NSApplication.shared
+			//print(app.mainWindow, app.isHidden)
+			if (app.mainWindow == nil){ return }
+			guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { return }
+			let i = tc.selectedTabViewItemIndex
+			let v = tc.tabViewItems[i] // the currently active TabViewItem
+			//print(tc.tabViewItems)
+			//print(v.label)
+			if (v.label == "Active Connections") {
+				let c = v.viewController as! ActiveConnsViewController
+				c.copy(sender: nil)
+			} else if (v.label == "Block List") {
+				let c = v.viewController as! BlockListViewController
+				c.copy(sender: nil)
+			} else if (v.label == "Connection Log") {
+				let c = v.viewController as! LogViewController
+				c.copy(sender: nil)
+			}
+		}
+	
+	@IBAction func SelectAll(_ sender: Any) {
+		// handle click on "Select All" menu entry
+			let app = NSApplication.shared
+			//print(app.mainWindow, app.isHidden)
+			if (app.mainWindow == nil){ return }
+			guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { return }
+			let i = tc.selectedTabViewItemIndex
+			let v = tc.tabViewItems[i] // the currently active TabViewItem
+			//print(tc.tabViewItems)
+			//print(v.label)
+				if (v.label == "Active Connections") {
+				let c = v.viewController as! ActiveConnsViewController
+				c.selectall(sender:nil)
+			} else if (v.label == "Block List") {
+				let c = v.viewController as! BlockListViewController
+				c.selectall(sender:nil)
+			} else if (v.label == "Connection Log") {
+				let c = v.viewController as! LogViewController
+				c.selectall(sender:nil)
+			}
+		}
 	
 	func setup_sigterm_handler() {
 		// if a C routine fatally fails it raises a SIGCHLD signal
@@ -100,8 +146,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		let kHelperToolName:String = "com.leith.appFirewall-Helper"
 
 		let REQUIRED_VERSION = 1
-		//print("is running=",is_helper_running(Name: kHelperToolName),"v=",get_helper_version(Name: kHelperToolName))
-		//return;
 		if (is_helper_running(Name: kHelperToolName)) {
 			let version = get_helper_version(Name: kHelperToolName)
 			if (version == REQUIRED_VERSION) {
@@ -265,28 +309,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("going into background")
 	}
 
-	@IBAction func copy(_ sender: Any) {
-		// handle Copy menu item by passing on to relevant view
-		// (automated handling doesn't work for some reason)
-		//print("copy AppDelegate")
-		let app = NSApplication.shared
-		//print(app.mainWindow, app.isHidden)
-		if (app.mainWindow == nil){ return }
-		guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { return }
-		let i = tc.selectedTabViewItemIndex
-		let v = tc.tabViewItems[i] // the currently active TabViewItem
-		//print(tc.tabViewItems)
-		//print(v.label)
-		if (v.label == "Active Connections") {
-			let c = v.viewController as! ActiveConnsViewController
-			c.copy(sender: nil)
-		} else if (v.label == "Block List") {
-			let c = v.viewController as! BlockListViewController
-			c.copy(sender: nil)
-		} else if (v.label == "Connection Log") {
-			let c = v.viewController as! LogViewController
-			c.copy(sender: nil)
-		}
-	}
 }
 

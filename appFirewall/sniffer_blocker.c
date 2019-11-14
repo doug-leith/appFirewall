@@ -7,11 +7,14 @@ static pthread_t thread; // handle to listener thread
 static int r_sock, p_sock;
 static int is_running=0;
 
+// cache recent UDP connections so only log new ones
+// (since no internal ESTABLISHED state held, unlike TCP)
 typedef struct udp_conn_t {
 	int af;
 	struct in6_addr dst;
 	int sport, dport;
 } udp_conn_t;
+
 #define MAXUDP 50
 udp_conn_t udp_cache[MAXUDP];
 int udp_cache_size=0, udp_cache_start=0;
@@ -81,10 +84,11 @@ void *listener(void *ptr) {
 				dns_sniffer(&pkthdr,nexth);
 				continue;
 			} else if (dport == 443) {
-				// likely to be quic.  can't block it yet, but can log the connection
+				// likely to be quic.  can't block it yet, but can log the
+				// connection
 				//printf("UDP %d/%d %d\n",sport, dport,udp_cache_size);
 				conn_raw_t cr;
-				cr.af=af; cr.src_addr=src; cr.dst_addr=dst; cr.sport=sport; cr.dport=dport;
+				cr.af=af; cr.src_addr=src; cr.dst_addr=dst; cr.sport=sport; cr.dport=dport; cr.udp=1;
 				int i;
 				for (i=udp_cache_start; i<udp_cache_start+udp_cache_size; i++) {
 					if (udp_cache[i%MAXUDP].af != af) continue;
@@ -108,13 +112,17 @@ void *listener(void *ptr) {
 					udp_cache_size++;
 					
 					// carry out PID and DNS lookup
-					bl_item_t c = create_blockitem_from_addr(&cr, 1);
-					
+					bl_item_t c = create_blockitem_from_addr(&cr);
 					// log connection
-					char str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN];
-					sprintf(str,"%s UDP/QUIC %s:%d -> %s:%d", c.name, dn, ntohs(udp->uh_sport),
-									c.addr_name, ntohs(udp->uh_dport));
-					append_log(str, &c, 0); // can't block QUIC yet ...
+					char dns[BUFSIZE]={0};
+					if (strlen(c.domain)) {
+						sprintf(dns,"%s (%s)",c.addr_name,c.domain);
+					}
+					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
+					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
+					sprintf(str,"%s -> UDP/QUIC %s:%d", c.name, c.domain, dport);
+					sprintf(long_str,"%s UDP/QUIC %s:%d -> %s:%d", c.name, sn, sport, dns, dport);
+					append_log(str, long_str, &c, 0); // can't block QUIC yet ...
 					
 					clock_t endu = clock();
 					printf("t (UDP not blocked) %f\n",(endu - begin)*1.0 / CLOCKS_PER_SEC);
@@ -123,7 +131,7 @@ void *listener(void *ptr) {
 			continue;
 		}
 		
-		if (proto != IPPROTO_TCP) continue; // not a TCP packet, shouldn't happen
+		if (proto != IPPROTO_TCP) continue; // shouldn't happen
 		
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
 		
@@ -132,25 +140,17 @@ void *listener(void *ptr) {
 			continue;
 		}
 
-		//clock_t end0 = clock();
-		//printf("t (init) %f ... ",(end0 - begin)*1.0 / CLOCKS_PER_SEC);
-
 		// SYN-ACK, so src is remote and dst is local
 		// on blocklist ?
 		conn_raw_t cr;
-		cr.af=af; cr.src_addr=dst; cr.dst_addr=src; cr.sport=ntohs(tcp->th_dport); cr.dport=ntohs(tcp->th_sport);
-		// the following call is by far the most time-consuminng part of our packet
-		//processing since it usually entails a call to proc_pid.
-		bl_item_t c = create_blockitem_from_addr(&cr, 0);
-
-		clock_t end01 = clock();
-		printf("t (b_item) %f ... ",(end01 - begin)*1.0 / CLOCKS_PER_SEC);
+		cr.af=af; cr.src_addr=dst; cr.dst_addr=src; cr.udp=0; cr.sport=ntohs(tcp->th_dport); cr.dport=ntohs(tcp->th_sport);
+		
+		bl_item_t c = create_blockitem_from_addr(&cr);
 
 		int blocked=0;
-		//if (on_blocklist(c)>=0) { // list lookup, old style
 		if (in_blocklist_htab(&c,0)!=NULL) { // table lookup, faster !
 			blocked=1;
-			in_blocklist_htab(&c,1);
+			//in_blocklist_htab(&c,1); // dumps hash table, for debugging
 		} else if (in_hostlist_htab(c.domain) != NULL) {
 			// on hosts list
 			blocked = 2;
@@ -158,11 +158,15 @@ void *listener(void *ptr) {
 		DEBUG2("%s %s %d\n",c.name,c.addr_name,blocked);
 
 		// log the connection
-		char str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN];
+		char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN];
 		inet_ntop(af, &dst, dn, INET6_ADDRSTRLEN);
-		sprintf(str,"%s %s:%d -> %s:%d", c.name, dn, ntohs(tcp->th_dport),
-						c.addr_name, ntohs(tcp->th_sport));
-		append_log(str, &c, blocked);
+		char dns[BUFSIZE]={0};
+		if (strlen(c.domain)) {
+			sprintf(dns,"%s (%s)",c.addr_name,c.domain);
+		}
+		sprintf(str,"%s -> %s:%d", c.name, c.domain, cr.dport);
+		sprintf(long_str,"%s %s:%d -> %s:%d", c.name, dn, cr.dport, dns, cr.sport);
+		append_log(str, long_str, &c, blocked);
 
 		if (!blocked) {
 			clock_t end = clock();
@@ -177,7 +181,7 @@ void *listener(void *ptr) {
 		uint16_t sport=ntohs(tcp->th_sport);
 		// ask helper process (which has root permissions) to send
 		// RST packet via raw socket
-		DEBUG2("sending af=%d, sport=%d, dport=%d, ack=%d, seq=%d, %s -> %s\n",af,dport, sport,seq,ack,dn,c.addr_name_clean);
+		DEBUG2("sending af=%d, sport=%d, dport=%d, ack=%d, seq=%d, %s -> %s\n",af,dport, sport,seq,ack,dn,c.addr_name);
 		if (send(r_sock, &af, sizeof(int),0)<0) goto err_r;
 		if (send(r_sock, &dst, sizeof(struct in6_addr),0)<0) goto err_r;
 		if (send(r_sock, &dport, sizeof(uint16_t),0)<0) goto err_r;
@@ -225,8 +229,9 @@ int listener_error() {
 	// nb: we can only raise signal that generates error popup from
 	// within the main GUI thread, not from within listener() thread.
 	// so we get GUI thread to poll listener status using this routing
-	return !is_running; // should really take a lock on this, but its just an int so
-											// almost certainly updated by thread atomically
+	return !is_running;
+	// should really take a lock on is_running var, but its just an int so
+	// almost certainly updated by thread atomically
 }
 
 

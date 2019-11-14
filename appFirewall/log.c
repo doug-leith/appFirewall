@@ -24,8 +24,8 @@ log_line_t get_log_item(int row) {
 	return log_lines[(row+log_start)%MAXLOGSIZE];
 }
 
-void append_log(char* str, struct bl_item_t* bl_item ,int blocked) {
-	changed = 1; // record fact that log has been updated
+void append_log(char* str, char* long_str, struct bl_item_t* bl_item ,int blocked) {
+	changed = 1; // record for GUI fact that log has been updated
 	if (log_size == MAXLOGSIZE) {
 		free(log_lines[log_start%MAXLOGSIZE].log_line);
 		free(log_lines[log_start%MAXLOGSIZE].time_str);
@@ -37,7 +37,6 @@ void append_log(char* str, struct bl_item_t* bl_item ,int blocked) {
 	int len = (int)strlen(str)+1;
 	if (len > STR_SIZE) len = STR_SIZE;
 	log_lines[end].log_line = calloc(1,len);
-	//printf("append_log(): start strcpy()\n");
 	strlcpy(log_lines[end].log_line,str,len);
 	time_t t;
 	time(&t);
@@ -53,12 +52,11 @@ void append_log(char* str, struct bl_item_t* bl_item ,int blocked) {
 	
 	// and update human-readable log file
 	if (fp_txt) {
-		fprintf(fp_txt,"%s\t%s\n", log_lines[end].time_str, log_lines[end].log_line);
+		fprintf(fp_txt,"%s\t%s\n", log_lines[end].time_str, long_str);
 	} else {
 		WARN("Problem appending to %s, re-opening: %s\n", LOGFILE_TXT, strerror(errno));
 		char path[STR_SIZE];
-		strlcpy(path,get_path(),STR_SIZE);
-		strlcat(path,LOGFILE,STR_SIZE);
+		strlcpy(path,get_path(),STR_SIZE); strlcat(path,LOGFILE,STR_SIZE);
 		fp_txt = fopen (path,"a");
 		if (fp_txt==NULL) {
 			WARN("Problem re-opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));

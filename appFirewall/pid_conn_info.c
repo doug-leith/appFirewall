@@ -15,7 +15,8 @@ static int last_pid=-1; // cache last PID looked up, to try to speed up find_con
 
 inline int is_ipv4_localhost(struct in6_addr* addr){
 	const uint32_t dst_addr=((struct in_addr*)addr)->s_addr;
-	return (dst_addr==htonl(INADDR_LOOPBACK));
+	return (dst_addr==htonl(INADDR_LOOPBACK))
+					|| (dst_addr==htonl(INADDR_ANY));
 }
 
 inline int is_ipv6_localhost(struct in6_addr* addr){
@@ -28,7 +29,7 @@ int get_pid_name(int pid, char* name) {
 		struct proc_bsdshortinfo proc;
     int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &proc, 				PROC_PIDT_SHORTBSDINFO_SIZE);
     if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
-        //WARN("Cannot get process info for PID %d, likely has died.\n",pid);
+				INFO("Cannot get process info for PID %d, likely has died.\n",pid);
         return -1;
     }
     strlcpy(name,proc.pbsi_comm,MAXCOMLEN);
@@ -39,9 +40,10 @@ int get_pid_name(int pid, char* name) {
 // swift interface
 
 int refresh_active_conns(int localhost) {
-	// called by GUI to update list of active process and network connections
-	// (held in conns global var).
-	// returns 1 if set of active connections has changed, else 0
+	// called by GUI to update list of active process
+	// and network connectionsb(held in conns global var).
+	// returns 1 if set of active connections has changed,
+	// else 0, so that GUI knows whether it has to redraw itself
 	int changed = 0;
 	
 	DEBUG2("refresh_active_conns()\n");
@@ -108,54 +110,42 @@ int refresh_active_conns(int localhost) {
 			c.pid=pid;
 			strlcpy(c.name, name, MAXCOMLEN);
 			struct in_sockinfo* sockinfo = &socketInfo.psi.soi_proto.pri_tcp.tcpsi_ini;
-			c.af=socketInfo.psi.soi_family;
-			memset(&c.src_addr,0,sizeof(struct in6_addr));
-			memset(&c.dst_addr,0,sizeof(struct in6_addr));
+			c.raw.af=socketInfo.psi.soi_family;
+			memset(&c.raw.src_addr,0,sizeof(struct in6_addr));
+			memset(&c.raw.dst_addr,0,sizeof(struct in6_addr));
 			if (sockinfo->insi_vflag==INI_IPV4) { // IPv4
-				memcpy(&c.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
-				memcpy(&c.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
-				if (!localhost && is_ipv4_localhost(&c.dst_addr))
+				memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
+				memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
+				if (!localhost && is_ipv4_localhost(&c.raw.dst_addr))
 					continue; // ignore localhost .
 			} else { // IPv6
-				memcpy(&c.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
-				memcpy(&c.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
-				if (!localhost && is_ipv6_localhost(&c.dst_addr))
+				memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
+				memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
+				if (!localhost && is_ipv6_localhost(&c.raw.dst_addr))
 					continue; // ignore localhost .
 			}
-			inet_ntop(c.af, &c.src_addr, c.src_name, INET6_ADDRSTRLEN);
-			inet_ntop(c.af, &c.dst_addr, c.dst_name, INET6_ADDRSTRLEN);
+			inet_ntop(c.raw.af, &c.raw.src_addr, c.src_addr_name, INET6_ADDRSTRLEN);
+			inet_ntop(c.raw.af, &c.raw.dst_addr, c.dst_addr_name, INET6_ADDRSTRLEN);
 			// ignore IPv6 link-local connections
 			char* mask="fe80:"; 
-			if (strncmp(mask, c.src_name, strlen(mask)) == 0) {
+			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
 				continue; // ignore IPv6 link local addresses
 			}
-			mask="0.0.0.0";
-			if (strncmp(mask, c.src_name, strlen(mask)) == 0) {
-				continue; // ignore IPV4 link local addresses
-			}
-			c.sport =  (int)ntohs(sockinfo->insi_lport);
-			c.dport = (int)ntohs(sockinfo->insi_fport);
+			c.raw.sport =  (int)ntohs(sockinfo->insi_lport);
+			c.raw.dport = (int)ntohs(sockinfo->insi_fport);
 			
-			char *state_str="(ESTABLISHED)";
-			if (socketInfo.psi.soi_kind == SOCKINFO_IN) {
-				if (c.dport != 443) continue; // we only log UDP to port 443 just now
-				state_str="(UDP/QUIC)";
-			}
+			// we only log UDP to port 443 just now (likely QUIC)
+			c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN)
+									&& (c.raw.dport == 443);
 	
-			DEBUG2("%s(%d): %s:%d -> %s:%d %s\n", c.name, c.pid, c.src_name, c.sport, c.dst_name, c.dport, state_str);
+			DEBUG2("%s(%d): %s:%d -> %s:%d %d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
 
-			char* dns=lookup_dns_name(c.af,c.dst_addr);
+			char* dns=lookup_dns_name(c.raw.af,c.raw.dst_addr);
 			char dns2[BUFSIZE]={0};
 			if (dns!=NULL) {
+				strlcpy(c.domain,dns,BUFSIZE);
 				sprintf(dns2," (%s)",dns);
 			}
-
-			strlcpy(c.domain,dns2,BUFSIZE);
-			sprintf(c.pid_name,"%s(%d)",c.name,c.pid);
-			sprintf(c.conn_name,"%s:%d -> %s%s:%d %s",
-								c.src_name,c.sport,
-								c.dst_name, dns2, c.dport, state_str);
-			sprintf(c.addr_name,"%s%s",c.dst_name, dns2);
 			if (k < num_conns) {
 				if (memcmp(&conns[k],&c,sizeof(conns[k]))==0) {
 					// no change to this entry
@@ -177,18 +167,8 @@ int refresh_active_conns(int localhost) {
 	return changed;
 }
 
-conn_info_t get_conns(int row) {
-	conn_info_t res;
-	memset(&res,0,sizeof(res));
-	res.pid = conns[row].pid;
-	res.af = conns[row].af;
-	res.addr = conns[row].dst_addr;
-	strlcpy(res.name,conns[row].name,BUFSIZE);
-	strlcpy(res.pid_name,conns[row].pid_name,BUFSIZE);
-	strlcpy(res.addr_name,conns[row].addr_name,BUFSIZE);
-	strlcpy(res.conn_name,conns[row].conn_name,BUFSIZE);
-	strlcpy(res.domain,conns[row].domain,BUFSIZE);
-	return res;
+conn_t get_conns(int row) {
+	return conns[row];
 }
 
 int get_num_conns() {
@@ -198,7 +178,7 @@ int get_num_conns() {
 //--------------------------------------------------------
 // sniffer_blocker helpers
 
-int find_pid_conn(conn_raw_t *c, char* name, int pid, int udp) {
+/*int find_pid_conn(conn_raw_t *c, char* name, int pid, int udp) {
 	// get network connections associated with process pid and look for match with conn c
 	
 	// Figure out the size of the buffer needed to hold the list of open FDs
@@ -236,25 +216,25 @@ int find_pid_conn(conn_raw_t *c, char* name, int pid, int udp) {
 			continue; // not a UDP socket
 
 		struct in_sockinfo* sockinfo = &socketInfo.psi.soi_proto.pri_tcp.tcpsi_ini;
-		ci.af=socketInfo.psi.soi_family;
-		ci.sport =  (int)ntohs(sockinfo->insi_lport);
-		ci.dport = (int)ntohs(sockinfo->insi_fport);
-		if ( ( (c->dport != ci.dport) && (c->dport !=ci.sport) )
-				|| ( (c->sport != ci.dport) && (c->sport !=ci.sport) )
-				|| (c->af != ci.af) ) {
+		ci.raw.af=socketInfo.psi.soi_family;
+		ci.raw.sport =  (int)ntohs(sockinfo->insi_lport);
+		ci.raw.dport = (int)ntohs(sockinfo->insi_fport);
+		if ( ( (c->dport != ci.raw.dport) && (c->dport !=ci.raw.sport) )
+				|| ( (c->sport != ci.raw.dport) && (c->sport !=ci.raw.sport) )
+				|| (c->af != ci.raw.af) ) {
 			continue; // not a match
 		}
 		
 		if (sockinfo->insi_vflag==INI_IPV4) { // IPv4
-			memcpy(&ci.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
-			memcpy(&ci.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
+			memcpy(&ci.raw.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
+			memcpy(&ci.raw.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
 		} else { // IPv6
-			memcpy(&ci.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
-			memcpy(&ci.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
+			memcpy(&ci.raw.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
+			memcpy(&ci.raw.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
 		}
 		
-		if ( (are_addr_same(c->af,&c->dst_addr,&ci.dst_addr)) ||
-				(are_addr_same(c->af,&c->src_addr,&ci.dst_addr)) )  {
+		if ( (are_addr_same(c->af,&c->dst_addr,&ci.raw.dst_addr)) ||
+				(are_addr_same(c->af,&c->src_addr,&ci.raw.dst_addr)) )  {
 			return 1;  // found match !
 		}
 	}
@@ -291,48 +271,58 @@ int find_conn(conn_raw_t *c, char* name, int *pid_hint, int udp) {
 	*pid_hint = -1; // not found
 	return 0;
 }
+*/
 
 int _find_pid_name(conn_raw_t *c) {
-	// find name of process associated with a network connection tuple by walking list
-	// of cached connections
+	// find name of process associated with a network connection tuple by
+	// walking list of cached connections
 	int i;
 	for (i=0; i<num_conns; i++) {
-		//printf("%d/%d %d/%d\n",sport,conns[i].sport,dport,conns[i].dport);
-		if ((c->dport != conns[i].dport) && (c->dport !=conns[i].sport) ) continue;
-		if ((c->sport != conns[i].dport) && (c->sport !=conns[i].sport) ) continue;
-		if (c->af!=conns[i].af) continue;
-		//printf("%s %s\n",conns[i].conn_name,inet_ntoa(dst_addr));
-		if (are_addr_same(c->af,&c->dst_addr,&conns[i].dst_addr)) {
+		if (c->af!=conns[i].raw.af) continue;
+		if ((c->dport != conns[i].raw.dport) && (c->dport !=conns[i].raw.sport) ) continue;
+		if ((c->sport != conns[i].raw.dport) && (c->sport !=conns[i].raw.sport) ) continue;
+		if (are_addr_same(c->af,&c->dst_addr,&conns[i].raw.dst_addr)) {
 			return i;
 		}
 	}
 	return -1;
 }
 
-int find_pid(conn_raw_t *c, char*name, int udp){
+int find_pid(conn_raw_t *c, char*name){
 	// find name of process associated with a network connection tuple
-	// (assumed to be an outgoing tuple, so src is local addr and dst is remote)
+	// (assumed to be an outgoing tuple, so src is local addr and dst
+	// is remote)
 
 	// start by trying cached list of connections, v fast if we get match
 	int res = _find_pid_name(c);
-	if (res>=0) {
+	if (res>=0) { // found it !
 		last_pid = conns[res].pid;
 		strlcpy(name,conns[res].name,BUFSIZE);
 		return 1;
 	}
 
-	// didn't find PID, usual with new connections (SYN-ACK).  make syscall to query current
-	// list of actice questions, can be slow so we try to help speed things up by
-	// caching last PID and using a streamlined search routine find_conn()
+	// didn't find PID, usual with new connections (SYN-ACK).  make syscall
+	// to query current list of active questions, can be slow
 	char dn[INET6_ADDRSTRLEN];
 	inet_ntop(c->af, &c->dst_addr, dn, INET6_ADDRSTRLEN);
+	/*
+	// more streamlined call, often much faster.  superceded by use of
+	// dtrace though, so commented out to simplify code that needs to be
+	// maintained
 	res = find_conn(c,name, &last_pid, udp);
 	if (res==1) {
 		DEBUG2("find_pid() retrying for %s ... found\n", dn);
 		return 1;
+	}*/
+	refresh_active_conns(0);
+	res = _find_pid_name(c);
+	if (res>=0) { // found it !
+		last_pid = conns[res].pid;
+		strlcpy(name,conns[res].name,BUFSIZE);
+		return 1;
 	}
-	// couldn't find PID.  likely was an emphemeral process that opening a brief connection and has gone away
-	// by time we get here (a few ms typically, and never more than 10ms).
+	// couldn't find PID.  likely was an emphemeral process that opening a
+	// brief connection and has gone away by time we get here (a few ms typically, and never more than 10ms).
 	INFO("find_pid() retrying for %s ... not found\n", dn);
 	return 0;
 }

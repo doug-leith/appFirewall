@@ -60,7 +60,7 @@ extension BlockListViewController: NSTableViewDelegate {
 		var item = get_blocklist_item(Int32(row))
 		let name = String(cString: &item.name.0)
 		let addr_name = String(cString: &item.addr_name.0)
-		return name+" "+addr_name
+		return name+", "+addr_name
 	}
 	
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
@@ -71,14 +71,18 @@ extension BlockListViewController: NSTableViewDelegate {
 		var item = get_blocklist_item(Int32(row))
 		let name = String(cString: &item.name.0)
 		let addr_name = String(cString: &item.addr_name.0)
-		//print(row, pid_name, name, addr_name)
+		let domain = String(cString: &item.domain.0)
 		
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "ProcessCell"
 			content=name
 		} else if tableColumn == tableView.tableColumns[1] {
 			cellIdentifier = "ConnCell"
-			content=addr_name
+			if (domain.count>0) {
+				content=domain
+			} else {
+				content=addr_name
+			}
 		} else if tableColumn == tableView.tableColumns[2] {
 			cellIdentifier = "ButtonCell"
 		}
@@ -105,5 +109,9 @@ extension BlockListViewController: NSTableViewDelegate {
 		let pasteBoard = NSPasteboard.general
 		pasteBoard.clearContents()
 		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
+	}
+	
+	func selectall(sender: AnyObject?){
+		tableView.selectAll(nil)
 	}
 }

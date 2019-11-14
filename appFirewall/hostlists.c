@@ -78,7 +78,7 @@ void load_hostsfile(const char* fname) {
 			host_list_size++;
 	}
 	fclose(fp);
-	printf("loaded %d entries\n",host_list_size);
+	INFO("loaded %d entries\n",host_list_size);
 	if (line) free(line);
 }
 

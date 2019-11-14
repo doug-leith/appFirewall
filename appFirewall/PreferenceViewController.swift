@@ -14,14 +14,15 @@ class PreferenceViewController: NSViewController {
 	// available lists, hard-wired for now ...
 	let HostNameLists : [[String: String]] =
 	[
-		["Name":"Energized Blu", "File": "energized_blu.txt", "URL": "https://block.energized.pro/blu/formats/hosts","Tip":"A large, quite complete list (231K entries)."],
-		["Name":"Steve Black Unified", "File": "steve_black_unified.txt", "URL": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts","Tip":"A good choice that tries to keep balance between blocking effectiveness and false positives.  Includes Dan Pollock's, MVPS, AdAway lists amongst other.  However, doesn't cover Irish specific trackers such as adservice.google.ie"],
-		["Name": "Goodbye Ads by Jerryn70 (Recommended)","File":"GoodbyeAds.txt",  "URL":"https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Hosts/GoodbyeAds.txt","Tip":"Blocks mobile ads and trackers, including blocks ads by Facebook.  Includes Irish specific trackers such as adservice.google.ie"],
-		["Name": "Dan Pollock's hosts file","File": "hosts","URL":"http://someonewhocares.org/hosts/zero/hosts","Tip":"A balanced ad blocking hosts file.  Try this if other ones are blocking too much."],
-		["Name": "AdAway","File":"hosts.txt","URL":"https://adaway.org/hosts.txt","Tip":"Blocks ads and some analytics but quite limited (only 525 hosts)"],
+		["Name":"Energized Blu", "File": "energized_blu.txt", "URL": "https://block.energized.pro/blu/formats/hosts","Tip":"A large, quite complete list (231K entries).", "Type":"Hostlist"],
+		["Name":"Steve Black Unified", "File": "steve_black_unified.txt", "URL": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts","Tip":"A good choice that tries to keep balance between blocking effectiveness and false positives.  Includes Dan Pollock's, MVPS, AdAway lists amongst other.  However, doesn't cover Irish specific trackers such as adservice.google.ie", "Type":"Hostlist"],
+		["Name": "Goodbye Ads by Jerryn70 (Recommended)","File":"GoodbyeAds.txt",  "URL":"https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Hosts/GoodbyeAds.txt","Tip":"Blocks mobile ads and trackers, including blocks ads by Facebook.  Includes Irish specific trackers such as adservice.google.ie", "Type":"Hostlist"],
+		["Name": "Dan Pollock's hosts file","File": "hosts","URL":"http://someonewhocares.org/hosts/zero/hosts","Tip":"A balanced ad blocking hosts file.  Try this if other ones are blocking too much.", "Type":"Hostlist"],
+		["Name": "AdAway","File":"hosts.txt","URL":"https://adaway.org/hosts.txt","Tip":"Blocks ads and some analytics but quite limited (only 525 hosts)", "Type":"Hostlist"],
 		["Name": "hpHosts","File": "ad_servers.txt" ,"URL":"http://hosts-file.net/ad_servers.txt", "Tip":"Ad and trackers list from hpHosts, moderately sizesd (45K hosts)."],
-		["Name": "Doug's List","File": "dougs_list.txt","URL": "", "Tip": "Based on MAC OS application traffic."]
-		//["Name": "","File": "","URL": "", "Tip": ""]
+		["Name": "Doug's Host List","File": "dougs_list.txt","URL": "", "Tip": "Based on MAC OS application traffic.", "Type":"Hostlist"],
+		["Name": "Doug's Block List","File": "dougs_blocklist.txt","URL": "", "Tip": "Based on MAC OS application traffic.", "Type":"Blocklist"]
+		//["Name": "","File": "","URL": "", "Tip": "", "Type":"Hostlist"]
 	]
 	
 	var EnabledLists : [String] = []
@@ -67,7 +68,13 @@ class PreferenceViewController: NSViewController {
 			guard EnabledLists.firstIndex(of: item["Name"]!) != nil else { continue };
 			guard let fname = item["File"] else { continue };
 			print("adding ", filePath+"/BlackLists/"+fname)
-			load_hostsfile(filePath+"/BlackLists/"+fname); // reads in file and adds to hosts list table
+			if (item["Type"]=="Hostlist") {
+				// read in file and adds to hosts list table
+				load_hostsfile(filePath+"/BlackLists/"+fname);
+			} else if (item["Type"]=="Blocklist") {
+				// read in file and adds to hosts list table
+				load_blocklistfile(filePath+"/BlackLists/"+fname);
+			}
 		}
 	}
 	

@@ -54,13 +54,15 @@ class ActiveConnsViewController: NSViewController {
 	
 	@objc func BlockBtnAction(sender : NSButton!) {
 		let row = sender.tag
-		let item = get_conns(Int32(row))
-		if (on_blocklist(conn_to_bl_item(item)) >= 0) {
+		var item = get_conns(Int32(row))
+		var bl_item = conn_to_bl_item(&item)
+		//if (on_blocklist(conn_to_bl_item(item)) >= 0) {
+		if (in_blocklist_htab(&bl_item, 0) != nil) {
 			// blocked connection, let's unblock it
-			del_blockitem(conn_to_bl_item(item))
+			del_blockitem(conn_to_bl_item(&item))
 		} else {
 			// open connection, let's block it
-			add_blockitem(conn_to_bl_item(item))
+			add_blockitem(conn_to_bl_item(&item))
 		}
 		tableView.reloadData()
 	}
@@ -76,10 +78,18 @@ extension ActiveConnsViewController: NSTableViewDataSource {
 extension ActiveConnsViewController: NSTableViewDelegate {
 	
 	func getRowText(row: Int) -> String {
-		var item: conn_info_t = get_conns(Int32(row))
-		let pid_name = String(cString: &item.pid_name.0)
-		let conn_name = String(cString: &item.conn_name.0)
-		return pid_name+" "+conn_name
+		var item: conn_t = get_conns(Int32(row))
+		
+		let pid_name = String(cString: &item.name.0)+" ("+String(Int(item.pid))+")"
+		
+		let domain = String(cString: &item.domain.0)
+		var content: String=""
+		if (domain.count>0) {
+			content=domain+":"+String(Int(item.raw.dport))
+		} else {
+			content=String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
+		}
+		return pid_name+" "+content
 	}
 	
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
@@ -87,29 +97,31 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		var cellIdentifier: String = ""
 		var content: String = ""
 		
-		var item: conn_info_t = get_conns(Int32(row))
-		let pid_name = String(cString: &item.pid_name.0)
-		let conn_name = String(cString: &item.conn_name.0)
-		var bl_item = conn_to_bl_item(item)
+		var item: conn_t = get_conns(Int32(row))
+		var bl_item = conn_to_bl_item(&item)
 		let domain = String(cString: &bl_item.domain.0)
 		//print("active ", domain)
 		
 		var blocked: Int = 0
-		if (on_blocklist(conn_to_bl_item(item)) >= 0) {
-		//if (in_blocklist_htab(&bl_item) != nil) { // table lookup, faster !
+		if (in_blocklist_htab(&bl_item, 0) != nil) {
 			blocked = 1
 		} else if (in_hostlist_htab(domain) != nil) {
 			blocked = 2
 		}
 		
-		let udp : Bool = conn_name.contains("QUIC")
-		
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "ProcessCell"
-			content=pid_name
+			content=String(cString: &item.name.0)+" ("+String(Int(item.pid))+")"
 		} else if tableColumn == tableView.tableColumns[1] {
 			cellIdentifier = "ConnCell"
-			content=conn_name
+			if (domain.count>0) {
+				content=domain+":"+String(Int(item.raw.dport))
+			} else {
+				content=String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
+			}
+			if (Int(item.raw.udp)==1) {
+				content = content + " (UDP/QUIC)"
+			} 
 		} else if tableColumn == tableView.tableColumns[2] {
 			cellIdentifier = "ButtonCell"
 		}
@@ -118,7 +130,7 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		if (cellIdentifier == "ButtonCell") {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSButton else {return nil}
 			cell.tag = row
-			if (udp) {
+			if (Int(item.raw.udp)>0) {
 				cell.title = ""
 				cell.isEnabled = false
 			} else {
@@ -134,9 +146,9 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		}
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
 		cell.textField?.stringValue = content
-		if (blocked==1) {// blocked from blocklist
+		if ( (Int(item.raw.udp)==0) && (blocked==1) ) {// blocked from blocklist
 			cell.textField?.textColor = NSColor.red
-		} else if (blocked==2) { // blocked from hosts list
+		} else if ( (Int(item.raw.udp)==0) && (blocked==2) ) { // blocked from hosts list
 			cell.textField?.textColor = NSColor.orange
 		} else { // not blocked
 			cell.textField?.textColor = NSColor.systemGreen
@@ -153,6 +165,10 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		let pasteBoard = NSPasteboard.general
 		pasteBoard.clearContents()
 		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
+	}
+	
+	func selectall(sender: AnyObject?){
+		tableView.selectAll(nil)
 	}
 }
 

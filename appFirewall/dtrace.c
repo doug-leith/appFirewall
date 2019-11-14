@@ -21,12 +21,12 @@ int lookup_dtrace_row(conn_raw_t *c) {
 	
 	for (i=dtrace_cache_start; i<dtrace_cache_start+dtrace_cache_size; i++) {
 		conn_t * item = &dtrace_cache[i%DNS_CACHE_SIZE];
-		printf("%d/%d %d/%d %d/%d %s/%s %s/%s\n",c->af,item->af,c->sport,item->sport,c->dport,item->dport,src_name,item->src_name,dst_name,item->dst_name);
-		if (item->af != c->af)
+		printf("%d/%d %d/%d %d/%d %s/%s %s/%s\n",c->af,item->raw.af,c->sport,item->raw.sport,c->dport,item->raw.dport,src_name,item->src_addr_name,dst_name,item->dst_addr_name);
+		if (item->raw.af != c->af)
 			continue;
-		if ((c->dport != item->dport) && (c->dport !=item->sport) ) continue;
-		if ((c->sport != item->dport) && (c->sport !=item->sport) ) continue;
-		if (are_addr_same(c->af,&c->dst_addr,&item->dst_addr)) {
+		if ((c->dport != item->raw.dport) && (c->dport !=item->raw.sport) ) continue;
+		if ((c->sport != item->raw.dport) && (c->sport !=item->raw.sport) ) continue;
+		if (are_addr_same(c->af,&c->dst_addr,&item->raw.dst_addr)) {
 			return i;
 		}
 	}
@@ -49,7 +49,7 @@ char* dt_hash_item(conn_t *c) {
 	// generate table lookup key string from block list item PID name and dest address
 	int len = (2*INET6_ADDRSTRLEN+64);
 	char* temp = malloc(len);
-	sprintf(temp,"%s:%d-%s:%d",c->src_name,c->sport,c->dst_name,c->dport);
+	sprintf(temp,"%s:%d-%s:%d",c->src_addr_name,c->raw.sport,c->dst_addr_name,c->raw.dport);
 	return temp;
 }
 
@@ -63,7 +63,7 @@ int lookup_dtrace(conn_raw_t *c, char* name) {
 	}
 
 	/*
-	// old slow way, walk list ...
+	// old way, walk list ...
 	int row=lookup_dtrace_row(c);
 	if (row>=0) {
 		strlcpy(name,dtrace_cache[row%DTRACE_CACHE_SIZE].name,MAXCOMLEN);
@@ -106,25 +106,25 @@ int parse_dt_line(char* line, conn_t *c) {
 	if (c->pid <= 0) return -1;
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
-	c->af = (int)strtol(item, (char **)NULL, 10);
-	if ((c->af != AF_INET) && (c->af !=AF_INET6)) return -1;
+	c->raw.af = (int)strtol(item, (char **)NULL, 10);
+	if ((c->raw.af != AF_INET) && (c->raw.af !=AF_INET6)) return -1;
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
-	strlcpy(c->src_name, item,INET6_ADDRSTRLEN);
+	strlcpy(c->src_addr_name, item,INET6_ADDRSTRLEN);
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
-	c->sport = (int)strtol(item, (char **)NULL, 10);
-	if (c->sport<0 || c->sport>65535) return -1;
+	c->raw.sport = (int)strtol(item, (char **)NULL, 10);
+	if (c->raw.sport<0 || c->raw.sport>65535) return -1;
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
-	strlcpy(c->dst_name, item,INET6_ADDRSTRLEN);
+	strlcpy(c->dst_addr_name, item,INET6_ADDRSTRLEN);
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
-	c->dport = (int)strtol(item, (char **)NULL, 10);
-	if (c->dport<0 || c->dport>65535) return -1;
+	c->raw.dport = (int)strtol(item, (char **)NULL, 10);
+	if (c->raw.dport<0 || c->raw.dport>65535) return -1;
 	
-	if (inet_pton(c->af,c->src_name,&c->src_addr)!=1) return -1;
-	if (inet_pton(c->af,c->dst_name,&c->dst_addr)!=1) return -1;
+	if (inet_pton(c->raw.af,c->src_addr_name,&c->raw.src_addr)!=1) return -1;
+	if (inet_pton(c->raw.af,c->dst_addr_name,&c->raw.dst_addr)!=1) return -1;
 	return 0;
 }
 
