@@ -13,6 +13,7 @@
 #include "libnet.h"
 #include <pcap.h>
 #include "util.h"
+#include "circular_list.h"
 
 typedef struct dns_item_t {
 	struct in6_addr addr;
@@ -20,7 +21,7 @@ typedef struct dns_item_t {
 	char name[BUFSIZE];
 } dns_item_t;
 
-#define DNS_CACHE_SIZE 2048
+
 #define DNSFILE "dns.dat"
 
 void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* pkt);

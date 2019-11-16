@@ -2,4 +2,6 @@
 // reseting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 // sending of RST to existing connections i.e. not just on SYN-ACK
 // add whitelist ?
+// add search to log GUI
+// catch DNS queries and usie dtrace so can infer PID that generated query 
 

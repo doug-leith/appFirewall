@@ -37,7 +37,8 @@ int is_ipv6_localhost(struct in6_addr* addr);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
 
 int refresh_active_conns(int localhost);
-conn_t get_conns(int row);
+conn_t* get_conns(int row);
 int get_num_conns(void);
+void init_pid_list(void);
 
 #endif

@@ -24,7 +24,13 @@ log_line_t get_log_item(int row) {
 	return log_lines[(row+log_start)%MAXLOGSIZE];
 }
 
-void append_log(char* str, char* long_str, struct bl_item_t* bl_item ,int blocked) {
+void get_log_addr_name(int row, char* str, int len) {
+	log_line_t *l = &log_lines[(row+log_start)%MAXLOGSIZE];
+	inet_ntop(l->raw.af,&l->raw.dst_addr,str,len);
+	//printf("get_log_addr_name '%s'\n",str);
+}
+
+void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
 	changed = 1; // record for GUI fact that log has been updated
 	if (log_size == MAXLOGSIZE) {
 		free(log_lines[log_start%MAXLOGSIZE].log_line);
@@ -47,6 +53,7 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item ,int blocke
 	log_lines[end].time_str = calloc(1,len);
 	strlcpy(log_lines[end].time_str, str, len);
 	memcpy(&log_lines[end].bl_item,bl_item,sizeof(struct bl_item_t));
+	memcpy(&log_lines[end].raw,raw,sizeof(conn_raw_t));
 	log_lines[end].blocked = blocked;
 	log_size++;
 	
@@ -108,7 +115,8 @@ void save_log(void) {
 		len = (int)strlen(log_lines[i%MAXLOGSIZE].log_line);
 		fwrite(&len,sizeof(len),1,fp);
 		fwrite(log_lines[i%MAXLOGSIZE].log_line,len,1,fp);
-		res = (int)fwrite(&log_lines[i%MAXLOGSIZE].bl_item,sizeof(struct bl_item_t),1,fp);
+		fwrite(&log_lines[i%MAXLOGSIZE].bl_item,sizeof(struct bl_item_t),1,fp);
+		res = (int)fwrite(&log_lines[i%MAXLOGSIZE].raw,sizeof(struct conn_raw_t),1,fp);
 		if (res<1) {
 			WARN("Problem saving to %s: %s\n", LOGFILE,strerror(errno));
 			break;
@@ -188,6 +196,11 @@ void load_log() {
 		res = (int)fread(&log_lines[i%MAXLOGSIZE].bl_item,sizeof(struct bl_item_t),1,fp);
 		if (res<1) {
 			WARN("Problem loading bl_item from %s: %s\n", LOGFILE,strerror(errno));
+			break;
+		}
+		res = (int)fread(&log_lines[i%MAXLOGSIZE].raw,sizeof(struct conn_raw_t),1,fp);
+		if (res<1) {
+			WARN("Problem loading raw from %s: %s\n", LOGFILE,strerror(errno));
 			break;
 		}
 	}

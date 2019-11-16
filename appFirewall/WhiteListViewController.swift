@@ -1,63 +1,64 @@
 //
-//  BlockListViewController.swift
+//  WhileListViewController.swift
 //  appFirewall
 //
-
+//  Created by Doug Leith on 16/11/2019.
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 import Cocoa
 
-class BlockListViewController: NSViewController {
+class WhiteListViewController: NSViewController {
 
 	var asc: Bool = true
 	@IBOutlet weak var tableView: NSTableView!
 	
 	override func viewDidLoad() {
-		super.viewDidLoad()
-		tableView.delegate = self
-		tableView.dataSource = self
+			super.viewDidLoad()
+			// Do view setup here.
+			tableView.delegate = self
+			tableView.dataSource = self
 	}
-	
+
 	override func viewWillAppear() {
 		super.viewWillAppear()
 		self.view.window?.setFrameUsingName("connsView") // restore to previous size
-		UserDefaults.standard.set(2, forKey: "tab_index") // record active tab
-
+		UserDefaults.standard.set(3, forKey: "tab_index") // record active tab
 		// enable click of column header to call sortDescriptorsDidChange action below
-		asc = UserDefaults.standard.bool(forKey: "blocklist_asc")
+		asc = UserDefaults.standard.bool(forKey: "whitelist_asc")
 		if (tableView.tableColumns[0].sortDescriptorPrototype==nil) {
 			tableView.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"app_name",ascending:asc)
 			tableView.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
 		}
-		tableView.reloadData() // refresh the table when it is redisplayed
+		tableView.reloadData()
 	}
 	
 	override func viewWillDisappear() {
+		// window is closing, save state
 		super.viewWillDisappear()
-		//print("saving state")
 		save_log()
 		save_blocklist(); save_whitelist()
 		save_dns_cache()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 	}
 	
-	@IBAction func Click(_ sender: NSButton!) {
-		AllowBtnAction(sender: sender)
+	
+	@IBAction func click(_ sender: NSButton!) {
+		BlockBtnAction(sender: sender)
 	}
 	
-	@objc func AllowBtnAction(sender : NSButton!) {
+	@objc func BlockBtnAction(sender : NSButton!) {
 		let row = sender.tag;
-		let item = get_blocklist_item(Int32(row))
-		//let pid_name = String(cString: &item.name.0)
-		//let conn_name = String(cString: &item.conn_name.0)
-		//print("block click ", row, " ",pid_name," ",conn_name)
-		del_blockitem(item)
+		let item = get_whitelist_item(Int32(row))
+		del_whiteitem(item)
 		tableView.reloadData() // update the GUI to show the change
 	}
+	
 }
 
-extension BlockListViewController: NSTableViewDataSource {
+extension WhiteListViewController: NSTableViewDataSource {
 	func numberOfRows(in tableView: NSTableView) -> Int {
-		return Int(get_blocklist_size())
+		return Int(get_whitelist_size())
 	}
 	
 	func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
@@ -65,65 +66,60 @@ extension BlockListViewController: NSTableViewDataSource {
 		guard let sortDescriptor = tableView.sortDescriptors.first else {
     return }
     asc = sortDescriptor.ascending
-		UserDefaults.standard.set(asc, forKey: "blocklist_asc")
+		UserDefaults.standard.set(asc, forKey: "whitelist_asc")
 		if (!asc) {
 			asc1 = -1
 		}
 		if (sortDescriptor.key == "app_name") {
-			sort_block_list(Int32(asc1), 0)
+			sort_white_list(Int32(asc1), 0)
 		} else {
-			sort_block_list(Int32(asc1), 1)
+			sort_white_list(Int32(asc1), 1)
 		}
 		tableView.reloadData()
 	}
+	
 }
 
-extension BlockListViewController: NSTableViewDelegate {
-	
+extension WhiteListViewController: NSTableViewDelegate {
+
 	func getRowText(row: Int) -> String {
-		let item = get_blocklist_item(Int32(row))
-		let name = String(cString: get_blocklist_item_name(item))
-		let addr_name = String(cString: get_blocklist_item_domain(item))
+		let item = get_whitelist_item(Int32(row))
+		let name = String(cString: get_whitelist_item_name(item))
+		let addr_name = String(cString: get_whitelist_item_domain(item))
 		return name+", "+addr_name
 	}
 	
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-		
 		var cellIdentifier: String = ""
 		var content: String = ""
 		
-		let item = get_blocklist_item(Int32(row))
-		let name = String(cString: get_blocklist_item_name(item))
-		let addr_name = String(cString: get_blocklist_item_addrname(item))
-		let domain = String(cString: get_blocklist_item_domain(item))
+		let item = get_whitelist_item(Int32(row))
+		let name = String(cString: get_whitelist_item_name(item))
+		let domain = String(cString: get_whitelist_item_domain(item))
 		
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "ProcessCell"
 			content=name
 		} else if tableColumn == tableView.tableColumns[1] {
 			cellIdentifier = "ConnCell"
-			if (domain.count>0) {
-				content=domain
-			} else {
-				content=addr_name
-			}
+			content=domain
 		} else if tableColumn == tableView.tableColumns[2] {
 			cellIdentifier = "ButtonCell"
 		}
+		//print("cellid=",cellIdentifier)
 		
 		let cellId = NSUserInterfaceItemIdentifier(rawValue: cellIdentifier)
 		if (cellIdentifier == "ButtonCell") {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSButton else {return nil}
-			cell.title = "Allow"
+			cell.title = "Remove"
 			cell.tag = row
-			cell.action = #selector(self.AllowBtnAction)
-			cell.toolTip = "Remove from black list"
+			cell.action = #selector(self.BlockBtnAction)
+			cell.toolTip = "Remove from white list"
 			return cell
 		}
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
 		cell.textField?.stringValue = content
-		return cell
-	}
+		return cell	}
 	
 	func copy(sender: AnyObject?){
 		let indexSet = tableView.selectedRowIndexes

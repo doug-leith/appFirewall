@@ -13,6 +13,10 @@
 		9139F679237BB9A800600D37 /* send_rst.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F678237BB9A800600D37 /* send_rst.c */; };
 		9139F67C237BC41300600D37 /* dtrace.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F67B237BC41300600D37 /* dtrace.c */; };
 		9139F67F237BC49A00600D37 /* helper.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F67E237BC49A00600D37 /* helper.c */; };
+		9139F682237D355600600D37 /* circular_list.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F681237D355600600D37 /* circular_list.c */; };
+		9139F685237D8EBB00600D37 /* blocklists.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F684237D8EBB00600D37 /* blocklists.c */; };
+		9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F686237FDE8E00600D37 /* WhiteListViewController.swift */; };
+		9139F68A237FE9A800600D37 /* whitelist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F689237FE9A800600D37 /* whitelist.c */; };
 		91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB2236AB280002E50A8 /* AppDelegate.swift */; };
 		91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */; };
 		91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91607BB6236AB282002E50A8 /* Assets.xcassets */; };
@@ -85,6 +89,13 @@
 		9139F67B237BC41300600D37 /* dtrace.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dtrace.c; sourceTree = "<group>"; };
 		9139F67D237BC49A00600D37 /* helper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = helper.h; sourceTree = "<group>"; };
 		9139F67E237BC49A00600D37 /* helper.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = helper.c; sourceTree = "<group>"; };
+		9139F680237D355600600D37 /* circular_list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = circular_list.h; sourceTree = "<group>"; };
+		9139F681237D355600600D37 /* circular_list.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = circular_list.c; sourceTree = "<group>"; };
+		9139F683237D8EBB00600D37 /* blocklists.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = blocklists.h; sourceTree = "<group>"; };
+		9139F684237D8EBB00600D37 /* blocklists.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = blocklists.c; sourceTree = "<group>"; };
+		9139F686237FDE8E00600D37 /* WhiteListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteListViewController.swift; sourceTree = "<group>"; };
+		9139F688237FE9A700600D37 /* whitelist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = whitelist.h; sourceTree = "<group>"; };
+		9139F689237FE9A800600D37 /* whitelist.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = whitelist.c; sourceTree = "<group>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91607BB2236AB280002E50A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveConnsViewController.swift; sourceTree = "<group>"; };
@@ -178,6 +189,8 @@
 				91607BC3236AB2D1002E50A8 /* pid_conn_info.c */,
 				91607BF1237140A4002E50A8 /* blocklist.h */,
 				91607BF2237140A4002E50A8 /* blocklist.c */,
+				9139F688237FE9A700600D37 /* whitelist.h */,
+				9139F689237FE9A800600D37 /* whitelist.c */,
 				91607BF823714D46002E50A8 /* dns_sniffer.h */,
 				91607BF923714D46002E50A8 /* dns_sniffer.c */,
 				91607BEB236B8F0A002E50A8 /* sniffer_blocker.h */,
@@ -186,20 +199,25 @@
 				9139F67E237BC49A00600D37 /* helper.c */,
 				9139F67A237BC41300600D37 /* dtrace.h */,
 				9139F67B237BC41300600D37 /* dtrace.c */,
+				9139F683237D8EBB00600D37 /* blocklists.h */,
+				9139F684237D8EBB00600D37 /* blocklists.c */,
 				91ABB29623773595007F8FFE /* hostlists.h */,
 				91ABB29723773595007F8FFE /* hostlists.c */,
 				91607BF4237142A0002E50A8 /* log.h */,
 				91607BF5237142A0002E50A8 /* log.c */,
 				91607BF7237144D2002E50A8 /* util.h */,
 				91607C302374080B002E50A8 /* util.c */,
+				9139F680237D355600600D37 /* circular_list.h */,
+				9139F681237D355600600D37 /* circular_list.c */,
 				91ABB26D237680B7007F8FFE /* table.h */,
 				91ABB26C237680B7007F8FFE /* table.c */,
 				91B67F2723793C1C00706027 /* TODO */,
 				91607C2E2373FD09002E50A8 /* error_alert.swift */,
 				91607BB2236AB280002E50A8 /* AppDelegate.swift */,
 				91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */,
-				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
 				91607BC7236AB7CA002E50A8 /* LogViewController.swift */,
+				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
+				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
 				91607BB6236AB282002E50A8 /* Assets.xcassets */,
 				91607BB8236AB282002E50A8 /* Main.storyboard */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
@@ -341,14 +359,18 @@
 			files = (
 				91ABB26E237680B7007F8FFE /* table.c in Sources */,
 				91607BF6237142A0002E50A8 /* log.c in Sources */,
+				9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */,
 				91607C2F2373FD09002E50A8 /* error_alert.swift in Sources */,
 				91ABB29823773595007F8FFE /* hostlists.c in Sources */,
+				9139F68A237FE9A800600D37 /* whitelist.c in Sources */,
 				91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */,
 				91607BC4236AB2D1002E50A8 /* pid_conn_info.c in Sources */,
+				9139F682237D355600600D37 /* circular_list.c in Sources */,
 				91607BC8236AB7CA002E50A8 /* LogViewController.swift in Sources */,
 				91607BF3237140A4002E50A8 /* blocklist.c in Sources */,
 				91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */,
 				9139F67F237BC49A00600D37 /* helper.c in Sources */,
+				9139F685237D8EBB00600D37 /* blocklists.c in Sources */,
 				91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */,
 				91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */,
 				91607C312374080C002E50A8 /* util.c in Sources */,

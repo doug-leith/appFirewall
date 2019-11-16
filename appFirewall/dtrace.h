@@ -14,10 +14,9 @@
 #include "util.h"
 #include "helper.h"
 #include "pid_conn_info.h"
-#include "table.h"
+#include "circular_list.h"
 
 #define DTRACE_PORT 4
-#define DTRACE_CACHE_SIZE 1024
 
 void *dtrace_listener(void *ptr);
 void start_dtrace_listener(void);

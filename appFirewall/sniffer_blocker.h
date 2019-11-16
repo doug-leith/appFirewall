@@ -16,7 +16,9 @@
 #include "pid_conn_info.h"
 #include "log.h"
 #include "blocklist.h"
+#include "whitelist.h"
 #include "hostlists.h"
+#include "blocklists.h"
 #include "dns_sniffer.h"
 #include "libnet.h"
 
@@ -30,5 +32,7 @@ void *listener(void *ptr);
 void start_listener(void);
 void stop_listener(void);
 int listener_error(void);
+int get_num_conns_blocked(void);
+void set_num_conns_blocked(int val);
 
 #endif

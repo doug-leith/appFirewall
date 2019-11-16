@@ -3,6 +3,8 @@
 
 #include <netinet/in.h>
 #include <sys/errno.h>
+#include <string.h>
+#include <ctype.h>
 
 const static int verbose=1;          // debugging level
 
@@ -29,5 +31,6 @@ void set_path(const char* path);
 int readn(int fd, void* buf, int n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
+char *trimwhitespace(char *str);
 
 #endif

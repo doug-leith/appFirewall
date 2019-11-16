@@ -6,8 +6,8 @@
 #include "send_rst.h"
 
 //globals
-static libnet_t *l4=NULL, *l6 = NULL, *l4_hdr = NULL;  // libnet state
-static libnet_ptag_t tcp4_ptag, tcp6_ptag, ip4_ptag, ip6_ptag, tcp4_hdr_ptag, ip4_hdr_ptag;
+static libnet_t *l4=NULL, *l6 = NULL, *l4_hdr = NULL, *l6_hdr=NULL;  // libnet state
+static libnet_ptag_t tcp4_ptag, tcp6_ptag, ip4_ptag, ip6_ptag, tcp4_hdr_ptag, ip4_hdr_ptag,tcp6_hdr_ptag, ip6_hdr_ptag;
 static int sock;
 
 void init_libnet() {
@@ -17,6 +17,7 @@ void init_libnet() {
 	tcp4_ptag=LIBNET_PTAG_INITIALIZER; ip4_ptag=LIBNET_PTAG_INITIALIZER;
 	tcp4_hdr_ptag=LIBNET_PTAG_INITIALIZER; ip4_hdr_ptag=LIBNET_PTAG_INITIALIZER;
 	tcp6_ptag=LIBNET_PTAG_INITIALIZER; ip6_ptag=LIBNET_PTAG_INITIALIZER;
+	tcp6_hdr_ptag=LIBNET_PTAG_INITIALIZER; ip6_hdr_ptag=LIBNET_PTAG_INITIALIZER;
 
 	l4=libnet_init(LIBNET_RAW4,NULL,err_buf);
 	if (l4==NULL) {
@@ -40,6 +41,15 @@ void init_libnet() {
 	}
 	int n = 1;
 	if (setsockopt(l4_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
+		ERR("setsockopt IP_HDRINCL failed: %s", strerror(errno));
+	}
+	
+	l6_hdr=libnet_init(LIBNET_RAW6,NULL,err_buf);
+	if (l6_hdr==NULL) {
+		ERR("libnet_init() IPv6 failed: %s\n", err_buf);
+		exit(EXIT_FAILURE);
+	}
+	if (setsockopt(l6_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
 		ERR("setsockopt IP_HDRINCL failed: %s", strerror(errno));
 	}
 
@@ -169,9 +179,6 @@ void rst_accept_loop() {
 				uint32_t d,s;
 				memcpy(&s,&src.s6_addr,4);
 				memcpy(&d,&dst.s6_addr,4);
-				//libnet_build_ipv4(uint16_t ip_len, uint8_t tos, uint16_t id, uint16_t frag,
-				//uint8_t ttl, uint8_t prot, uint16_t sum, uint32_t src, uint32_t dst,
-				//const uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag)
 				ip4_hdr_ptag = libnet_build_ipv4(LIBNET_IPV4_H+LIBNET_TCP_H,
 																	0, 0, 0, 64, IPPROTO_TCP,0,
 																	d, s,
@@ -179,6 +186,21 @@ void rst_accept_loop() {
 				if (libnet_write(l4_hdr) < 0) {
 					// problem writing to raw socket
 					WARN("libnet_write() l4_hdr %s\n", libnet_geterror(l));
+				}
+			} else {
+				uint8_t flags=TH_RST;
+				tcp6_hdr_ptag = libnet_build_tcp(dport,sport,ack+1,seq,flags,
+																	0, 0, 0, LIBNET_TCP_H, NULL, 0, l6_hdr, tcp6_hdr_ptag);
+				struct libnet_in6_addr s, d;
+				memcpy(&s,&src,16);
+				memcpy(&d,&dst,16);
+				ip6_hdr_ptag = libnet_build_ipv6(0,0,0,
+																		IPPROTO_TCP,64,
+																		d, s,
+																		NULL, 0, l6_hdr, ip6_hdr_ptag);
+				if (libnet_write(l6_hdr) < 0) {
+					// problem writing to raw socket
+					WARN("libnet_write() l6_hdr %s\n", libnet_geterror(l));
 				}
 			}
 		}

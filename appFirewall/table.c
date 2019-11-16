@@ -48,7 +48,7 @@ void dump_hashtable(Hashtable *table){
 					//free(p->value);
 				}
 				if (p->key_string) {
-					printf("key: %lu, key_string: %s\n", p->key, p->key_string);
+					printf("key: %lu, key_string: '%s'\n", p->key, p->key_string);
 				}
 			}
 		}

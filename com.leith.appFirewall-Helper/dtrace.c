@@ -38,7 +38,7 @@ https://gist.github.com/amitu/2134968 // for apple, v useful !
 // Apple TCP control block: https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/netinet/tcp_var.h.auto.html
 
 char* dtrace_script="\
--x quiet -x switchrate=1000hz -n \
+-x quiet -x switchrate=100hz -n \
 '\
 syscall::connect*:entry{ \
 connect_fd = arg0; \

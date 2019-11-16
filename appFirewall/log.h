@@ -21,11 +21,13 @@ typedef struct log_line_t {
 	char *time_str, *log_line;
 	struct bl_item_t bl_item;
 	int blocked;
+	conn_raw_t raw;
 } log_line_t;
 
 int get_log_size(void);
 log_line_t get_log_item(int row);
-void append_log(char* str, char* long_str, struct bl_item_t* bl_item, int blocked);
+void get_log_addr_name(int row, char* str, int len);
+void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked);
 void save_log(void);
 void load_log(void);
 void clear_log(void);

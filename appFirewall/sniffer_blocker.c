@@ -6,6 +6,7 @@
 static pthread_t thread; // handle to listener thread
 static int r_sock, p_sock;
 static int is_running=0;
+static int num_conns_blocked=0;
 
 // cache recent UDP connections so only log new ones
 // (since no internal ESTABLISHED state held, unlike TCP)
@@ -122,7 +123,7 @@ void *listener(void *ptr) {
 					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
 					sprintf(str,"%s -> UDP/QUIC %s:%d", c.name, c.domain, dport);
 					sprintf(long_str,"%s UDP/QUIC %s:%d -> %s:%d", c.name, sn, sport, dns, dport);
-					append_log(str, long_str, &c, 0); // can't block QUIC yet ...
+					append_log(str, long_str, &c, &cr, 0); // can't block QUIC yet ...
 					
 					clock_t endu = clock();
 					printf("t (UDP not blocked) %f\n",(endu - begin)*1.0 / CLOCKS_PER_SEC);
@@ -148,31 +149,45 @@ void *listener(void *ptr) {
 		bl_item_t c = create_blockitem_from_addr(&cr);
 
 		int blocked=0;
-		if (in_blocklist_htab(&c,0)!=NULL) { // table lookup, faster !
-			blocked=1;
-			//in_blocklist_htab(&c,1); // dumps hash table, for debugging
-		} else if (in_hostlist_htab(c.domain) != NULL) {
-			// on hosts list
-			blocked = 2;
+		if (in_whitelist_htab(&c,0)!=NULL) {
+			// whitelisted
+			blocked=0;
+		} else {
+			if (in_blocklist_htab(&c,0)!=NULL) { // table lookup, faster !
+				blocked=1;
+				//in_blocklist_htab(&c,1); // dumps hash table, for debugging
+			} else if (in_blocklists_htab(&c) != NULL) {
+				// in block list file
+				blocked = 3;
+			} else if (in_hostlist_htab(c.domain) != NULL) {
+				// in hosts list
+				blocked = 2;
+			}
 		}
 		DEBUG2("%s %s %d\n",c.name,c.addr_name,blocked);
 
 		// log the connection
 		char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN];
 		inet_ntop(af, &dst, dn, INET6_ADDRSTRLEN);
-		char dns[BUFSIZE]={0};
-		if (strlen(c.domain)) {
+		char dns[BUFSIZE], dst_name[BUFSIZE];
+		if (strlen(c.domain)>0) {
 			sprintf(dns,"%s (%s)",c.addr_name,c.domain);
+			strlcpy(dst_name,c.domain,BUFSIZE);
+		} else {
+			strlcpy(dns,c.addr_name,BUFSIZE);
+			strlcpy(dst_name,c.addr_name,BUFSIZE);
 		}
-		sprintf(str,"%s -> %s:%d", c.name, c.domain, cr.dport);
+		sprintf(str,"%s -> %s:%d", c.name, dst_name, cr.dport);
 		sprintf(long_str,"%s %s:%d -> %s:%d", c.name, dn, cr.dport, dns, cr.sport);
-		append_log(str, long_str, &c, blocked);
+		append_log(str, long_str, &c, &cr, blocked);
 
 		if (!blocked) {
 			clock_t end = clock();
 			printf("t (not blocked) %f\n",(end - begin)*1.0 / CLOCKS_PER_SEC);
 			continue; // nothing more needs done
 		}
+		
+		num_conns_blocked++;
 		
 		// send RST packet to try to end connection
 		uint32_t seq=ntohl(tcp->th_seq);
@@ -234,6 +249,13 @@ int listener_error() {
 	// almost certainly updated by thread atomically
 }
 
+int get_num_conns_blocked() {
+	return num_conns_blocked;
+}
+
+void set_num_conns_blocked(int val) {
+	num_conns_blocked=val;
+}
 
 //--------------------------------------------------------
 
