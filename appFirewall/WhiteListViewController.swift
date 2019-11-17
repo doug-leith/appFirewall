@@ -43,6 +43,18 @@ class WhiteListViewController: NSViewController {
 	}
 	
 	
+	@IBAction func helpButton(_ sender: NSButton!) {
+		let storyboard = NSStoryboard(name:"Main", bundle:nil)
+		let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
+		
+		let popover = NSPopover()
+		popover.contentViewController = controller
+		popover.contentSize = controller.view.frame.size
+		popover.behavior = .transient; popover.animates = true
+		popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
+		controller.message(msg:String("Domains/apps added here will never be blocked.  Use this list when, for example, a connection is mistakenly blocked."))
+	}
+	
 	@IBAction func click(_ sender: NSButton!) {
 		BlockBtnAction(sender: sender)
 	}

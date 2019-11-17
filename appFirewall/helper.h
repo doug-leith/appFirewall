@@ -13,6 +13,9 @@
 #include "util.h"
 //#include "sniffer_blocker.h"
 #include "dtrace.h"
+
+#define MAXTRIES 10
+
 void start_listener(void);
 void stop_listener(void);
 

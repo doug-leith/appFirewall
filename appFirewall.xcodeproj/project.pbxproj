@@ -17,6 +17,7 @@
 		9139F685237D8EBB00600D37 /* blocklists.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F684237D8EBB00600D37 /* blocklists.c */; };
 		9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F686237FDE8E00600D37 /* WhiteListViewController.swift */; };
 		9139F68A237FE9A800600D37 /* whitelist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F689237FE9A800600D37 /* whitelist.c */; };
+		9139F68C2380936800600D37 /* helpViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68B2380936800600D37 /* helpViewController.swift */; };
 		91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB2236AB280002E50A8 /* AppDelegate.swift */; };
 		91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */; };
 		91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91607BB6236AB282002E50A8 /* Assets.xcassets */; };
@@ -96,6 +97,7 @@
 		9139F686237FDE8E00600D37 /* WhiteListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteListViewController.swift; sourceTree = "<group>"; };
 		9139F688237FE9A700600D37 /* whitelist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = whitelist.h; sourceTree = "<group>"; };
 		9139F689237FE9A800600D37 /* whitelist.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = whitelist.c; sourceTree = "<group>"; };
+		9139F68B2380936800600D37 /* helpViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpViewController.swift; sourceTree = "<group>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91607BB2236AB280002E50A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveConnsViewController.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
 				91607BB6236AB282002E50A8 /* Assets.xcassets */,
 				91607BB8236AB282002E50A8 /* Main.storyboard */,
+				9139F68B2380936800600D37 /* helpViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
 				91607BBB236AB282002E50A8 /* Info.plist */,
 				91607BBC236AB282002E50A8 /* appFirewall.entitlements */,
@@ -366,6 +369,7 @@
 				91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */,
 				91607BC4236AB2D1002E50A8 /* pid_conn_info.c in Sources */,
 				9139F682237D355600600D37 /* circular_list.c in Sources */,
+				9139F68C2380936800600D37 /* helpViewController.swift in Sources */,
 				91607BC8236AB7CA002E50A8 /* LogViewController.swift in Sources */,
 				91607BF3237140A4002E50A8 /* blocklist.c in Sources */,
 				91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */,

@@ -6,7 +6,7 @@
 #include "whitelist.h"
 
 // globals
-static list_t white_list;
+static list_t white_list=LIST_INITIALISER;
 #define STR_SIZE 1024
 
 void init_white_list() {

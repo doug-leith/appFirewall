@@ -77,7 +77,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				if (v.label == "Active Connections") {
 				let c = v.viewController as! ActiveConnsViewController
 				c.selectall(sender:nil)
-			} else if (v.label == "Back List") {
+			} else if (v.label == "Black List") {
 				let c = v.viewController as! BlockListViewController
 				c.selectall(sender:nil)
 			} else if (v.label == "Connection Log") {
@@ -294,6 +294,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	// application event handlers
 	
 	func applicationWillFinishLaunching(_ aNotification: Notification) {
+		
+		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"starting applicationWillFinishLaunching()")
 		// install appFirewall-Helper, if not already installed
 		start_helper()
 
@@ -309,29 +311,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// set default sorting state for GUI
 		UserDefaults.standard.register(defaults: ["active_asc":true])
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])
-		UserDefaults.standard.register(defaults: ["log_asc":true])
+		UserDefaults.standard.register(defaults: ["log_asc":false])
 
 		// set up handler to catch C errors
 		setup_sigterm_handler()
 		
+		// create storage dir if it doesn't already exist
+		make_data_dir()
+		
+		// redirect C logging from stdout to logfile
+		redirect_stdout()
+
 		// reload state
-		make_data_dir() // create storage dir if it doesn't already exist
 		load_log()
 		load_blocklist()
 		load_whitelist()
 		load_dns_cache()
 		prefController.load_hostlists() // might be slow
 		init_pid_list()
-		
-		// start pcap listener
-		//start_listener()
-		start_helper_listeners()
+		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"files loaded in applicationWillFinishLaunching()")
+
+		// start listeners
+		// this can be slow since it blocks while making network connection to helper
+    DispatchQueue.global(qos: .background).async {
+			print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"starting listeners")
+			start_helper_listeners()
+			print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"listeners started")
+		}
 		
 		// schedule house-keeping ...
 		timer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		
-		//print("calling viewdidappear()")
+		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished applicationWillFinishLaunching()")
 		//let t = NSApplication.shared.mainWindow?.contentViewController as? NSTabViewController
 		//t?.tabView.selectedTabViewItem?.viewController?.viewWillAppear()
 	}

@@ -1,6 +1,12 @@
 #ifndef util_h
 #define util_h
 
+#include <stdio.h>
+#include <sys/un.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <sys/errno.h>
 #include <string.h>
@@ -8,14 +14,17 @@
 
 const static int verbose=1;          // debugging level
 
-#include <os/log.h> // apple logging
+/*#include <os/log.h> // apple logging
 #define ERR(fmt, ...) do{os_log_error(OS_LOG_DEFAULT,fmt, ##__VA_ARGS__);}while(0)
 #define WARN(fmt, ...) do{os_log_error(OS_LOG_DEFAULT,fmt, ##__VA_ARGS__);}while(0)
 #define INFO(fmt, ...)  do{if (verbose) os_log(OS_LOG_DEFAULT,fmt, ##__VA_ARGS__);}while(0)
+*/
 
-//#define ERR(args ...) do{fprintf(stderr,"ERROR: "); fprintf(stderr, args);}while(0)
-//#define WARN(args ...) do{fprintf(stderr,"WARNING: "); fprintf(stderr, args);}while(0)
-//#define INFO(args ...) if (verbose) fprintf(stdout, args)
+#define APPLOGFILE "app_log.txt"
+
+#define ERR(args ...) do{fprintf(stdout,"ERROR: "); fprintf(stderr, args);}while(0)
+#define WARN(args ...) do{fprintf(stdout,"WARNING: "); fprintf(stderr, args);}while(0)
+#define INFO(args ...) if (verbose) fprintf(stdout, args)
 #define DEBUG2(args ...) if (verbose>1) fprintf(stdout, args)
 
 // raise SIGCHLD event in C to display popup to user before exiting on error.
@@ -32,5 +41,6 @@ int readn(int fd, void* buf, int n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
 char *trimwhitespace(char *str);
+void redirect_stdout(void);
 
 #endif

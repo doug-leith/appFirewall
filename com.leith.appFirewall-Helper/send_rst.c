@@ -41,7 +41,8 @@ void init_libnet() {
 	}
 	int n = 1;
 	if (setsockopt(l4_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
-		ERR("setsockopt IP_HDRINCL failed: %s", strerror(errno));
+		ERR("setsockopt IP_HDRINCL failed: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 	
 	l6_hdr=libnet_init(LIBNET_RAW6,NULL,err_buf);
@@ -49,14 +50,15 @@ void init_libnet() {
 		ERR("libnet_init() IPv6 failed: %s\n", err_buf);
 		exit(EXIT_FAILURE);
 	}
-	if (setsockopt(l6_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
-		ERR("setsockopt IP_HDRINCL failed: %s", strerror(errno));
-	}
+	// doesn't seem to work for IPv6, sigh
+	/*if (setsockopt(l6_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
+		ERR("setsockopt IP_HDRINCL failed: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}*/
 
 	// start listening for commands to send RST packets
 	sock = bind_to_port(RST_PORT);
 	INFO("Now listening on localhost port %d\n", RST_PORT);
-
 }
 
 void rst_accept_loop() {
@@ -186,8 +188,12 @@ void rst_accept_loop() {
 				if (libnet_write(l4_hdr) < 0) {
 					// problem writing to raw socket
 					WARN("libnet_write() l4_hdr %s\n", libnet_geterror(l));
+				} else if (libnet_write(l4_hdr) < 0) {
+					// problem writing to raw socket
+					WARN("libnet_write() l4_hdr %s\n", libnet_geterror(l));
 				}
 			} else {
+				// can't set IP_HDRINCL flag for IPv6, will this even work ?
 				uint8_t flags=TH_RST;
 				tcp6_hdr_ptag = libnet_build_tcp(dport,sport,ack+1,seq,flags,
 																	0, 0, 0, LIBNET_TCP_H, NULL, 0, l6_hdr, tcp6_hdr_ptag);
@@ -199,6 +205,9 @@ void rst_accept_loop() {
 																		d, s,
 																		NULL, 0, l6_hdr, ip6_hdr_ptag);
 				if (libnet_write(l6_hdr) < 0) {
+					// problem writing to raw socket
+					WARN("libnet_write() l6_hdr %s\n", libnet_geterror(l));
+				} else if (libnet_write(l6_hdr) < 0) {
 					// problem writing to raw socket
 					WARN("libnet_write() l6_hdr %s\n", libnet_geterror(l));
 				}

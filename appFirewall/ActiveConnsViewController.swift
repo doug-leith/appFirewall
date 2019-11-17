@@ -25,7 +25,7 @@ class ActiveConnsViewController: NSViewController {
 
 	override func viewWillAppear() {
 		// window is opening, populate it with content
-		super.viewDidAppear()
+		super.viewWillAppear()
 		// restore to previous size
 		self.view.window?.setFrameUsingName("connsView")
 		// record active tab
@@ -36,10 +36,14 @@ class ActiveConnsViewController: NSViewController {
 			tableView.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"pid",ascending:asc)
 			tableView.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
 		}
-		//print("active reload")
-		tableView.reloadData()
+		refresh()
+		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished activeConns viewWillAppear()")
 	}
 		
+	override func viewDidAppear() {
+		super.viewDidAppear()
+	}
+	
 	@objc func refresh() {
 		let firstVisibleRow = tableView.rows(in: tableView.visibleRect).location
 		if ( (firstVisibleRow==0) // if scrolled down, don't update
@@ -56,6 +60,20 @@ class ActiveConnsViewController: NSViewController {
 		save_dns_cache()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 	}
+	
+	
+	@IBAction func helpButton(_ sender: NSButton) {
+				let storyboard = NSStoryboard(name:"Main", bundle:nil)
+			let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
+			
+			let popover = NSPopover()
+			popover.contentViewController = controller
+			popover.contentSize = controller.view.frame.size
+			popover.behavior = .transient; popover.animates = true
+			popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
+			controller.message(msg:String("This window logs the network connections currently being made by the apps running on your computer.  Note that since we can only block connections when then try to start its possible for some connections on the blacklist to be running temporarily, but they will be blocked when they try to restart."))
+		}
+	
 	
 	@IBAction func Click(_ sender: NSButton!) {
 		BlockBtnAction(sender: sender)
@@ -181,12 +199,23 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			tip = "PID: "+String(Int(item.pid))
 		} else if tableColumn == tableView.tableColumns[1] {
 			cellIdentifier = "ConnCell"
-			if (domain.count>0) {
-				content=domain+":"+String(Int(item.raw.dport))
-				tip = String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
+			let ip = String(cString: &item.dst_addr_name.0)
+			var domain = String(cString: &bl_item.domain.0)
+			if (domain.count == 0) {
+				domain = ip
+			} 
+			let name = String(cString: &bl_item.name.0)
+			let port = String(Int(item.raw.dport))
+			if (blocked == 0) {
+				tip = "Domain "+domain+" ("+ip+":"+port+") not blocked."
+			} else if (blocked == 1) {
+				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by user black list."
+			} else if (blocked == 2) {
+				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for all applications by hosts file."
 			} else {
-				content=String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
+				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by hosts file."
 			}
+			content = domain
 			if (Int(item.raw.udp)==1) {
 				content = content + " (UDP/QUIC)"
 			}

@@ -8,86 +8,41 @@
 // globals
 static int d_sock;
 static pthread_t thread; // handle to listener thread
-conn_t dtrace_cache[DTRACE_CACHE_SIZE];
-int dtrace_cache_size=0, dtrace_cache_start=0;
-Hashtable *dt_htab=NULL; // hash table of pointers cache for fast lookup
+list_t dtrace_cache;
 
-int lookup_dtrace_row(conn_raw_t *c) {
-	int i;
-	printf("dtrace start=%d, size=%d\n",dtrace_cache_start,dtrace_cache_size);
-	char src_name[INET6_ADDRSTRLEN],dst_name[INET6_ADDRSTRLEN];
-	inet_ntop(c->af,&c->src_addr,src_name,INET6_ADDRSTRLEN);
-	inet_ntop(c->af,&c->dst_addr,dst_name,INET6_ADDRSTRLEN);
-	
-	for (i=dtrace_cache_start; i<dtrace_cache_start+dtrace_cache_size; i++) {
-		conn_t * item = &dtrace_cache[i%DNS_CACHE_SIZE];
-		printf("%d/%d %d/%d %d/%d %s/%s %s/%s\n",c->af,item->raw.af,c->sport,item->raw.sport,c->dport,item->raw.dport,src_name,item->src_addr_name,dst_name,item->dst_addr_name);
-		if (item->raw.af != c->af)
-			continue;
-		if ((c->dport != item->raw.dport) && (c->dport !=item->raw.sport) ) continue;
-		if ((c->sport != item->raw.dport) && (c->sport !=item->raw.sport) ) continue;
-		if (are_addr_same(c->af,&c->dst_addr,&item->raw.dst_addr)) {
-			return i;
-		}
-	}
-	return -1;
-}
-
-char* dt_hash_item_raw(conn_raw_t *c) {
-	// generate table lookup key string from block list item PID name and dest address
-	char src_name[INET6_ADDRSTRLEN],dst_name[INET6_ADDRSTRLEN];
-	inet_ntop(c->af,&c->src_addr,src_name,INET6_ADDRSTRLEN);
-	inet_ntop(c->af,&c->dst_addr,dst_name,INET6_ADDRSTRLEN);
-
-	int len = (2*INET6_ADDRSTRLEN+64);
-	char* temp = malloc(len);
-	sprintf(temp,"%s:%d-%s:%d",src_name,c->sport,dst_name,c->dport);
-	return temp;
-}
-
-char* dt_hash_item(conn_t *c) {
-	// generate table lookup key string from block list item PID name and dest address
+char* dt_hash(const void *cc) {
+	// generate table lookup key string from block list item PID name
+	// and dest address
+	conn_t *c = (conn_t*)cc;
 	int len = (2*INET6_ADDRSTRLEN+64);
 	char* temp = malloc(len);
 	sprintf(temp,"%s:%d-%s:%d",c->src_addr_name,c->raw.sport,c->dst_addr_name,c->raw.dport);
 	return temp;
 }
 
-int lookup_dtrace(conn_raw_t *c, char* name) {
-	char * temp = dt_hash_item_raw(c);
-	conn_t *res = hashtable_get(dt_htab, temp);
-	free(temp);
+int dt_cmp(const void *cc1, const void *cc2) {
+	conn_t *c1 = (conn_t*)cc1;
+	conn_t *c2 = (conn_t*)cc2;
+	return (memcmp(c1,c2,sizeof(conn_t))==0);
+}
+
+int lookup_dtrace(conn_raw_t *cr, char* name) {
+	// get PID name corresponding to connection cr
+	conn_t c;
+	c.raw = *cr;
+	inet_ntop(c.raw.af,&c.raw.src_addr,c.src_addr_name,INET6_ADDRSTRLEN);
+	inet_ntop(c.raw.af,&c.raw.dst_addr,c.dst_addr_name,INET6_ADDRSTRLEN);
+
+	conn_t *res = in_list(&dtrace_cache, &c, 0);
 	if (res != NULL) {
 		strlcpy(name,res->name,MAXCOMLEN);
 		return 1;
 	}
-
-	/*
-	// old way, walk list ...
-	int row=lookup_dtrace_row(c);
-	if (row>=0) {
-		strlcpy(name,dtrace_cache[row%DTRACE_CACHE_SIZE].name,MAXCOMLEN);
-		return 1;
-	} else {
-		return 0;
-	}*/
 	return 0;
-
 }
 
 void append_dtrace(conn_t *c) {
-	if (dtrace_cache_size == DTRACE_CACHE_SIZE) {
-		dtrace_cache_start++;
-		dtrace_cache_size--;
-	}
-	int end = dtrace_cache_start+dtrace_cache_size;
-	conn_t *item = &dtrace_cache[end%DTRACE_CACHE_SIZE];
-	memcpy(item,c,sizeof(conn_t));
-	char * temp = dt_hash_item(item);
-	hashtable_put(dt_htab, temp, item);
-	free(temp);
-	dtrace_cache_size++;
-
+	add_item(&dtrace_cache,c,sizeof(conn_t));
 }
 
 int parse_dt_line(char* line, conn_t *c) {
@@ -123,8 +78,30 @@ int parse_dt_line(char* line, conn_t *c) {
 	c->raw.dport = (int)strtol(item, (char **)NULL, 10);
 	if (c->raw.dport<0 || c->raw.dport>65535) return -1;
 	
-	if (inet_pton(c->raw.af,c->src_addr_name,&c->raw.src_addr)!=1) return -1;
-	if (inet_pton(c->raw.af,c->dst_addr_name,&c->raw.dst_addr)!=1) return -1;
+	int res=inet_pton(c->raw.af,c->src_addr_name,&c->raw.src_addr);
+	if (res==0) { // likely mismatch between af and address type
+		if (c->raw.af == AF_INET) {
+			res=inet_pton(AF_INET6,c->src_addr_name,&c->raw.src_addr);
+		} else {
+			res=inet_pton(AF_INET,c->src_addr_name,&c->raw.src_addr);
+		}
+	}
+	if (res!=1) {
+		INFO("Problem parsing src address from dtrace: %s\n",strerror(errno));
+		return -1;
+	}
+	res=inet_pton(c->raw.af,c->dst_addr_name,&c->raw.dst_addr);
+	if (res==0) { // likely mismatch between af and address type
+		if (c->raw.af == AF_INET) {
+			res=inet_pton(AF_INET6,c->dst_addr_name,&c->raw.dst_addr);
+		} else {
+			res=inet_pton(AF_INET,c->dst_addr_name,&c->raw.dst_addr);
+		}
+	}
+	if (res!=1) {
+		INFO("Problem parsing dst address from dtrace: %s\n",strerror(errno));
+		return -1;
+	}
 	return 0;
 }
 
@@ -167,11 +144,7 @@ void *dtrace_listener(void *ptr) {
 
 void start_dtrace_listener() {
 	// fire up thread that listens for pkts sent by helper
-	
-	if (dt_htab!=NULL) hashtable_free(dt_htab);
-	dt_htab = hashtable_new(DTRACE_CACHE_SIZE);
-	dtrace_cache_size=0; dtrace_cache_start=0;
-	
+	init_list(&dtrace_cache,dt_hash,dt_cmp,1);	
 	pthread_create(&thread, NULL, dtrace_listener, NULL);
 }
 

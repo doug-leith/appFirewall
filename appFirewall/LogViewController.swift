@@ -44,16 +44,18 @@ class LogViewController: NSViewController {
 	}
 	
 	@objc func refresh(timer:Timer?) {
+		//print("log refresh", has_log_changed())
 		var force : Bool = true
 		if (timer != nil) {
 			force = false
 		}
 		let firstVisibleRow = tableView.rows(in: tableView.visibleRect).location
+		//print("log, firstVisibleRow=",firstVisibleRow," NSLoc=",NSLocationInRange(0,tableView.rows(in: tableView.visibleRect))," haschanged=",has_log_changed())
 		if (force
 			  || (firstVisibleRow==0) // if scrolled down, don't update
 						&& (has_log_changed() == 1)) {
 			// log is updated by sniffing of new conns
-			//print("log refresh")
+			//print("refresh log")
 			clear_log_changed()
 			tableView.reloadData()
 		}
@@ -68,6 +70,19 @@ class LogViewController: NSViewController {
 		save_dns_cache()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 	}
+	
+	
+	@IBAction func helpButton(_ sender: NSButton!) {
+			let storyboard = NSStoryboard(name:"Main", bundle:nil)
+			let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
+			
+			let popover = NSPopover()
+			popover.contentViewController = controller
+			popover.contentSize = controller.view.frame.size
+			popover.behavior = .transient; popover.animates = true
+			popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
+			controller.message(msg:String("This window logs the network connections made by the apps running on your computer.  Connections marked in green are not blocked.  Those marked in red are blocked by the blacklist (on the next tab), those in orange and brown are blocked by filter files (see preferences to modify these)."))
+		}
 	
 	@objc func BlockBtnAction(sender : NSButton!) {
 		let row = sender.tag;
@@ -186,7 +201,22 @@ extension LogViewController: NSTableViewDelegate {
 			content=log_line
 			let buf = UnsafeMutablePointer<Int8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
 			get_log_addr_name(Int32(r), buf, INET6_ADDRSTRLEN)
-			tip = String(cString: buf)
+			let ip = String(cString: buf)
+			var domain = String(cString: &item.bl_item.domain.0)
+			if (domain.count == 0) {
+				domain = ip
+			}
+			let name = String(cString: &item.bl_item.name.0)
+			let port = String(Int(item.raw.dport))
+			if (blocked == 0) {
+				tip = "Domain "+domain+" ("+ip+":"+port+") not blocked."
+			} else if (blocked == 1) {
+				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by user black list."
+			} else if (blocked == 2) {
+				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for all applications by hosts file."
+			} else {
+				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by hosts file."
+			}			
 		} else {
 			cellIdentifier = "ButtonCell"
 		}

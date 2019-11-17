@@ -26,6 +26,7 @@ void free_list(list_t *l) {
 
 void* in_list(list_t *l, const void *item, int debug) {
 	// table lookup of list
+	if (l->hash == NULL) return NULL;
 	char *temp = (l->hash)(item);
 	if (debug) { // extra logging requested
 		printf("hash='%s'\n", temp);
@@ -38,18 +39,21 @@ void* in_list(list_t *l, const void *item, int debug) {
 
 void add_item_to_htab(list_t *l, void *item) {
 	// add item to hash table
+	if (l->hash == NULL) return;
 	char * temp = (l->hash)(item);
 	hashtable_put(l->htab, temp, item);
 	free(temp);
 }
 
 void del_from_htab(list_t *l, const void *item) {
+if (l->hash == NULL) return;
 	char * temp = (l->hash)(item);
 	hashtable_remove(l->htab, temp);
 	free(temp);
 }
 
 void add_item(list_t *l, void* item, int item_size) {
+	if (l->hash == NULL) return;
 	if (in_list(l, item, 0)) {
 		INFO("add_item() item %s exists.\n", l->hash(item));
 		return;
@@ -62,6 +66,7 @@ void add_item(list_t *l, void* item, int item_size) {
 		l->list[end] = it;
 		l->list_size++;
 	} else if (l->circular){
+		del_from_htab(l, l->list[l->list_start%MAXLIST]);
 		l->list_start++; l->list_size--;
 		int end = (l->list_start+l->list_size)%MAXLIST;
 		l->list[end] = it;
@@ -76,6 +81,7 @@ void add_item(list_t *l, void* item, int item_size) {
 }
 
 int del_item(list_t *l, const void* item) {
+	if (l->hash == NULL) return -1;
 	int i,posn;
 	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
 		if ((l->cmp(l->list[posn%MAXLIST],item))) {
@@ -86,7 +92,7 @@ int del_item(list_t *l, const void* item) {
 		INFO("del_item() %s item not found.\n", l->hash(item));
 		return -1;
 	}
-	del_from_htab(l,item);
+	del_from_htab(l,item);  //need to do this before do free
 	free(l->list[posn%MAXLIST]);
 	for (i=posn; i<l->list_start+l->list_size-1; i++) {
 		l->list[i%MAXLIST] = l->list[(i+1)%MAXLIST];
@@ -155,6 +161,11 @@ void load_list(list_t *l, char* path, int item_size) {
 		WARN("Problem loading %s: %s", path, strerror(errno));
 		return;
 	}
+	if (l->list_size<0) {
+		WARN("Problem loading %s: list_size %d <0\n",path,l->list_size);
+		l->list_size=0;
+		return;
+	}
 	if (l->list_size>MAXLIST) {
 		WARN("Problem loading %s: list_size %d too large\n",path,l->list_size);
 		l->list_size=0;
@@ -167,7 +178,7 @@ void load_list(list_t *l, char* path, int item_size) {
 		if (res<1) {
 			WARN("Problem loading %s: %s", path, strerror(errno));
 			free(l->list[i]);
-			//block_list_size=0;
+			l->list_size=0;
 			break;
 		}
 		// and put pointer into hash table
@@ -175,7 +186,7 @@ void load_list(list_t *l, char* path, int item_size) {
 	}
 	if (i<l->list_size) {
 		WARN("Read too few records from %s: expected %d, got %d\n",path,l->list_size,i);
-		l->list_size = i;
+		l->list_size = 0;
 	}
 	fclose(fp);
 }

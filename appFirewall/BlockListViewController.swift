@@ -40,7 +40,21 @@ class BlockListViewController: NSViewController {
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 	}
 	
+
+	@IBAction func clickHelpButton(_ sender: NSButton!) {
+		let storyboard = NSStoryboard(name:"Main", bundle:nil)
+		let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
+		
+		let popover = NSPopover()
+		popover.contentViewController = controller
+		popover.contentSize = controller.view.frame.size
+		popover.behavior = .transient; popover.animates = true
+		popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
+		controller.message(msg:String("Domains/apps added here will always be blocked.  For example, you can use this to block domains for an app that are not blocked by the standard lists but which should be."))
+	}
+	
 	@IBAction func Click(_ sender: NSButton!) {
+		// table button to remove from blocklist
 		AllowBtnAction(sender: sender)
 	}
 	

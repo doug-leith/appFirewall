@@ -5,10 +5,8 @@
 #include "pid_conn_info.h"
 
 //global
-#define MAX_CONNS 1024
-static conn_t conns[MAX_CONNS]={{0}};  // zero out array
-static int num_conns=0;
-static int last_pid=-1; // cache last PID looked up, to try to speed up find_conn()
+list_t pid_list=LIST_INITIALISER;
+#define STR_SIZE 1024
 
 //--------------------------------------------------------
 //private
@@ -27,7 +25,7 @@ inline int is_ipv6_localhost(struct in6_addr* addr){
 int get_pid_name(int pid, char* name) {
 	// get process name etc associated with pid
 		struct proc_bsdshortinfo proc;
-    int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &proc, 				PROC_PIDT_SHORTBSDINFO_SIZE);
+    int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, 				PROC_PIDT_SHORTBSDINFO_SIZE);
     if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
 				INFO("Cannot get process info for PID %d, likely has died.\n",pid);
         return -1;
@@ -36,8 +34,35 @@ int get_pid_name(int pid, char* name) {
     return 0;
 }
 
+char* pid_hash(const void *it) {
+	// generate table lookup key string
+	// we do this by network connection, so child processes that
+	// share the same fd are lumped together
+	conn_t *item = (conn_t*) it;
+	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
+	inet_ntop(item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
+	inet_ntop(item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
+	char* temp = malloc(2*INET6_ADDRSTRLEN+64);
+	sprintf(temp,"%s:%d-%s:%d",sn,item->raw.sport,dn,item->raw.dport);
+	return temp;
+}
+
+int pid_cmp(const void* it1, const void* it2){
+	conn_t *item1 = (conn_t*) it1;
+	conn_t *item2 = (conn_t*) it2;
+	char * temp1 = pid_hash(item1);
+	char * temp2 = pid_hash(item2);
+	int res = (strcmp(temp1,temp2)==0);
+	free(temp1); free(temp2);
+	return res;
+}
+
 //--------------------------------------------------------
 // swift interface
+
+void init_pid_list() {
+	init_list(&pid_list,pid_hash,pid_cmp,0);
+}
 
 int refresh_active_conns(int localhost) {
 	// called by GUI to update list of active process
@@ -47,6 +72,9 @@ int refresh_active_conns(int localhost) {
 	int changed = 0;
 	
 	DEBUG2("refresh_active_conns()\n");
+		
+	list_t prev_list=pid_list;
+	init_list(&pid_list,pid_hash,pid_cmp,0);
 	
 	// get list of current processes
 	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
@@ -57,7 +85,7 @@ int refresh_active_conns(int localhost) {
 
 	// now walk through them
 	//num_conns = 0;
-	int k=0,j;
+	int j;
 	for (j=0; j< num_pids; j++) {
 		int pid = pids[j];
 		
@@ -141,184 +169,57 @@ int refresh_active_conns(int localhost) {
 			DEBUG2("%s(%d): %s:%d -> %s:%d %d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
 
 			char* dns=lookup_dns_name(c.raw.af,c.raw.dst_addr);
-			char dns2[BUFSIZE]={0};
 			if (dns!=NULL) {
 				strlcpy(c.domain,dns,BUFSIZE);
-				sprintf(dns2," (%s)",dns);
+			} else {
+				strlcpy(c.domain,c.dst_addr_name,INET6_ADDRSTRLEN);
 			}
-			if (k < num_conns) {
-				if (memcmp(&conns[k],&c,sizeof(conns[k]))==0) {
-					// no change to this entry
-					k++;
-					continue;
-				}
-			}
-			memcpy(&conns[k],&c,sizeof(c));
-			changed = 1; // record fact that connections list has changed
-			k++;
-			if (k >= MAX_CONNS) {
-				WARN("More than %d open network connections\n", MAX_CONNS);
-				num_conns=MAX_CONNS;
-				return changed;
-			}
+			// ignore child processes sharing conn of parent
+			// - rely here on fact that parent will be processed
+			// here before any child ...
+			if (in_list(&pid_list, &c, 0)) continue;
+			// flag to GUI if it needs to refresh ..
+			if (!in_list(&prev_list, &c, 0)) changed = 1;
+			add_item(&pid_list,&c,sizeof(conn_t));
 		}
 	}
-	num_conns=k;
+	free_list(&prev_list);
 	return changed;
 }
 
-conn_t get_conns(int row) {
-	return conns[row];
+conn_t* get_conns(int row) {
+	return get_list_item(&pid_list,row);
 }
 
 int get_num_conns() {
-	return num_conns;
+	return get_list_size(&pid_list);
 }
 
 //--------------------------------------------------------
 // sniffer_blocker helpers
 
-/*int find_pid_conn(conn_raw_t *c, char* name, int pid, int udp) {
-	// get network connections associated with process pid and look for match with conn c
-	
-	// Figure out the size of the buffer needed to hold the list of open FDs
-	int bufferSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
-	if (bufferSize == -1) {
-		// probably process has stopped
-		WARN("Unable to get open file handles for PID %d\n", pid);
-		return -1;
-	}
-	// Get the list of open FDs
-	struct proc_fdinfo *procFDInfo = (struct proc_fdinfo *)malloc(bufferSize);
-	if (!procFDInfo) {
-		ERR("Out of memory. Unable to allocate buffer with %d bytes\n", bufferSize);
-		return -1;
-	}
-	
-	if (proc_pidinfo(pid, PROC_PIDLISTFDS, 0, procFDInfo, bufferSize) < 0){
-		// probably process has stopped
-		WARN("Unable to get open file handles for PID %d\n", pid);
-		return -1;
-	}
-	int numberOfProcFDs = bufferSize / PROC_PIDLISTFD_SIZE;
-	
-	int i;
-	conn_t ci;
-	for(i = 0; i < numberOfProcFDs; i++) {
-		if (procFDInfo[i].proc_fdtype != PROX_FDTYPE_SOCKET)
-			continue; // not a socket fd
-		
-		struct socket_fdinfo socketInfo;
-		proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
-		if(!udp && (socketInfo.psi.soi_kind != SOCKINFO_TCP))
-			continue; // not a TCP socket
-		if(udp && (socketInfo.psi.soi_kind == SOCKINFO_TCP))
-			continue; // not a UDP socket
-
-		struct in_sockinfo* sockinfo = &socketInfo.psi.soi_proto.pri_tcp.tcpsi_ini;
-		ci.raw.af=socketInfo.psi.soi_family;
-		ci.raw.sport =  (int)ntohs(sockinfo->insi_lport);
-		ci.raw.dport = (int)ntohs(sockinfo->insi_fport);
-		if ( ( (c->dport != ci.raw.dport) && (c->dport !=ci.raw.sport) )
-				|| ( (c->sport != ci.raw.dport) && (c->sport !=ci.raw.sport) )
-				|| (c->af != ci.raw.af) ) {
-			continue; // not a match
-		}
-		
-		if (sockinfo->insi_vflag==INI_IPV4) { // IPv4
-			memcpy(&ci.raw.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
-			memcpy(&ci.raw.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
-		} else { // IPv6
-			memcpy(&ci.raw.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
-			memcpy(&ci.raw.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
-		}
-		
-		if ( (are_addr_same(c->af,&c->dst_addr,&ci.raw.dst_addr)) ||
-				(are_addr_same(c->af,&c->src_addr,&ci.raw.dst_addr)) )  {
-			return 1;  // found match !
-		}
-	}
-	return -1;
-}
-
-int find_conn(conn_raw_t *c, char* name, int *pid_hint, int udp) {
-	// search list of active process and network connections for conn c
-	// -- a streamlined (hopefully faster) version of refresh_active_conns() for use
-	// in packet sniffing fast path
-	// pid_hint is a guess as to the right pid, we check this first.  its just the pid of the
-	// last connection found, but this already works pretty well.
-	
-	if (find_pid_conn(c, name, *pid_hint, udp)==1) {
-		if (get_pid_name(*pid_hint, name)<0) return -1;
-		return 1; // found it first time !
-	}
-
-	// fall back to walking list of all active processes ...
-	// get list of current processes
-	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
-	pid_t pids[2 * bufsize / sizeof(pid_t)];
-	bufsize =  proc_listpids(PROC_ALL_PIDS, 0, pids, (int) sizeof(pids));
-	size_t num_pids = bufsize / sizeof(pid_t);
-	int j;
-	for (j=0; j< num_pids; j++) {
-		// get app name associated with process
-		if (get_pid_name(pids[j], name)<0) continue; // process has died
-		if (find_pid_conn(c, name, pids[j], udp)==1) {
-			*pid_hint = pids[j]; // remember the PID
-			return 1; // matched
-		}
-	}
-	*pid_hint = -1; // not found
-	return 0;
-}
-*/
-
-int _find_pid_name(conn_raw_t *c) {
-	// find name of process associated with a network connection tuple by
-	// walking list of cached connections
-	int i;
-	for (i=0; i<num_conns; i++) {
-		if (c->af!=conns[i].raw.af) continue;
-		if ((c->dport != conns[i].raw.dport) && (c->dport !=conns[i].raw.sport) ) continue;
-		if ((c->sport != conns[i].raw.dport) && (c->sport !=conns[i].raw.sport) ) continue;
-		if (are_addr_same(c->af,&c->dst_addr,&conns[i].raw.dst_addr)) {
-			return i;
-		}
-	}
-	return -1;
-}
-
-int find_pid(conn_raw_t *c, char*name){
+int find_pid(conn_raw_t *cr, char*name){
 	// find name of process associated with a network connection tuple
 	// (assumed to be an outgoing tuple, so src is local addr and dst
 	// is remote)
 
 	// start by trying cached list of connections, v fast if we get match
-	int res = _find_pid_name(c);
-	if (res>=0) { // found it !
-		last_pid = conns[res].pid;
-		strlcpy(name,conns[res].name,BUFSIZE);
+	conn_t c;
+	memcpy(&c.raw,cr,sizeof(conn_raw_t));
+	conn_t *res = in_list(&pid_list,&c,0); // list lookup only uses raw
+	if (res) { // found it !
+		strlcpy(name,res->name,BUFSIZE);
 		return 1;
 	}
 
 	// didn't find PID, usual with new connections (SYN-ACK).  make syscall
 	// to query current list of active questions, can be slow
 	char dn[INET6_ADDRSTRLEN];
-	inet_ntop(c->af, &c->dst_addr, dn, INET6_ADDRSTRLEN);
-	/*
-	// more streamlined call, often much faster.  superceded by use of
-	// dtrace though, so commented out to simplify code that needs to be
-	// maintained
-	res = find_conn(c,name, &last_pid, udp);
-	if (res==1) {
-		DEBUG2("find_pid() retrying for %s ... found\n", dn);
-		return 1;
-	}*/
+	inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 	refresh_active_conns(0);
-	res = _find_pid_name(c);
-	if (res>=0) { // found it !
-		last_pid = conns[res].pid;
-		strlcpy(name,conns[res].name,BUFSIZE);
+	res = in_list(&pid_list,&c,0);
+	if (res) { // found it !
+		strlcpy(name,res->name,BUFSIZE);
 		return 1;
 	}
 	// couldn't find PID.  likely was an emphemeral process that opening a

@@ -14,7 +14,6 @@ int connect_to_helper(int port) {
 	
 	int sock=-1;
 	INFO("Trying to connect to appFirewall-Helper on port %d ...\n", port);
-	#define MAXTRIES 30
 	int tries=0;
 	while (tries < MAXTRIES) {
 		DEBUG2("Try %d\n",tries);

@@ -37,6 +37,12 @@ https://gist.github.com/amitu/2134968 // for apple, v useful !
 
 // Apple TCP control block: https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/netinet/tcp_var.h.auto.html
 
+// Note that dtrace script below can generate occasional errors e.g.
+// error on enabled probe ID 5 (ID 971: syscall::connect_nocancel:return): invalid alignment (0x3356113e0009b1e) in action #1 at DIF offset 328
+// this is a memory error and likely means that process has been killed between time
+// connect call started and when it ended e.g. if laptop went to sleep and then
+// awoke.  so hopefully no big deal since we don't care about killing such connections
+// as they're already dying.
 char* dtrace_script="\
 -x quiet -x switchrate=100hz -n \
 '\
@@ -76,8 +82,8 @@ int exec(char* cmd, int *pipefd) {
 		return pid; // erro
 	else if (pid == 0) { // child
 		// this is a bit messy.  we've already redirected stdout
-		// to the logfile but have kept a copt of its file descriptor
-		// in stdout_fd.  now that we're in forked child we (i) reattach
+		// to the logfile but have kept a copy of its file descriptor
+		// in stdout_fd.  now that we're in forked child we (i) re-attach
 		// stdout back to stdout_fd, then (ii) redirect stdout to
 		// the pipe fd.  seems that both steps are necessary as dtrace
 		// is writing to stdout FILE* using printf and we need to

@@ -21,7 +21,6 @@ typedef struct dns_item_t {
 	char name[BUFSIZE];
 } dns_item_t;
 
-
 #define DNSFILE "dns.dat"
 
 void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* pkt);

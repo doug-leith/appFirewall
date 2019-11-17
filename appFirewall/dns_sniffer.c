@@ -2,9 +2,7 @@
 #include "dns_sniffer.h"
 
 // circular list of reverse DNS lookups based on sniffed DNS reply packets
-dns_item_t dns_cache[DNS_CACHE_SIZE];
-int dns_cache_size=0;
-int dns_cache_start=0;
+list_t dns_cache = LIST_INITIALISER;
 
 #define STR_SIZE 1024
 
@@ -20,114 +18,54 @@ struct dnshdr {
 
 //-------------------------------------------------------
 
-int lookup_dns_row(int af, struct in6_addr addr) {
-	int i;
-	for (i=dns_cache_start; i<dns_cache_start+dns_cache_size; i++) {
-		if (dns_cache[i%DNS_CACHE_SIZE].af != af)
-			continue;
-			
-		/*if (af==AF_INET6){
-		char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-		inet_ntop(dns_cache[i].af, &dns_cache[i].addr, sn, INET6_ADDRSTRLEN);
-		inet_ntop(af, &addr, dn, INET6_ADDRSTRLEN);
-		printf("af %d/%d addr %s/%s\n",dns_cache[i].af,af,sn,dn);
-		}*/
+char* dns_hash(const void* it) {
+	dns_item_t *item = (dns_item_t*)it;
+	char* temp = malloc(INET6_ADDRSTRLEN);
+	inet_ntop(item->af,&item->addr,temp,INET6_ADDRSTRLEN);
+	return temp;
+}
 
-		int len=sizeof(struct in_addr);
-		if (af==AF_INET6) {
-			len = sizeof(struct in6_addr);
-		}
-		if (memcmp(&dns_cache[i%DNS_CACHE_SIZE].addr.s6_addr,&addr.s6_addr,len)) {
-			continue;
-		}
-		//printf("addr match\n");
-		return i;
-	}
-	//printf("addr not found\n");
-	return -1;
+int dns_cmp(const void* it1, const void* it2) {
+	dns_item_t *item1 = (dns_item_t*)it1;
+	dns_item_t *item2 = (dns_item_t*)it2;
+	return are_addr_same(item1->af, &item1->addr, &item2->addr);
 }
 
 char* lookup_dns_name(int af, struct in6_addr addr) {
-	int row=lookup_dns_row(af,addr);
-	if (row>=0) {
-		return dns_cache[row%DNS_CACHE_SIZE].name;
+	dns_item_t d;
+	d.af=af;
+	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
+	dns_item_t* res = in_list(&dns_cache,&d,0);
+	if (res != NULL) {
+		//printf("found '%s' for %s/'%s'\n",res->name, dns_hash(&d), dns_hash(res));
+		return res->name;
 	} else {
+		//printf("not found %s\n",dns_hash(&d));
 		return NULL;
 	}
 }
 
 void append_dns(int af, struct in6_addr addr, char* name) {
-	int row=0;
-	if ( (row=lookup_dns_row(af,addr))>=0) {
-		DEBUG2("append_dns() item %s exists, overwriting.\n", name);
-		strlcpy(dns_cache[row%DNS_CACHE_SIZE].name,name,BUFSIZE);
-		return;
-	}
-	if (dns_cache_size == DNS_CACHE_SIZE) {
-		dns_cache_start++;
-		dns_cache_size--;
-	}
-	int end = dns_cache_start+dns_cache_size;
-	dns_cache[end%DNS_CACHE_SIZE].af = af;
-	memcpy(&dns_cache[end%DNS_CACHE_SIZE].addr,&addr,sizeof(addr));
-	strlcpy(dns_cache[end%DNS_CACHE_SIZE].name,name,BUFSIZE);
-	dns_cache_size++;
+	dns_item_t d;
+	d.af=af;
+	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
+	strlcpy(d.name,name,BUFSIZE);
+	//printf("adding %s/'%s'\n",d.name,dns_hash(&d));
+	add_item(&dns_cache,&d,sizeof(dns_item_t));
 }
 
 void save_dns_cache(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
-	FILE *fp = fopen(path,"w");
-	if (fp==NULL) {
-		WARN("Problem opening %s for writing: %s\n", DNSFILE, strerror(errno));
-		return;
-	}
-	int i;
-	int res = (int)fwrite(&dns_cache_start,sizeof(dns_cache_start),1,fp);
-	if (res<1) {
-		WARN("Problem saving start to %s: %s\n", DNSFILE,strerror(errno));
-		return;
-	}
-	res = (int)fwrite(&dns_cache_size,sizeof(dns_cache_size),1,fp);
-	if (res<1) {
-		WARN("Problem saving size to %s: %s\n", DNSFILE,strerror(errno));
-		return;
-	}
-	for(i = dns_cache_start; i < dns_cache_start+dns_cache_size; i++){
-		int res=(int)fwrite(&dns_cache[i%DNS_CACHE_SIZE],sizeof(dns_item_t),1,fp);
-		if (res<1) {
-			WARN("Problem saving %s: %s\n", DNSFILE, strerror(errno));
-			break;
-		}
-	}
-	fclose(fp);
+	save_list(&dns_cache,path,sizeof(dns_item_t));
 }
 
 void load_dns_cache(void) {
-	//return;
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
-	FILE *fp = fopen(path,"r");
-	if (fp==NULL) {
-		WARN("Problem opening %s for reading: %s\n", DNSFILE, strerror(errno));
-		return;
-	}
-	fread(&dns_cache_start,sizeof(dns_cache_start),1,fp);
-	fread(&dns_cache_size,sizeof(dns_cache_size),1,fp);
-	int i;
-	dns_cache_start=0; // might as well reset
-	for(i = 0; i < dns_cache_size; i++){
-		int res=(int)fread(&dns_cache[i%DNS_CACHE_SIZE],sizeof(dns_item_t),1,fp);
-		if (res<1) {
-			WARN("Problem loading %s: %s", DNSFILE, strerror(errno));
-			break;
-		}
-	}
-	if (i<dns_cache_size) {
-		WARN("Read too few records from %s: expected %d, got %d\n",DNSFILE,dns_cache_size,i);
-		dns_cache_size = i;
-	}
-	fclose(fp);
+	init_list(&dns_cache,dns_hash,dns_cmp,1);
+	//return;
+	load_list(&dns_cache,path,sizeof(dns_item_t));
 }
 
 //-------------------------------------------------------
@@ -281,7 +219,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 		return;
 	}
 	append_dns(af,addr,(char*)label);
-	char n[256];
-	inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
+	//char n[256];
+	//inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
 	//printf("DNS %s %s\n",label,n);
 }

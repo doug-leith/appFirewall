@@ -32,6 +32,7 @@ void get_log_addr_name(int row, char* str, int len) {
 
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
 	changed = 1; // record for GUI fact that log has been updated
+	//printf("append_log: %s %d ",long_str,log_size );
 	if (log_size == MAXLOGSIZE) {
 		free(log_lines[log_start%MAXLOGSIZE].log_line);
 		free(log_lines[log_start%MAXLOGSIZE].time_str);

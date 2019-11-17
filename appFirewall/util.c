@@ -1,6 +1,5 @@
 
 #include "util.h"
-#include <string.h>
 
 #define STR_SIZE 1024
 static char error_msg[STR_SIZE];
@@ -106,4 +105,22 @@ char *trimwhitespace(char *str) {
   return str;
 }
 
-
+void redirect_stdout() {
+	// set up logging
+	char path[STR_SIZE];
+	strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,APPLOGFILE,STR_SIZE);
+	int logfd = open(path,O_RDWR|O_CREAT|O_APPEND,0644);
+	if (logfd == -1) {
+		ERR("Failed to open %s: %s\n",path,strerror(errno));
+		//exit(EXIT_FAILURE);
+	}
+	//if (!isatty(fileno(stdout))) {
+		dup2(logfd,STDOUT_FILENO); // redirect stdout to log file
+		dup2(logfd,STDERR_FILENO); // ditto stderr
+		setbuf(stdout, NULL); // disable buffering on stdout
+	//} else {
+	//	INFO("logging to terminal\'n");
+	//}
+	close(logfd);
+}

@@ -19,6 +19,7 @@ typedef struct list_t {
 	int (*cmp)(const void* item1, const void* item2); // returns 1 if items match
 	int circular; // is list circular ?
 } list_t;
+#define LIST_INITIALISER {{NULL},0,0,NULL,NULL,NULL,0}
 
 void* in_list(list_t *l, const void *item, int debug);
 void add_item_to_htab(list_t *l, void *item);
