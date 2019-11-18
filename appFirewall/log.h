@@ -8,8 +8,10 @@
 #include <time.h>
 #include <sys/errno.h>
 #include <netinet/in.h>
+#include <string.h>
 #include "util.h"
 #include "blocklist.h"
+#include "circular_list.h"
 
 // file for maintaining state over restarts
 #define LOGFILE "log.dat"
@@ -18,14 +20,16 @@
 #define MAXLOGSIZE 1024
 
 typedef struct log_line_t {
-	char *time_str, *log_line;
+	char time_str[LOGSTRSIZE], log_line[LOGSTRSIZE];
 	struct bl_item_t bl_item;
 	int blocked;
 	conn_raw_t raw;
 } log_line_t;
 
 int get_log_size(void);
-log_line_t get_log_item(int row);
+log_line_t* get_log_row(int row);
+int find_log_item_row(log_line_t* item);
+char* log_hash(const void* it);
 void get_log_addr_name(int row, char* str, int len);
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked);
 void save_log(void);

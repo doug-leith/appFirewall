@@ -113,7 +113,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// is helper binary there ?
 		let path = "/Library/PrivilegedHelperTools/"+Name
 		if !FileManager.default.fileExists(atPath: path) {
-			os_log(.info,"helper binary not found at %s",path)
+			print("helper binary not found at "+path)
 			return false
 		}
 		
@@ -128,15 +128,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		task.waitUntilExit()
 		let pid_str = (String(data: resp, encoding: .utf8) ?? "-1").trimmingCharacters(in: .whitespacesAndNewlines)
 		if (resp.count == 0) {
-			os_log(.info,"helper binary not running, null pgrep output")
+			print("helper binary not running, null pgrep output")
 			return false
 		}
 		let pid = Int(pid_str) ?? -1
 		if (pid  < 0) {
-			os_log(.info,"helper binary not running, pgrep output not an int")
+			print("helper binary not running, pgrep output not an int")
 			return false
 		}
-		os_log(.info,"helper binary installed and running")
+		print("helper binary installed and running")
 		return true
 	}
 	
@@ -146,10 +146,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if let dict = NSDictionary(contentsOfFile: path) as? Dictionary<String, AnyObject> {
 				//print(dict)
 				guard let version:Int = dict["Version"] as? Int else {return -1}
-				os_log(.info,"helper version is %d",version)
+				print(String(format:"helper version is %d",version))
 				return version
 		} else {
-			os_log(.info,"problem reading helper version from %s",path)
+			print("problem reading helper version from "+path)
 			return -1
 		}
 	}
@@ -172,7 +172,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if (is_helper_running(Name: kHelperToolName)) {
 			let version = get_helper_version(Name: kHelperToolName)
 			if (version == REQUIRED_VERSION) {
-				os_log(.info, "helper %s, version %d already installed.", kHelperToolName, version)
+				print(String(format:"helper "+kHelperToolName+", version %d already installed.", version))
 				return // right version of helper already installed
 			}
 		}
@@ -205,7 +205,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				let blessError = cfError!.takeRetainedValue()
 				exit_popup(msg:"Problem installing helper: \(blessError), exiting.")
 			}else{
-				os_log(.info,"%s installed successfully",kHelperToolName)
+				print(kHelperToolName+" installed successfully")
 			}
 		}
 	}
@@ -235,14 +235,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if !FileManager.default.fileExists(atPath: path) {
 				do {
 						try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true, attributes: nil)
-						os_log(.info,"created %s", path)
+						print("created "+path)
 				} catch {
-						os_log(.info,"%s",error.localizedDescription);
+						print("problem making data_dir: "+error.localizedDescription);
 				}
 		}
 		// and tell C helpers what the path we're using is
 		set_path(path + "/")
-		os_log(.info,"storage path %s",path + "/")
+		print("storage path "+path)
 	}
 	
 	func log_rotate() {
@@ -254,14 +254,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				let fileSize = attr[FileAttributeKey.size] as! UInt64
 				if (fileSize > 100000000) { // 100M
 						// rotate
-						os_log(.info,"Rotating log")
+						print("Rotating log")
 						save_log() // this will flush human-readable log file
 						try FileManager.default.removeItem(atPath:logfile+".0")
 						try FileManager.default.moveItem(atPath:logfile, toPath: logfile+".0")
 						load_log() // this we reopen human-readable log file
 				}
 		} catch {
-				os_log(.info,"%s",error.localizedDescription);
+				print("Problem rotating log: "+error.localizedDescription)
 		}
 
 	}
@@ -296,6 +296,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	func applicationWillFinishLaunching(_ aNotification: Notification) {
 		
 		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"starting applicationWillFinishLaunching()")
+		// create storage dir if it doesn't already exist
+		make_data_dir()
+		
+		// redirect C logging from stdout to logfile (in storage dir, so
+		// important to call make_data_dir() first
+		redirect_stdout()
+
 		// install appFirewall-Helper, if not already installed
 		start_helper()
 
@@ -316,12 +323,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// set up handler to catch C errors
 		setup_sigterm_handler()
 		
-		// create storage dir if it doesn't already exist
-		make_data_dir()
-		
-		// redirect C logging from stdout to logfile
-		redirect_stdout()
-
 		// reload state
 		load_log()
 		load_blocklist()

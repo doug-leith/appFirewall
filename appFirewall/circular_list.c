@@ -22,6 +22,7 @@ void free_list(list_t *l) {
 		}
 	}
 	if (l->htab!=NULL) hashtable_free(l->htab);
+	l->list_size=0; l->list_start=0;
 }
 
 void* in_list(list_t *l, const void *item, int debug) {
@@ -37,6 +38,17 @@ void* in_list(list_t *l, const void *item, int debug) {
 	return res;
 }
 
+int find_item_row(list_t *l, const void* item) {
+	if (l->hash == NULL) return -1;
+	int posn;
+	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
+		if ((l->cmp(l->list[posn%MAXLIST],item))) {
+				break; //found a match
+		}
+	}
+	return posn;
+}
+
 void add_item_to_htab(list_t *l, void *item) {
 	// add item to hash table
 	if (l->hash == NULL) return;
@@ -46,7 +58,7 @@ void add_item_to_htab(list_t *l, void *item) {
 }
 
 void del_from_htab(list_t *l, const void *item) {
-if (l->hash == NULL) return;
+	if (l->hash == NULL) return;
 	char * temp = (l->hash)(item);
 	hashtable_remove(l->htab, temp);
 	free(temp);

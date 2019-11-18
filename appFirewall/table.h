@@ -28,7 +28,7 @@ void hashtable_free(Hashtable *table);
 void* hashtable_remove(Hashtable *table, const char* key_string);
 void* hashtable_get(Hashtable *table, const char* key_string);
 void* hashtable_put(Hashtable *table, const char* key_string, void *value);
-unsigned long hash(const char *str);
+Key hash(const char *str);
 void dump_hashtable(Hashtable *table);
 
 #endif

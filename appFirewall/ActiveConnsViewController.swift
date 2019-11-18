@@ -207,13 +207,13 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			let name = String(cString: &bl_item.name.0)
 			let port = String(Int(item.raw.dport))
 			if (blocked == 0) {
-				tip = "Domain "+domain+" ("+ip+":"+port+") not blocked."
+				tip = "Domain "+domain+" ("+ip+":"+port+") is not blocked."
 			} else if (blocked == 1) {
-				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by user black list."
+				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for application '"+name+"' by user black list."
 			} else if (blocked == 2) {
-				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for all applications by hosts file."
+				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for all applications by hosts file."
 			} else {
-				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by hosts file."
+				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for application '"+name+"' by hosts file."
 			}
 			content = domain
 			if (Int(item.raw.udp)==1) {

@@ -22,6 +22,7 @@ typedef struct list_t {
 #define LIST_INITIALISER {{NULL},0,0,NULL,NULL,NULL,0}
 
 void* in_list(list_t *l, const void *item, int debug);
+int find_item_row(list_t *l, const void* item);
 void add_item_to_htab(list_t *l, void *item);
 void del_from_htab(list_t *l, const void *item);
 void add_item(list_t *l, void* item, int item_size);

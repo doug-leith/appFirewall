@@ -108,7 +108,7 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 	return prev;
 }
 
-unsigned long hash(const char *str) {
+Key hash(const char *str) {
 		// djb2 hash of Dan Bernstein http://www.cse.yorku.ca/~oz/hash.html
     unsigned long hash = 5381;
     int c, count=0;

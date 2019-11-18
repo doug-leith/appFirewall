@@ -18,4 +18,5 @@
 #include "util.h"
 #include "hostlists.h"
 #include "blocklists.h"
+#include "table.h"
 

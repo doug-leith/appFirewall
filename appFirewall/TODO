@@ -3,4 +3,5 @@
 // sending of RST to existing connections i.e. not just on SYN-ACK.  that way can recover from missing the SYN-ACK
 // add filtering to log window e.g. to just show non-blocked connections or connections
 // from a particular app
+// rotate /Libary/Logs/appFirewall-Helper.log when gets too big, same for ~/Libary/Application Support/app_log.txt
 

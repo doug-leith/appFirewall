@@ -1,12 +1,26 @@
 #include "log.h"
 
 // circular list
-static log_line_t log_lines[MAXLOGSIZE] = {0};
-static int log_size=0;
-static int log_start=0;
+list_t log_list;
 FILE *fp_txt = NULL; // pointer to human readable log file
 int changed = 0; // flag to record whether log has been updated
 #define STR_SIZE 1024
+
+char* log_hash(const void* it) {
+	log_line_t *item = (log_line_t*)it;
+	int len = (int)(strlen(item->log_line)+strlen(item->time_str));
+	char* temp = malloc(len);
+	strlcpy(temp,item->time_str,len);
+	strlcat(temp,item->log_line,len);
+	return temp;
+}
+
+int log_cmp(const void* it1, const void* it2) {
+	log_line_t *item1 = (log_line_t*)it1;
+	log_line_t *item2 = (log_line_t*)it2;
+	return ((strcmp(item1->time_str, item2->time_str)==0)
+					&& (strcmp(item1->log_line, item2->log_line)==0) );
+}
 
 int has_log_changed(void) {
 	return changed;
@@ -17,50 +31,42 @@ void clear_log_changed(void) {
 }
 
 int get_log_size(void) {
-	return log_size;
+	return get_list_size(&log_list);
 }
 
-log_line_t get_log_item(int row) {
-	return log_lines[(row+log_start)%MAXLOGSIZE];
+int find_log_item_row(log_line_t* item) {
+	return find_item_row(&log_list, item);
+}
+
+log_line_t* get_log_row(int row) {
+	return (log_line_t*)get_list_item(&log_list,row);
 }
 
 void get_log_addr_name(int row, char* str, int len) {
-	log_line_t *l = &log_lines[(row+log_start)%MAXLOGSIZE];
+	log_line_t *l = get_list_item(&log_list,row);
 	inet_ntop(l->raw.af,&l->raw.dst_addr,str,len);
 	//printf("get_log_addr_name '%s'\n",str);
 }
 
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
 	changed = 1; // record for GUI fact that log has been updated
-	//printf("append_log: %s %d ",long_str,log_size );
-	if (log_size == MAXLOGSIZE) {
-		free(log_lines[log_start%MAXLOGSIZE].log_line);
-		free(log_lines[log_start%MAXLOGSIZE].time_str);
-		log_start++;
-		log_size--;
-	}
-	//printf("append_log(): %d\n",(int)strlen(str));
-	int end = (log_start+log_size)%MAXLOGSIZE;
+	log_line_t *l = malloc(sizeof(log_line_t));
+	strlcpy(l->log_line,str,LOGSTRSIZE);
+	time_t t; time(&t);
+	str=asctime(localtime(&t)); str[strlen(str)-1]=0; // remove "\n"
 	int len = (int)strlen(str)+1;
-	if (len > STR_SIZE) len = STR_SIZE;
-	log_lines[end].log_line = calloc(1,len);
-	strlcpy(log_lines[end].log_line,str,len);
-	time_t t;
-	time(&t);
-	str=asctime(localtime(&t));
-	str[strlen(str)-1]=0; // remove "\n"
-	len = (int)strlen(str)+1;
-	if (len > STR_SIZE) len = STR_SIZE;
-	log_lines[end].time_str = calloc(1,len);
-	strlcpy(log_lines[end].time_str, str, len);
-	memcpy(&log_lines[end].bl_item,bl_item,sizeof(struct bl_item_t));
-	memcpy(&log_lines[end].raw,raw,sizeof(conn_raw_t));
-	log_lines[end].blocked = blocked;
-	log_size++;
+	if (len > LOGSTRSIZE) len = LOGSTRSIZE;
+	strlcpy(l->time_str, str, len);
+	memcpy(&l->bl_item,bl_item,sizeof(struct bl_item_t));
+	memcpy(&l->raw,raw,sizeof(conn_raw_t));
+	l->blocked = blocked;
+	
+	add_item(&log_list, l, sizeof(log_line_t));
+	//printf("append_log: %s %d ",long_str,log_size );
 	
 	// and update human-readable log file
 	if (fp_txt) {
-		fprintf(fp_txt,"%s\t%s\n", log_lines[end].time_str, long_str);
+		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
 	} else {
 		WARN("Problem appending to %s, re-opening: %s\n", LOGFILE_TXT, strerror(errno));
 		char path[STR_SIZE];
@@ -74,25 +80,25 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 
 void clear_log() {
 	changed = 1; // record fact that log has been updated
-	int i;
-	for(i = log_start; i < log_start+log_size; i++){
-		free(log_lines[i%MAXLOGSIZE].time_str);
-		free(log_lines[i%MAXLOGSIZE].log_line);
-	}
-	log_start=0; log_size=0;
+	free_list(&log_list);
+	init_list(&log_list,log_hash,log_cmp,0);
 }
 
 void save_log(void) {
 	//printf("saving log\n");
 	fflush(fp_txt); // flush text log
 	
-	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+	char path[STR_SIZE];
+	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
-	FILE *fp = fopen (path,"w+");
+	save_list(&log_list, path, sizeof(log_line_t));
+
+	/*FILE *fp = fopen (path,"w+");
 	if (fp==NULL) {
 		WARN("Problem opening %s for writing: %s\n", LOGFILE, strerror(errno));
 		return;
 	}
+	//
 	int res = (int)fwrite(&log_start,sizeof(log_start),1,fp);
 	if (res<1) {
 		ERR("Problem saving start to %s: %s\n", LOGFILE,strerror(errno));
@@ -124,19 +130,26 @@ void save_log(void) {
 		}
 	}
 	fclose(fp);
+	*/
 }
 
 void load_log() {
-	//printf("loading log\n");
-	//return;
-	//printf("log: %s\n",strcat(get_path(),LOGFILE));
-
 	changed = 1; // record fact that log has been updated
 
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE_TXT,STR_SIZE);
 	fp_txt = fopen (path,"a");
+	if (fp_txt==NULL) {
+		WARN("Problem opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));
+	}
+	
+	strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,LOGFILE,STR_SIZE);
+	init_list(&log_list,log_hash,log_cmp,0);
+	load_list(&log_list, path, sizeof(log_line_t));
+	
+	/*fp_txt = fopen (path,"a");
 	if (fp_txt==NULL) {
 		WARN("Problem opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));
 	}
@@ -209,7 +222,7 @@ void load_log() {
 		WARN("Read too few records from %s: expected %d, got %d\n",LOGFILE,log_size,i);
 		log_size = i;
 	}
-	fclose(fp);
+	fclose(fp);*/
 }
 
 //--------------------------------------------------------

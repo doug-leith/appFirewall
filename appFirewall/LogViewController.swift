@@ -9,6 +9,7 @@ import Cocoa
 class LogViewController: NSViewController {
 	
 	@IBOutlet weak var tableView: NSTableView!
+	@IBOutlet weak var tableHeaderView: NSTableHeaderView!
 	var timer : Timer!
 	var asc: Bool = false // whether log is shown in ascending/descending order
 
@@ -58,6 +59,9 @@ class LogViewController: NSViewController {
 			//print("refresh log")
 			clear_log_changed()
 			tableView.reloadData()
+		} else if (has_log_changed() == 1){
+			// update scrollbars but leave rest of view alone
+			tableView.noteNumberOfRowsChanged()
 		}
 		ConnsColumn.headerCell.title="Connections ("+String(Int(get_num_conns_blocked()))+" blocked)"
 	}
@@ -84,9 +88,19 @@ class LogViewController: NSViewController {
 			controller.message(msg:String("This window logs the network connections made by the apps running on your computer.  Connections marked in green are not blocked.  Those marked in red are blocked by the blacklist (on the next tab), those in orange and brown are blocked by filter files (see preferences to modify these)."))
 		}
 	
-	@objc func BlockBtnAction(sender : NSButton!) {
-		let row = sender.tag;
-		var item = get_log_item(Int32(row))
+	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {
+		// update all of the buttons in table (called after
+		// pressing a button changes blacklist state etc)
+		let button = rowView.view(atColumn:2) as! blButton
+		let item_ptr = button.item_ptr
+		var item = item_ptr!.pointee
+		//print(row, String(cString: &item.bl_item.name.0))
+		updateButton(cell: button)
+	}
+	
+	@objc func BlockBtnAction(sender : blButton!) {	
+		let item_ptr = sender.item_ptr
+		var item = item_ptr!.pointee
 		let name = String(cString: &item.bl_item.name.0)
 		var bl_item = item.bl_item
 		let domain = String(cString: &bl_item.domain.0)
@@ -121,9 +135,9 @@ class LogViewController: NSViewController {
 				add_blockitem(&bl_item)
 			}
 		}
-		tableView.reloadData()
-	}
-
+		// update (without scrolling)...
+		tableView.enumerateAvailableRowViews(updateTable)
+		}
 }
 
 extension LogViewController: NSTableViewDataSource {
@@ -156,15 +170,79 @@ extension LogViewController: NSTableViewDelegate {
 		}
 	}
 	
+	func invMapRow(r: Int) -> Int {
+		//map from row in log to displayed row
+		let log_last = Int(get_log_size())-1
+		if (r<0) { return 0 }
+		if (r>log_last) { return log_last }
+		if (asc) {
+			return r
+		} else {
+			return log_last-r
+		}
+	}
+	
 	func getRowText(row: Int) -> String {
 		let r = mapRow(row: row)
-		/*let log_last = Int(get_log_size())-1
-		if (row>log_last) { return ""	}
-		let item = get_log_item(Int32(log_last-row))*/
-		let item = get_log_item(Int32(r))
-		let time_str = String(cString: item.time_str)
-		let log_line = String(cString: item.log_line)
+		let item_ptr = get_log_row(Int32(r))
+		var item = item_ptr!.pointee
+		let time_str = String(cString: &item.time_str.0)
+		let log_line = String(cString: &item.log_line.0)
 		return time_str+" "+log_line
+	}
+	
+	func updateButton(cell: blButton) {
+		// refresh the contents based on current data
+		var item = cell.item_ptr!.pointee
+		var white: Int = 0
+		if (in_whitelist_htab(&item.bl_item, 0) != nil) {
+			white = 1
+		}
+		var blocked: Int = 0
+		let domain = String(cString: &item.bl_item.domain.0)
+		if (in_blocklist_htab(&item.bl_item, 0) != nil) {
+			blocked = 1
+		} else if (in_hostlist_htab(domain) != nil) {
+			blocked = 2
+		} else if (in_blocklists_htab(&item.bl_item) != nil) {
+			blocked = 3
+		}
+		
+		let log_line = String(cString: &item.log_line.0)
+		let udp : Bool = log_line.contains("QUIC")
+		
+		if (udp) { // QUIC, can't block yet
+			cell.title = ""
+			cell.isEnabled = false
+			return
+		}
+		if (blocked > 1) {
+			if (white == 1) {
+				cell.title = "Block"
+				cell.toolTip = "Remove from white list"
+			} else {
+				cell.title = "Allow"
+				cell.toolTip = "Add to white list"
+			}
+		} else if (blocked==1) {
+			if (white==1) {
+				cell.title = "Block"
+				cell.toolTip = "Remove from white list"
+			} else {
+				cell.title = "Allow"
+				cell.toolTip = "Remove from black list"
+			}
+		} else {
+			if (white==1) {
+				cell.title = "Remove"
+				cell.toolTip = "Remove from white list"
+			} else {
+				cell.title = "Block"
+				cell.toolTip = "Add to black list"
+			}
+		}
+		cell.isEnabled = true
+		cell.action = #selector(BlockBtnAction)
 	}
 	
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
@@ -177,22 +255,12 @@ extension LogViewController: NSTableViewDelegate {
 		//let log_last = Int(get_log_size())-1
 		//if (row>log_last) { return nil	}
 		let r = mapRow(row: row)
-		var item = get_log_item(Int32(r))
-		let time_str = String(cString: item.time_str)
-		let log_line = String(cString: item.log_line)
-		
-		let blocked = Int(item.blocked)
-		var white: Int = 0
-		if (in_whitelist_htab(&item.bl_item, 0) != nil) {
-			white = 1
-		}
-		var on_list: Int = 0
-		if (in_blocklist_htab(&item.bl_item, 0) != nil) {
-			on_list = 1
-		}
-		
-		let udp : Bool = log_line.contains("QUIC")
-		
+		let item_ptr = get_log_row(Int32(r))
+		var item = item_ptr!.pointee
+		let time_str = String(cString: &item.time_str.0)
+		let log_line = String(cString: &item.log_line.0)
+		let blocked_log = Int(item.blocked)
+
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "TimeCell"
 			content=time_str
@@ -208,14 +276,14 @@ extension LogViewController: NSTableViewDelegate {
 			}
 			let name = String(cString: &item.bl_item.name.0)
 			let port = String(Int(item.raw.dport))
-			if (blocked == 0) {
-				tip = "Domain "+domain+" ("+ip+":"+port+") not blocked."
-			} else if (blocked == 1) {
-				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by user black list."
-			} else if (blocked == 2) {
-				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for all applications by hosts file."
+			if (blocked_log == 0) {
+				tip = "This connection to "+domain+" ("+ip+":"+port+") was not blocked."
+			} else if (blocked_log == 1) {
+				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for application '"+name+"' by user black list."
+			} else if (blocked_log == 2) {
+				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for all applications by hosts file."
 			} else {
-				tip = "Domain "+domain+" ("+ip+":"+port+") blocked for application '"+name+"' by hosts file."
+				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for application '"+name+"' by hosts file."
 			}			
 		} else {
 			cellIdentifier = "ButtonCell"
@@ -223,50 +291,21 @@ extension LogViewController: NSTableViewDelegate {
 		
 		let cellId = NSUserInterfaceItemIdentifier(rawValue: cellIdentifier)
 		if (cellIdentifier == "ButtonCell") {
-			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSButton else {return nil}
-			cell.tag = r
-			if (udp) { // QUIC, can't block yet
-				cell.title = ""
-				cell.isEnabled = false
-				return cell
-			}
-			if (blocked > 1) {
-				if (white == 1) {
-					cell.title = "Block"
-					cell.toolTip = "Remove from white list"
-				} else {
-					cell.title = "Allow"
-					cell.toolTip = "Add to white list"
-				}
-			} else if (on_list==1) {
-				if (white==1) {
-					cell.title = "Block"
-					cell.toolTip = "Remove from white list"
-				} else {
-					cell.title = "Allow"
-					cell.toolTip = "Remove from black list"
-				}
-			} else {
-				if (white==1) {
-					cell.title = "Remove"
-					cell.toolTip = "Remove from white list"
-				} else {
-					cell.title = "Block"
-					cell.toolTip = "Add to black list"
-				}
-			}
-			cell.isEnabled = true
-			cell.action = #selector(BlockBtnAction)
+			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? blButton else {return nil}
+			
+			// maintain state for button
+			cell.item_ptr = item_ptr
+			updateButton(cell: cell)
 			return cell
 		}
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
 		cell.textField?.stringValue = content
 		cell.textField?.toolTip = tip
-		if (blocked==1) {// blocked from blocklist
+		if (blocked_log==1) {// blocked from blocklist
 			cell.textField?.textColor = NSColor.red
-		} else if (blocked==2) { // blocked from hosts list
+		} else if (blocked_log==2) { // blocked from hosts list
 			cell.textField?.textColor = NSColor.orange
-		} else if ( (Int(item.raw.udp)==0) && (blocked==3) ) { // blocked from blocklists file list
+		} else if ( (Int(item.raw.udp)==0) && (blocked_log==3) ) { // blocked from blocklists file list
 			cell.textField?.textColor = NSColor.brown
 		} else { // not blocked
 			cell.textField?.textColor = NSColor.systemGreen
