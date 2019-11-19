@@ -1,7 +1,8 @@
 // TO DO:
 // resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 // sending of RST to existing connections i.e. not just on SYN-ACK.  that way can recover from missing the SYN-ACK
-// add filtering to log window e.g. to just show non-blocked connections or connections
-// from a particular app
 // rotate /Libary/Logs/appFirewall-Helper.log when gets too big, same for ~/Libary/Application Support/app_log.txt
+
+// send keep-alive ping from app to helper on port 4, so if helper dies (or dtrace dies etc) then can respond ??
+// check that only one copy of app is running, else will create helper trouble ?
 

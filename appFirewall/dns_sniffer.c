@@ -63,7 +63,7 @@ void save_dns_cache(void) {
 void load_dns_cache(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
-	init_list(&dns_cache,dns_hash,dns_cmp,1);
+	init_list(&dns_cache,dns_hash,dns_cmp,1,"dns_cache");
 	//return;
 	load_list(&dns_cache,path,sizeof(dns_item_t));
 }
@@ -219,7 +219,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 		return;
 	}
 	append_dns(af,addr,(char*)label);
-	//char n[256];
-	//inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
-	//printf("DNS %s %s\n",label,n);
+	char n[256];
+	inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
+	printf("DNS %d %s %s\n",af,label,n);
 }

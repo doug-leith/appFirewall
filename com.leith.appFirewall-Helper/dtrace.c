@@ -44,7 +44,7 @@ https://gist.github.com/amitu/2134968 // for apple, v useful !
 // awoke.  so hopefully no big deal since we don't care about killing such connections
 // as they're already dying.
 char* dtrace_script="\
--x quiet -x switchrate=100hz -n \
+-x quiet -x switchrate=250hz -n \
 '\
 syscall::connect*:entry{ \
 connect_fd = arg0; \

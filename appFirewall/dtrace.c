@@ -78,26 +78,28 @@ int parse_dt_line(char* line, conn_t *c) {
 	c->raw.dport = (int)strtol(item, (char **)NULL, 10);
 	if (c->raw.dport<0 || c->raw.dport>65535) return -1;
 	
-	int res=inet_pton(c->raw.af,c->src_addr_name,&c->raw.src_addr);
-	if (res==0) { // likely mismatch between af and address type
+	int res=robust_inet_pton(&c->raw.af,c->src_addr_name,&c->raw.src_addr);
+	/*if (res==0) { // likely mismatch between af and address type
 		if (c->raw.af == AF_INET) {
-			res=inet_pton(AF_INET6,c->src_addr_name,&c->raw.src_addr);
+		res=inet_pton(AF_INET6,c->src_addr_name,&c->raw.src_addr);
+			if (res == 1) c->raw.af = AF_INET6;
 		} else {
 			res=inet_pton(AF_INET,c->src_addr_name,&c->raw.src_addr);
+			if (res == 1) c->raw.af = AF_INET;
 		}
-	}
+	}*/
 	if (res!=1) {
 		INFO("Problem parsing src address from dtrace: %s\n",strerror(errno));
 		return -1;
 	}
-	res=inet_pton(c->raw.af,c->dst_addr_name,&c->raw.dst_addr);
-	if (res==0) { // likely mismatch between af and address type
+	res=robust_inet_pton(&c->raw.af,c->dst_addr_name,&c->raw.dst_addr);
+	/*if (res==0) { // likely mismatch between af and address type
 		if (c->raw.af == AF_INET) {
 			res=inet_pton(AF_INET6,c->dst_addr_name,&c->raw.dst_addr);
 		} else {
 			res=inet_pton(AF_INET,c->dst_addr_name,&c->raw.dst_addr);
 		}
-	}
+	}*/
 	if (res!=1) {
 		INFO("Problem parsing dst address from dtrace: %s\n",strerror(errno));
 		return -1;
@@ -144,7 +146,7 @@ void *dtrace_listener(void *ptr) {
 
 void start_dtrace_listener() {
 	// fire up thread that listens for pkts sent by helper
-	init_list(&dtrace_cache,dt_hash,dt_cmp,1);	
+	init_list(&dtrace_cache,dt_hash,dt_cmp,1,"dtrace_cache");	
 	pthread_create(&thread, NULL, dtrace_listener, NULL);
 }
 

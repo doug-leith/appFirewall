@@ -5,13 +5,14 @@
 
 #include "circular_list.h"
 
-void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(const void* item1, const void* item2), int circular) {
+void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(const void* item1, const void* item2), int circular, char* name) {
 	l->hash = hash;
 	l->cmp = cmp;
 	l->circular = circular;
 	l->htab = hashtable_new(MAXLIST);
 	l->list_size=0; l->list_start=0;
 	for (int i=0; i<MAXLIST;i++) l->list[i]=NULL;
+	strlcpy(l->list_name,name,BUFSIZE);
 }
 
 void free_list(list_t *l) {
@@ -85,7 +86,7 @@ void add_item(list_t *l, void* item, int item_size) {
 		l->list_size++;
 	} else {
 		free(it);
-		WARN("add_item() %s list full.\n", l->hash(item));
+		WARN("add_item() %s list %s full.\n", l->hash(item),l->list_name);
 		return;
 	}
 	add_item_to_htab(l, it);

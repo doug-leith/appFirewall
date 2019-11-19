@@ -121,7 +121,7 @@ void *listener(void *ptr) {
 					}
 					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
 					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
-					sprintf(str,"%s -> UDP/QUIC %s:%d", c.name, c.domain, dport);
+					sprintf(str,"%s → UDP/QUIC %s:%d", c.name, c.domain, dport);
 					sprintf(long_str,"%s UDP/QUIC %s:%d -> %s:%d", c.name, sn, sport, dns, dport);
 					append_log(str, long_str, &c, &cr, 0); // can't block QUIC yet ...
 					
@@ -177,7 +177,7 @@ void *listener(void *ptr) {
 			strlcpy(dns,c.addr_name,BUFSIZE);
 			strlcpy(dst_name,c.addr_name,BUFSIZE);
 		}
-		sprintf(str,"%s -> %s:%d", c.name, dst_name, cr.dport);
+		sprintf(str,"%s → %s:%d", c.name, dst_name, cr.dport);
 		sprintf(long_str,"%s %s:%d -> %s:%d", c.name, dn, cr.dport, dns, cr.sport);
 		append_log(str, long_str, &c, &cr, blocked);
 

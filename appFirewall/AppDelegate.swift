@@ -109,35 +109,72 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		
 	//--------------------------------------------------------
 	// handlers for management of appFirewall-Helper process
-	func is_helper_running(Name: String)->Bool {
-		// is helper binary there ?
-		let path = "/Library/PrivilegedHelperTools/"+Name
-		if !FileManager.default.fileExists(atPath: path) {
-			print("helper binary not found at "+path)
-			return false
-		}
-		
-		// is it running ?
+	
+	func pgrep(Name: String)->Int {
+		// get number of running processing matching Name
 		let task = Process();
 		task.launchPath = "/usr/bin/pgrep"
-		task.arguments = [Name]
+		task.arguments = ["-x",Name]
 		let pipe = Pipe()
 		task.standardOutput = pipe
 		task.launch()
 		let resp = pipe.fileHandleForReading.readDataToEndOfFile()
 		task.waitUntilExit()
-		let pid_str = (String(data: resp, encoding: .utf8) ?? "-1").trimmingCharacters(in: .whitespacesAndNewlines)
+		// resp is a Data object i.e. a bytebuffer
+		// so convert to string
+		let resp_str = (String(data: resp, encoding: .utf8) ?? "-1").trimmingCharacters(in: .whitespacesAndNewlines)
+		print("pgrep "+Name+" response: "+resp_str)
 		if (resp.count == 0) {
-			print("helper binary not running, null pgrep output")
+			print(Name+" binary not running, null pgrep output")
+			return 0
+		}
+		let resp_lines = resp_str.split { $0.isNewline }
+		var pids : Array<Int>=[]
+		for line in resp_lines {
+			let pid = Int(line) ?? -1
+			if (pid  < 0) {
+				print("Problem parsing pgrep output for "+Name+", not an int: ",resp_lines)
+				return -1
+			}
+			pids.append(pid)
+		}
+		//print(pids)
+		return pids.count
+	}
+	
+	func is_app_already_running()->Bool {
+		let pid_count = pgrep(Name : "appFirewall")
+		if (pid_count < 0) {
+			print("pgrep error, halt.")
+			return true // or could continue ?
+		} else if (pid_count == 0) {
+			print("appFirewall is not already running, continue.")
+			return false
+		} else {
+			print("appFirewall already running, halt.")
+			return true
+		}
+	}
+	
+	func is_helper_running(Name: String)->Bool {
+		// is helper binary there ?
+		//print("is_helper_running()")
+		let path = "/Library/PrivilegedHelperTools/"+Name
+		if !FileManager.default.fileExists(atPath: path) {
+			print("helper binary not found at "+path)
 			return false
 		}
-		let pid = Int(pid_str) ?? -1
-		if (pid  < 0) {
-			print("helper binary not running, pgrep output not an int")
+		let pid_count = pgrep(Name : Name)
+		if (pid_count < 0) {
+			print("pgrep problem")
+			return false // is this the right thing to do ?
+		} else if (pid_count == 0) {
+			print("helper binary not running")
 			return false
+		} else {
+			print("helper binary installed and running")
+			return true
 		}
-		print("helper binary installed and running")
-		return true
 	}
 	
 	func get_helper_version(Name: String)->Int {
@@ -302,6 +339,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// redirect C logging from stdout to logfile (in storage dir, so
 		// important to call make_data_dir() first
 		redirect_stdout()
+		
+		if (is_app_already_running()) {
+			exit_popup(msg:"appFirewall is already running!")
+			//exit(1)
+		}
 
 		// install appFirewall-Helper, if not already installed
 		start_helper()
@@ -315,10 +357,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			button.action = #selector(openapp(_:))
 		}
 		
-		// set default sorting state for GUI
+		// set default display state for GUI
 		UserDefaults.standard.register(defaults: ["active_asc":true])
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])
 		UserDefaults.standard.register(defaults: ["log_asc":false])
+		UserDefaults.standard.register(defaults: ["log_show_blocked":3])
 
 		// set up handler to catch C errors
 		setup_sigterm_handler()

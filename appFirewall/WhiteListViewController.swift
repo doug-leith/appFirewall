@@ -43,16 +43,8 @@ class WhiteListViewController: NSViewController {
 	}
 	
 	
-	@IBAction func helpButton(_ sender: NSButton!) {
-		let storyboard = NSStoryboard(name:"Main", bundle:nil)
-		let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
-		
-		let popover = NSPopover()
-		popover.contentViewController = controller
-		popover.contentSize = controller.view.frame.size
-		popover.behavior = .transient; popover.animates = true
-		popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
-		controller.message(msg:String("Domains/apps added here will never be blocked.  Use this list when, for example, a connection is mistakenly blocked."))
+	@IBAction func helpButton(_ sender: helpButton!) {
+		sender.clickButton(msg:"Domains/apps added here will never be blocked.  Use this list when, for example, a connection is mistakenly blocked.")
 	}
 	
 	@IBAction func click(_ sender: NSButton!) {
@@ -65,7 +57,6 @@ class WhiteListViewController: NSViewController {
 		del_whiteitem(item)
 		tableView.reloadData() // update the GUI to show the change
 	}
-	
 }
 
 extension WhiteListViewController: NSTableViewDataSource {
@@ -118,7 +109,6 @@ extension WhiteListViewController: NSTableViewDelegate {
 		} else if tableColumn == tableView.tableColumns[2] {
 			cellIdentifier = "ButtonCell"
 		}
-		//print("cellid=",cellIdentifier)
 		
 		let cellId = NSUserInterfaceItemIdentifier(rawValue: cellIdentifier)
 		if (cellIdentifier == "ButtonCell") {

@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/errno.h>
 #include <string.h>
 #include <ctype.h>
@@ -35,12 +36,18 @@ const static int verbose=1;          // debugging level
 
 char* get_error_msg(void);
 void set_error_msg(char* msg);
+
 char* get_path(void);
 void set_path(const char* path);
+
 int readn(int fd, void* buf, int n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
+int robust_inet_pton(int *af, const char * restrict src, void * restrict dst);
+const char* robust_inet_ntop(int *af, const void * restrict src, char * restrict dst, socklen_t size);
+
 char *trimwhitespace(char *str);
 void redirect_stdout(void);
+
 
 #endif

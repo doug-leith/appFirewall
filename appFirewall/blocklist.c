@@ -28,7 +28,7 @@ int bl_cmp(const void* it1, const void* it2){
 }
 
 void init_block_list() {
-	init_list(&block_list, bl_hash, bl_cmp,  0);
+	init_list(&block_list, bl_hash, bl_cmp,  0, "block_list");
 }
 
 static int asc=1, col=0;

@@ -38,4 +38,9 @@ void clear_log(void);
 int has_log_changed(void);
 void clear_log_changed(void);
 
+void filter_log_list(int show_blocked, const char* str);
+int get_filter_log_size(void);
+log_line_t* get_filter_log_row(int row);
+void get_filter_log_addr_name(int row, char* str, int len);
+
 #endif /* log_h */

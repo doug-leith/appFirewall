@@ -124,3 +124,35 @@ void redirect_stdout() {
 	//}
 	close(logfd);
 }
+
+int robust_inet_pton(int *af, const char * restrict src, void * restrict dst) {
+	int res=inet_pton(*af, src, dst);
+	if (res==0) {
+		// likely mismatch between af and address type
+		// - definitely happens with matlab
+		if (*af == AF_INET) {
+			res=inet_pton(AF_INET6,src,dst);
+			if (res==1) *af = AF_INET6;
+		} else {
+			res=inet_pton(AF_INET,src,dst);
+			if (res==1) *af = AF_INET;
+		}
+	}
+	return res;
+}
+
+const char* robust_inet_ntop(int *af, const void * restrict src, char * restrict dst, socklen_t size) {
+	const char *res=inet_ntop(*af, src, dst, size);
+	if (res==NULL) {
+		// mismatch between af and address type?
+		// - definitely happens with matlab
+		if (*af == AF_INET) {
+			res=inet_ntop(AF_INET6,src,dst,size);
+			if (res!=NULL) *af = AF_INET6;
+		} else {
+			res=inet_ntop(AF_INET,src,dst,size);
+			if (res!=NULL) *af = AF_INET;
+		}
+	}
+	return res;
+}

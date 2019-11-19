@@ -62,60 +62,19 @@ class ActiveConnsViewController: NSViewController {
 	}
 	
 	
-	@IBAction func helpButton(_ sender: NSButton) {
-				let storyboard = NSStoryboard(name:"Main", bundle:nil)
-			let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
-			
-			let popover = NSPopover()
-			popover.contentViewController = controller
-			popover.contentSize = controller.view.frame.size
-			popover.behavior = .transient; popover.animates = true
-			popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
-			controller.message(msg:String("This window logs the network connections currently being made by the apps running on your computer.  Note that since we can only block connections when then try to start its possible for some connections on the blacklist to be running temporarily, but they will be blocked when they try to restart."))
+	@IBAction func helpButton(_ sender: helpButton!) {
+			sender.clickButton(msg:"This window logs the network connections currently being made by the apps running on your computer.  Note that connections can sometimes take a few seconds to die, during which time they may remain visible here.  Also, we only block connections when they try to start so its possible for some connections on the blacklist to be running temporarily, but they will be blocked when they try to restart.")
 		}
 	
 	
-	@IBAction func Click(_ sender: NSButton!) {
+	@IBAction func Click(_ sender: blButton!) {
 		BlockBtnAction(sender: sender)
 	}
 	
-	@objc func BlockBtnAction(sender : NSButton!) {
-		let r = sender.tag
-		let item_ptr = get_conns(Int32(r))
-		if (item_ptr == nil) { return }
-		var bl_item = conn_to_bl_item(item_ptr)
-		let domain = String(cString: &bl_item.domain.0)
-
-		var white: Int = 0
-		if (in_whitelist_htab(&bl_item, 0) != nil) {
-			white = 1
-		}
-		var blocked: Int = 0
-		if (in_blocklist_htab(&bl_item, 0) != nil) {
-			blocked = 1
-		} else if (in_hostlist_htab(domain) != nil) {
-			blocked = 2
-		} else if (in_blocklists_htab(&bl_item) != nil) {
-			blocked = 3
-		}
-		
-		if (sender.title.contains("Allow")) {
-			if (blocked == 1) { // on block list, remove
-				del_blockitem(&bl_item)
-			} else if (blocked>1) { // on host list, add to whitelist
-				add_whiteitem(&bl_item)
-			}
-		} else { // block
-			if (white == 1) { // on white list, remove
-				del_whiteitem(&bl_item)
-			}
-			if (blocked == 0) {
-				add_blockitem(&bl_item)
-			}
-		}
+	@objc func BlockBtnAction(sender : blButton!) {
+		sender.clickButton()
 		tableView.reloadData()
 	}
-	
 }
 
 extension ActiveConnsViewController: NSTableViewDataSource {
@@ -164,6 +123,22 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			content=String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
 		}
 		return pid_name+" "+content
+	}
+	
+	func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
+		if (white==1) {
+			cell.textField?.textColor = NSColor.systemGreen
+			return
+		}
+		if ( !udp && (blocked==1) ) {// blocked from blocklist
+			cell.textField?.textColor = NSColor.red
+		} else if ( !udp && (blocked==2) ) { // blocked from hosts file list
+			cell.textField?.textColor = NSColor.orange
+		} else if ( !udp && (blocked==3) ) { // blocked from blocklists file list
+			cell.textField?.textColor = NSColor.brown
+		} else { // not blocked
+			cell.textField?.textColor = NSColor.systemGreen
+		}
 	}
 	
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
@@ -225,59 +200,17 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		
 		let cellId = NSUserInterfaceItemIdentifier(rawValue: cellIdentifier)
 		if (cellIdentifier == "ButtonCell") {
-			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSButton else {return nil}
-			cell.tag = r
-			if (Int(item.raw.udp)>0) {
-				cell.title = ""
-				cell.isEnabled = false
-				return cell
-			}
-			if (blocked == 1) {
-				if (white==1) {
-					cell.title = "Block"
-					cell.toolTip = "Remove from white list"
-				} else {
-					cell.title = "Allow"
-					cell.toolTip = "Remove from black list"
-				}
-			} else if (blocked > 1) {
-				if (white == 1) {
-					cell.title = "Block"
-					cell.toolTip = "Remove from white list"
-				} else {
-					cell.title = "Allow"
-					cell.toolTip = "Add to white list"
-				}
-			} else {
-				if (white==1) {
-						cell.title = "Remove"
-						cell.toolTip = "Remove from white list"
-					} else {
-						cell.title = "Block"
-						cell.toolTip = "Add to black list"
-				}
-
-			}
-			cell.isEnabled = true
+			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? blButton else {return nil}
+			cell.udp = (Int(item.raw.udp)>0)
+			cell.bl_item = bl_item
+			cell.updateButton()
 			cell.action = #selector(BlockBtnAction)
 			return cell
 		}
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
 		cell.textField?.stringValue = content
 		cell.textField?.toolTip = tip
-		if (white==1) {
-			cell.textField?.textColor = NSColor.systemGreen
-			return cell
-		}
-		if ( (Int(item.raw.udp)==0) && (blocked==1) ) {// blocked from blocklist
-			cell.textField?.textColor = NSColor.red
-		} else if ( (Int(item.raw.udp)==0) && (blocked==2) ) { // blocked from hosts file list
-			cell.textField?.textColor = NSColor.orange
-		} else if ( (Int(item.raw.udp)==0) && (blocked==3) ) { // blocked from blocklists file list
-			cell.textField?.textColor = NSColor.brown
-		} else { // not blocked
-			cell.textField?.textColor = NSColor.systemGreen
-		}
+		setColor(cell: cell, udp: (Int(item.raw.udp)==1), white: white, blocked: blocked)
 		return cell		
 	}
 	

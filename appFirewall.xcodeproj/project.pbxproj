@@ -19,6 +19,7 @@
 		9139F68A237FE9A800600D37 /* whitelist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F689237FE9A800600D37 /* whitelist.c */; };
 		9139F68C2380936800600D37 /* helpViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68B2380936800600D37 /* helpViewController.swift */; };
 		9139F68E2381E3FF00600D37 /* blButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68D2381E3FF00600D37 /* blButton.swift */; };
+		9139F6902382890700600D37 /* helpButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68F2382890700600D37 /* helpButton.swift */; };
 		91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB2236AB280002E50A8 /* AppDelegate.swift */; };
 		91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */; };
 		91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91607BB6236AB282002E50A8 /* Assets.xcassets */; };
@@ -100,6 +101,7 @@
 		9139F689237FE9A800600D37 /* whitelist.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = whitelist.c; sourceTree = "<group>"; };
 		9139F68B2380936800600D37 /* helpViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpViewController.swift; sourceTree = "<group>"; };
 		9139F68D2381E3FF00600D37 /* blButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = blButton.swift; sourceTree = "<group>"; };
+		9139F68F2382890700600D37 /* helpButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpButton.swift; sourceTree = "<group>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91607BB2236AB280002E50A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveConnsViewController.swift; sourceTree = "<group>"; };
@@ -218,6 +220,8 @@
 				91B67F2723793C1C00706027 /* TODO */,
 				91607C2E2373FD09002E50A8 /* error_alert.swift */,
 				9139F68D2381E3FF00600D37 /* blButton.swift */,
+				9139F68F2382890700600D37 /* helpButton.swift */,
+				9139F68B2380936800600D37 /* helpViewController.swift */,
 				91607BB2236AB280002E50A8 /* AppDelegate.swift */,
 				91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */,
 				91607BC7236AB7CA002E50A8 /* LogViewController.swift */,
@@ -225,7 +229,6 @@
 				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
 				91607BB6236AB282002E50A8 /* Assets.xcassets */,
 				91607BB8236AB282002E50A8 /* Main.storyboard */,
-				9139F68B2380936800600D37 /* helpViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
 				91607BBB236AB282002E50A8 /* Info.plist */,
 				91607BBC236AB282002E50A8 /* appFirewall.entitlements */,
@@ -380,6 +383,7 @@
 				9139F67F237BC49A00600D37 /* helper.c in Sources */,
 				9139F685237D8EBB00600D37 /* blocklists.c in Sources */,
 				91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */,
+				9139F6902382890700600D37 /* helpButton.swift in Sources */,
 				91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */,
 				91607C312374080C002E50A8 /* util.c in Sources */,
 				9139F67C237BC41300600D37 /* dtrace.c in Sources */,

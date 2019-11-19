@@ -25,7 +25,7 @@ inline int is_ipv6_localhost(struct in6_addr* addr){
 int get_pid_name(int pid, char* name) {
 	// get process name etc associated with pid
 		struct proc_bsdshortinfo proc;
-    int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, 				PROC_PIDT_SHORTBSDINFO_SIZE);
+    int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
     if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
 				INFO("Cannot get process info for PID %d, likely has died.\n",pid);
         return -1;
@@ -38,12 +38,14 @@ char* pid_hash(const void *it) {
 	// generate table lookup key string
 	// we do this by network connection, so child processes that
 	// share the same fd are lumped together
+	// we add the domain name to hash to catch cases where
+	// dns cache is updated to replace IP addr with name
 	conn_t *item = (conn_t*) it;
 	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
 	inet_ntop(item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
 	inet_ntop(item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
-	char* temp = malloc(2*INET6_ADDRSTRLEN+64);
-	sprintf(temp,"%s:%d-%s:%d",sn,item->raw.sport,dn,item->raw.dport);
+	char* temp = malloc(2*INET6_ADDRSTRLEN+strlen(item->domain)+64);
+	sprintf(temp,"%s:%d-%s:%d-%s",sn,item->raw.sport,dn,item->raw.dport,item->domain);
 	return temp;
 }
 
@@ -57,11 +59,34 @@ int pid_cmp(const void* it1, const void* it2){
 	return res;
 }
 
+int coalesce_conn(conn_t *c) {
+	// rather than showing multiple entries in GUI
+	// for parallel connections by same app to same
+	// destination/port pair, we coalesce them.
+	for (int i=0; i<get_num_conns();i++) {
+		conn_t *c1 = get_conns(i);
+		if (strcmp(c1->name,c->name)!=0) continue;
+		if (!are_addr_same(c1->raw.af, &c1->raw.dst_addr, &c->raw.dst_addr)) continue;
+		if (c1->raw.dport != c->raw.dport) continue;
+		//found a match with same process name and dest:port
+		return i;
+	}
+	return -1;
+}
+
+void dump_pidlist() {
+	int i;
+	for (i=0; i<get_num_conns();i++) {
+		conn_t *b = get_conns(i);
+		printf("%s %s\n",b->name,b->domain);
+	}
+}
+
 //--------------------------------------------------------
 // swift interface
 
 void init_pid_list() {
-	init_list(&pid_list,pid_hash,pid_cmp,0);
+	init_list(&pid_list,pid_hash,pid_cmp,0,"pid_list");
 }
 
 int refresh_active_conns(int localhost) {
@@ -74,7 +99,7 @@ int refresh_active_conns(int localhost) {
 	DEBUG2("refresh_active_conns()\n");
 		
 	list_t prev_list=pid_list;
-	init_list(&pid_list,pid_hash,pid_cmp,0);
+	init_pid_list();
 	
 	// get list of current processes
 	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
@@ -119,15 +144,16 @@ int refresh_active_conns(int localhost) {
 		}
 		int numberOfProcFDs = bufferSize / PROC_PIDLISTFD_SIZE;
 		
-		int i;
-		for(i = 0; i < numberOfProcFDs; i++) {
+		for(int i = 0; i < numberOfProcFDs; i++) {
 			conn_t c; // the new connection
 			memset(&c,0,sizeof(c));
 			
 			if (procFDInfo[i].proc_fdtype != PROX_FDTYPE_SOCKET)
 				continue; // not a socket fd
 			struct socket_fdinfo socketInfo;
-			proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
+			memset(&socketInfo,0,sizeof(socketInfo));
+			int res = proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
+			if (res != sizeof(struct socket_fdinfo)) continue;
 
 			int state = socketInfo.psi.soi_proto.pri_tcp.tcpsi_state;
 			if ((socketInfo.psi.soi_kind != SOCKINFO_TCP)
@@ -142,18 +168,28 @@ int refresh_active_conns(int localhost) {
 			memset(&c.raw.src_addr,0,sizeof(struct in6_addr));
 			memset(&c.raw.dst_addr,0,sizeof(struct in6_addr));
 			if (sockinfo->insi_vflag==INI_IPV4) { // IPv4
+				if (c.raw.af !=AF_INET) {
+					//WARN("pid_conn(): mismatch between af's %d/%d\n",c.raw.af,AF_INET);
+					// happens with matlab
+					c.raw.af = AF_INET;
+				}
 				memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
 				memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
 				if (!localhost && is_ipv4_localhost(&c.raw.dst_addr))
 					continue; // ignore localhost .
 			} else { // IPv6
+				if (c.raw.af !=AF_INET6) {
+					//WARN("pid_conn(): mismatch between af's %d/%d\n",c.raw.af,AF_INET6);
+					// happens with matlab
+					c.raw.af = AF_INET6;
+				}
 				memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
 				memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
 				if (!localhost && is_ipv6_localhost(&c.raw.dst_addr))
 					continue; // ignore localhost .
 			}
-			inet_ntop(c.raw.af, &c.raw.src_addr, c.src_addr_name, INET6_ADDRSTRLEN);
-			inet_ntop(c.raw.af, &c.raw.dst_addr, c.dst_addr_name, INET6_ADDRSTRLEN);
+			robust_inet_ntop(&c.raw.af, &c.raw.src_addr, c.src_addr_name, INET6_ADDRSTRLEN);
+			robust_inet_ntop(&c.raw.af, &c.raw.dst_addr, c.dst_addr_name, INET6_ADDRSTRLEN);
 			// ignore IPv6 link-local connections
 			char* mask="fe80:"; 
 			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
@@ -178,6 +214,9 @@ int refresh_active_conns(int localhost) {
 			// - rely here on fact that parent will be processed
 			// here before any child ...
 			if (in_list(&pid_list, &c, 0)) continue;
+			// if several parallel connections to same
+			// domain we just log first one (to keep GUI clean)
+			if (coalesce_conn(&c)>=0) continue;
 			// flag to GUI if it needs to refresh ..
 			if (!in_list(&prev_list, &c, 0)) changed = 1;
 			add_item(&pid_list,&c,sizeof(conn_t));
@@ -215,7 +254,7 @@ int find_pid(conn_raw_t *cr, char*name){
 	// didn't find PID, usual with new connections (SYN-ACK).  make syscall
 	// to query current list of active questions, can be slow
 	char dn[INET6_ADDRSTRLEN];
-	inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
+	robust_inet_ntop(&cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 	refresh_active_conns(0);
 	res = in_list(&pid_list,&c,0);
 	if (res) { // found it !
