@@ -158,16 +158,7 @@ extension LogViewController: NSTableViewDelegate {
 			return log_last-r
 		}
 	}
-	
-	func getRowText(row: Int) -> String {
-		let r = mapRow(row: row)
-		let item_ptr = get_filter_log_row(Int32(r))
-		var item = item_ptr!.pointee
-		let time_str = String(cString: &item.time_str.0)
-		let log_line = String(cString: &item.log_line.0)
-		return time_str+" "+log_line
-	}
-	
+		
 	func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
 		if (white==1) {
 			cell.textField?.textColor = NSColor.systemGreen
@@ -247,13 +238,22 @@ extension LogViewController: NSTableViewDelegate {
 		return cell
 	}
 	
+	
 	func copy(sender: AnyObject?){
-		//print("copy Log")
-		//var textToDisplayInPasteboard = ""
 		let indexSet = tableView.selectedRowIndexes
 		var text = ""
 		for row in indexSet {
-			text += getRowText(row: row)+"\n"
+			/*let cell = tableView.view(atColumn:2, row:row, makeIfNecessary: true) as! blButton
+			var item = cell.bl_item!
+			let name = String(cString: &item.name.0)
+			let domain = String(cString: &item.domain.0)
+			text += name+", "+domain+"\n"
+			*/
+			let cell0 = tableView.view(atColumn:0, row:row,makeIfNecessary: true) as! NSTableCellView
+			let str0 = cell0.textField?.stringValue ?? ""
+			let cell1 = tableView.view(atColumn:1, row:row,makeIfNecessary: true) as! NSTableCellView
+			let str1 = cell1.textField?.stringValue ?? ""
+			text += str0+" "+str1+"\n"
 		}
 		let pasteBoard = NSPasteboard.general
 		pasteBoard.clearContents()

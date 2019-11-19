@@ -36,7 +36,7 @@ class ActiveConnsViewController: NSViewController {
 			tableView.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"pid",ascending:asc)
 			tableView.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
 		}
-		refresh()
+		refresh(timer:nil)
 		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished activeConns viewWillAppear()")
 	}
 		
@@ -44,10 +44,15 @@ class ActiveConnsViewController: NSViewController {
 		super.viewDidAppear()
 	}
 	
-	@objc func refresh() {
+	@objc func refresh(timer:Timer?) {
+		var force : Bool = true
+		if (timer != nil) {
+			force = false
+		}
 		let firstVisibleRow = tableView.rows(in: tableView.visibleRect).location
-		if ( (firstVisibleRow==0) // if scrolled down, don't update
-			&& (refresh_active_conns(0) == 1) ) { // set of conns has changed
+		let changed = refresh_active_conns(0)
+		if (force || ((firstVisibleRow==0)
+			&& (changed == 1)) ) { 
 			tableView.reloadData()
 		}
 	}
@@ -106,25 +111,7 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			return last-row
 		}
 	}
-	
-	func getRowText(row: Int) -> String {
-		let r = mapRow(row: row)
-		let item_ptr = get_conns(Int32(r))
-		if (item_ptr == nil) { return "" }
-		var item = item_ptr!.pointee
 		
-		let pid_name = String(cString: &item.name.0)+" ("+String(Int(item.pid))+")"
-		
-		let domain = String(cString: &item.domain.0)
-		var content: String=""
-		if (domain.count>0) {
-			content=domain+":"+String(Int(item.raw.dport))
-		} else {
-			content=String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
-		}
-		return pid_name+" "+content
-	}
-	
 	func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
 		if (white==1) {
 			cell.textField?.textColor = NSColor.systemGreen
@@ -214,11 +201,35 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		return cell		
 	}
 	
+	
+	/*func getRowText(row: Int) -> String {
+		let r = mapRow(row: row)
+		let item_ptr = get_conns(Int32(r))
+		if (item_ptr == nil) { return "" }
+		var item = item_ptr!.pointee
+		
+		let pid_name = String(cString: &item.name.0)+" ("+String(Int(item.pid))+")"
+		
+		let domain = String(cString: &item.domain.0)
+		var content: String=""
+		if (domain.count>0) {
+			content=domain+":"+String(Int(item.raw.dport))
+		} else {
+			content=String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
+		}
+		return pid_name+" "+content
+	}*/
+	
 	func copy(sender: AnyObject?){
 		let indexSet = tableView.selectedRowIndexes
 		var text = ""
 		for row in indexSet {
-			text += getRowText(row: row)+"\n"
+			let cell0 = tableView.view(atColumn:0, row:row,makeIfNecessary: true) as! NSTableCellView
+			let str0 = cell0.textField?.stringValue ?? ""
+			let cell1 = tableView.view(atColumn:1, row:row,makeIfNecessary: true) as! NSTableCellView
+			let str1 = cell1.textField?.stringValue ?? ""
+			text += str0+" "+str1+"\n"
+			//text += getRowText(row: row)+"\n"
 		}
 		let pasteBoard = NSPasteboard.general
 		pasteBoard.clearContents()

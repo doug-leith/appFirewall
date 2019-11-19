@@ -42,8 +42,8 @@ char* pid_hash(const void *it) {
 	// dns cache is updated to replace IP addr with name
 	conn_t *item = (conn_t*) it;
 	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-	inet_ntop(item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
-	inet_ntop(item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
+	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
+	robust_inet_ntop(&item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
 	char* temp = malloc(2*INET6_ADDRSTRLEN+strlen(item->domain)+64);
 	sprintf(temp,"%s:%d-%s:%d-%s",sn,item->raw.sport,dn,item->raw.dport,item->domain);
 	return temp;
@@ -67,6 +67,7 @@ int coalesce_conn(conn_t *c) {
 		conn_t *c1 = get_conns(i);
 		if (strcmp(c1->name,c->name)!=0) continue;
 		if (!are_addr_same(c1->raw.af, &c1->raw.dst_addr, &c->raw.dst_addr)) continue;
+		if (!are_addr_same(c1->raw.af, &c1->raw.src_addr, &c->raw.src_addr)) continue;
 		if (c1->raw.dport != c->raw.dport) continue;
 		//found a match with same process name and dest:port
 		return i;
@@ -202,7 +203,7 @@ int refresh_active_conns(int localhost) {
 			c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN)
 									&& (c.raw.dport == 443);
 	
-			DEBUG2("%s(%d): %s:%d -> %s:%d %d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
+			DEBUG2("%s(%d): %s:%d -> %s:%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
 
 			char* dns=lookup_dns_name(c.raw.af,c.raw.dst_addr);
 			if (dns!=NULL) {
@@ -218,7 +219,10 @@ int refresh_active_conns(int localhost) {
 			// domain we just log first one (to keep GUI clean)
 			if (coalesce_conn(&c)>=0) continue;
 			// flag to GUI if it needs to refresh ..
-			if (!in_list(&prev_list, &c, 0)) changed = 1;
+			if (!in_list(&prev_list, &c, 0)) {
+				changed = 1;
+				//INFO("changed %s(%d): %s:%d -> %s:%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
+			}
 			add_item(&pid_list,&c,sizeof(conn_t));
 		}
 	}

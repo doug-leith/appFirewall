@@ -83,6 +83,7 @@ void add_item(list_t *l, void* item, int item_size) {
 		l->list_start++; l->list_size--;
 		int end = (l->list_start+l->list_size)%MAXLIST;
 		l->list[end] = it;
+		INFO("add_item() %s circular list %s full.\n",l->hash(item),l->list_name);
 		l->list_size++;
 	} else {
 		free(it);

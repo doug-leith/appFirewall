@@ -90,6 +90,11 @@ int bind_to_port(int port) {
 		ERR("Setsockopt: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	yes=1;
+	setsockopt(sock,IPPROTO_TCP,TCP_NODELAY ,&yes,sizeof(yes));
+	yes=1;
+	setsockopt(sock,IPPROTO_TCP,TCP_SENDMOREACKS ,&yes,sizeof(yes));
+
 	struct sockaddr_in local;
 	local.sin_family = AF_INET;
 	local.sin_port = htons(port);
