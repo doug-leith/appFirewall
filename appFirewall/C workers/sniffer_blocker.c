@@ -50,7 +50,7 @@ int wait_cmp(const void* it1, const void* it2){
 	return res;
 }
 
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int refresh) {
+bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 	// create a new blocklist item from raw connection info (assumed to be
 	// outgoing connection, so src is local and dst is remote)
 	// populates all of blocklist item, including PID name and domain name
@@ -65,16 +65,17 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int refresh) {
 	// can we get PID from dtrace cache ?
 	int res=lookup_dtrace(cr, c.name);
 	if (res==0) { // quite rare, so interesting
-		INFO("%s:%d->%s:%d NOT found in dtrace cache (%d misses), trying procinfo.\n", src,cr->sport,c.addr_name,cr->dport,dtrace_misses);
+		INFO("%s:%d->%s:%d NOT found in dtrace cache (%d misses), trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport,dtrace_misses);
 		dtrace_misses++;
-		// try to get PID info
+		// try to get PID info from /proc
 		res=find_pid(cr,c.name);
-		// new connection, so refresh pid info (if already refreshing, this]
-		// signal will be ignored)
-		if (refresh==1) signal_pid_watcher();
 		//clock_t end1 = clock();
 		if (res==0) {
-			strcpy(c.name,"<unknown>"); // we'll add to waiting list later
+			// didn't succeed, refresh pid info (takes a while, so we don't wait here)
+			signal_pid_watcher();
+			// we'll now add this conn to waiting list and try again once
+			// /proc has updated or new dtrace info arrives
+			strcpy(c.name,"<unknown>");
 		}
 	} else {
 		INFO("%s:%d->%s:%d found in dtrace cache: %s\n",src,cr->sport,c.addr_name,cr->dport,c.name);
@@ -184,10 +185,10 @@ void process_conn_waiting_list(void) {
 			int del=0;
 			
 			// try to get PID name for this connection ...
-			bl_item_t c_w = create_blockitem_from_addr(&cr_w,0);
+			bl_item_t c_w = create_blockitem_from_addr(&cr_w);
 
 			if (strcmp(c_w.name,"<unknown>")==0) {//failed to get PID name
-				#define WAIT_TIMEOUT 0.1 // 100ms
+				#define WAIT_TIMEOUT 0.02 // 20ms
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
 						> WAIT_TIMEOUT) {
 					INFO("wait timeout for %s %s\n",c_w.name,c_w.addr_name);
@@ -234,7 +235,8 @@ void *listener(void *ptr) {
 	
 	// set up handler for waiting list (connections for which we didn't manage to
 	// get the process name immediately)
-	set_pid_watcher_hook(process_conn_waiting_list);
+	set_pid_watcher_hook(process_conn_waiting_list);  // when pid info updated
+	set_dtrace_watcher_hook(process_conn_waiting_list); // when dtrace is updated
 	
 	for(;;) { // we sit in loop waiting for sniffed pkt into from helper
 		
@@ -314,7 +316,7 @@ void *listener(void *ptr) {
 					udp_cache_size++;
 					
 					// carry out PID and DNS lookup
-					bl_item_t c = create_blockitem_from_addr(&cr,0);
+					bl_item_t c = create_blockitem_from_addr(&cr);
 					// log connection
 					char dns[BUFSIZE]={0};
 					if (strlen(c.domain)) {
@@ -376,7 +378,7 @@ void *listener(void *ptr) {
 			cr.seq=ntohl(tcp->th_ack); cr.ack=ntohl(tcp->th_seq);
 		}
 		// try to get PID name and domain for this connection ...
-		bl_item_t c = create_blockitem_from_addr(&cr,1);
+		bl_item_t c = create_blockitem_from_addr(&cr);
 		
 		if (strcmp(c.name,"<unknown>")==0) {
 			// failed to look up PID name, put into waiting list to try again

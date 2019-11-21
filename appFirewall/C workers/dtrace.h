@@ -20,5 +20,6 @@ void *dtrace_listener(void *ptr);
 void start_dtrace_listener(void);
 void stop_dtrace_listener(void);
 int lookup_dtrace(conn_raw_t *c, char* name);
+void set_dtrace_watcher_hook(void (*hook)(void)) ;
 
 #endif /* dtrace_h */

@@ -42,8 +42,6 @@ class ActiveConnsViewController: NSViewController {
 		}
 		blockedCount = UserDefaults.standard.integer(forKey: "active_blockedCount")
 		connCount = UserDefaults.standard.integer(forKey: "active_connCount")
-		//UserDefaults.standard.set(0, forKey: "active_blockedCount")
-		//UserDefaults.standard.set(0, forKey: "active_connCount")
 		
 		refresh(timer:nil)
 		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished activeConns viewWillAppear()")

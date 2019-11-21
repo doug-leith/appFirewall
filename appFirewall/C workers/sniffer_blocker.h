@@ -35,6 +35,6 @@ void stop_listener(void);
 int listener_error(void);
 int get_num_conns_blocked(void);
 void set_num_conns_blocked(int val);
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int fast);
+bl_item_t create_blockitem_from_addr(conn_raw_t *cr);
 
 #endif

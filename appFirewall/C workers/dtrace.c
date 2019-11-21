@@ -9,6 +9,7 @@
 static int d_sock;
 static pthread_t thread; // handle to listener thread
 static list_t dtrace_cache;
+static void (*dtrace_watcher_hook)(void) = NULL;
 
 char* dt_hash(const void *cc) {
 	// generate table lookup key string from block list item PID name
@@ -91,6 +92,10 @@ int parse_dt_line(char* line, conn_t *c) {
 	return 0;
 }
 
+void set_dtrace_watcher_hook(void (*hook)(void)) {
+	dtrace_watcher_hook = hook;
+}
+
 void *dtrace_listener(void *ptr) {
 
 	if ( (d_sock=connect_to_helper(DTRACE_PORT))<0 ) {pthread_exit(NULL);} //fatal error
@@ -106,6 +111,8 @@ void *dtrace_listener(void *ptr) {
 			printf("dt: %s", line);
 			if (parse_dt_line(line, &c)>=0) {
 				append_dtrace(&c);
+				if (dtrace_watcher_hook != NULL) dtrace_watcher_hook();
+
 			}
 			continue;
 			

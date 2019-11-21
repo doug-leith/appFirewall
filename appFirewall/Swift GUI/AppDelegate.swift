@@ -364,6 +364,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])
 		UserDefaults.standard.register(defaults: ["log_asc":false])
 		UserDefaults.standard.register(defaults: ["log_show_blocked":3])
+		
+		// and initialise active conn qos logging
+		UserDefaults.standard.set(0, forKey: "active_blockedCount")
+		UserDefaults.standard.set(0, forKey: "active_connCount")
 
 		// set up handler to catch C errors
 		setup_sigterm_handler()
@@ -379,9 +383,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper
     DispatchQueue.global(qos: .background).async {
-			//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"starting listeners")
 			start_helper_listeners()
-			//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"listeners started")
 		}
 		
 		// schedule house-keeping ...
