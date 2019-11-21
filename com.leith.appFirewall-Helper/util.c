@@ -81,15 +81,18 @@ int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line) {
 
 int bind_to_port(int port) {
 	int sock;
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+	//if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		ERR("Problem creating socket: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	
 	int yes=1;
 	if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(yes)) == -1) {
 		ERR("Setsockopt: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	/*
 	yes=1;
 	setsockopt(sock,IPPROTO_TCP,TCP_NODELAY ,&yes,sizeof(yes));
 	yes=1;
@@ -102,9 +105,18 @@ int bind_to_port(int port) {
 	if (bind(sock, (struct sockaddr *)&local, sizeof(local)) == -1) {
 		ERR("Problem binding to localhost port %d: %s\n", port, strerror(errno));
 		exit(EXIT_FAILURE);
+	}*/
+	struct sockaddr_un local;
+	local.sun_family = AF_UNIX;
+	sprintf(local.sun_path,"/var/run/appFirewall-Helper.%d",port);
+	unlink(local.sun_path);
+	if (bind(sock, (struct sockaddr *)&local, sizeof(local)) == -1) {
+		ERR("Problem binding to %s: %s\n", local.sun_path, strerror(errno));
+		exit(EXIT_FAILURE);
 	}
+	chmod(local.sun_path, 0777);
 	if (listen(sock, 2) == -1) {
-		ERR("Problem listening to localhost port %d: %s\n", port, strerror(errno));
+		ERR("Problem listening to %s: %s\n", local.sun_path, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	return sock;

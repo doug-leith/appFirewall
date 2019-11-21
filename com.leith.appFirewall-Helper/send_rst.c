@@ -8,7 +8,11 @@
 //globals
 static libnet_t *l4=NULL, *l6 = NULL, *l4_hdr = NULL, *l6_hdr=NULL;  // libnet state
 static libnet_ptag_t tcp4_ptag, tcp6_ptag, ip4_ptag, ip6_ptag, tcp4_hdr_ptag, ip4_hdr_ptag,tcp6_hdr_ptag, ip6_hdr_ptag;
-static int sock;
+static int sock, s2;
+
+void close_rst_sock() {
+	close(sock); close(s2);
+}
 
 void init_libnet() {
 	// now initialise libnet packet processing data structure
@@ -63,7 +67,7 @@ void init_libnet() {
 
 void rst_accept_loop() {
 	// now wait in accept() loop to handle connections from GUI to send RST pkts
-	int res, s2;
+	int res;
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 	for(;;) {
@@ -80,10 +84,11 @@ void rst_accept_loop() {
 		// until other side closes (or we get an error).
 		for(;;) {
 			// read RST packet parameters
-			uint16_t af, dport, sport;
+			uint16_t af, syn, dport, sport;
 			uint32_t ack, seq;
 			struct in6_addr src,dst;
-			if ( (res=readn(s2, &af, sizeof(int)) )<=0) break;			
+			if ( (res=readn(s2, &syn, sizeof(int)) )<=0) break;
+			if ( (res=readn(s2, &af, sizeof(int)) )<=0) break;
 			if ( (res=readn(s2, &src, sizeof(struct in6_addr)) )<=0) break;
 			if ( (res=readn(s2, &sport, sizeof(uint16_t)) )<=0) break;
 			if ( (res=readn(s2, &dst, sizeof(struct in6_addr)) )<=0) break;
@@ -101,6 +106,8 @@ void rst_accept_loop() {
 
 			libnet_t *l=NULL;
 			libnet_ptag_t *tcp_ptag, *ip_ptag;
+			if (!syn) {
+
 			// construct and send the RST packet
 			if (af==AF_INET) {
 				// ipv4
@@ -114,7 +121,7 @@ void rst_accept_loop() {
 			// construct tcp header for RST pkt to remote host
 			uint8_t flags=TH_RST;
 			*tcp_ptag = libnet_build_tcp(sport,dport,seq,ack,flags,
-																	0, 0, 0, LIBNET_TCP_H, NULL, 0, l, *tcp_ptag);
+																	 0, 0, 0, LIBNET_TCP_H, NULL, 0, l, *tcp_ptag);
 			if(*tcp_ptag == -1) {
 				// should never happen
 				ERR("libnet_build_tcp(): %s\n", libnet_geterror(l));
@@ -160,7 +167,7 @@ void rst_accept_loop() {
 				continue;
 			}
 			
-			// and send  the packet
+			// and send the packet
 			if (libnet_write(l) < 0) {
 				// problem writing to raw socket
 				WARN("libnet_write() %s\n", libnet_geterror(l));
@@ -172,12 +179,21 @@ void rst_accept_loop() {
 				}
 			}
 			
+			} // !syn
+			
 			if (af==AF_INET) {
 				// now construct TCP RST packet to send to self
 				// construct tcp header for RST pkt to remote host
 				uint8_t flags=TH_RST;
-				tcp4_hdr_ptag = libnet_build_tcp(dport,sport,ack+1,seq,flags,
+				if (syn) {
+					flags |= TH_ACK;
+					tcp4_hdr_ptag = libnet_build_tcp(dport,sport,0,seq+1,flags,
 																	0, 0, 0, LIBNET_TCP_H, NULL, 0, l4_hdr, tcp4_hdr_ptag);
+				} else {
+					tcp4_hdr_ptag = libnet_build_tcp(dport,sport,ack+1,seq,flags,
+																0, 0, 0, LIBNET_TCP_H, NULL, 0, l4_hdr, tcp4_hdr_ptag);
+
+				}
 				uint32_t d,s;
 				memcpy(&s,&src.s6_addr,4);
 				memcpy(&d,&dst.s6_addr,4);
@@ -195,6 +211,7 @@ void rst_accept_loop() {
 			} else {
 				// can't set IP_HDRINCL flag for IPv6, will this even work ?
 				uint8_t flags=TH_RST;
+				if (syn) flags |= TH_ACK;
 				tcp6_hdr_ptag = libnet_build_tcp(dport,sport,ack+1,seq,flags,
 																	0, 0, 0, LIBNET_TCP_H, NULL, 0, l6_hdr, tcp6_hdr_ptag);
 				struct libnet_in6_addr s, d;

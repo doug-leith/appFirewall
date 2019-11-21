@@ -12,14 +12,17 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "pthread.h"
 #include "util.h"
 #include "dns_sniffer.h"
 
 typedef struct conn_raw_t {
 	int af; // network connection type: IPv4 or IPv6
 	struct in6_addr src_addr, dst_addr; // local and remote addresses
-	int sport, dport; // local and remote ports
+	uint16_t sport, dport; // local and remote ports
 	int udp;
+	uint32_t seq, ack;
+	struct timeval ts, start;
 } conn_raw_t;
 
 typedef struct conn_t {
@@ -37,8 +40,16 @@ int is_ipv6_localhost(struct in6_addr* addr);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
 
 int refresh_active_conns(int localhost);
-conn_t* get_conns(int row);
+conn_t* get_conn(int row);
+void free_conn(conn_t* c);
 int get_num_conns(void);
 void init_pid_list(void);
+char* pid_hash(const void *it);
+int pid_cmp(const void* it1, const void* it2);
 
+void start_pid_watcher(void);
+void signal_pid_watcher(void);
+void set_pid_watcher_hook(void (*hook)(void));
+int get_pid_changed(void);
+void clear_pid_changed(void);
 #endif

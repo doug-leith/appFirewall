@@ -43,6 +43,13 @@ https://gist.github.com/amitu/2134968 // for apple, v useful !
 // connect call started and when it ended e.g. if laptop went to sleep and then
 // awoke.  so hopefully no big deal since we don't care about killing such connections
 // as they're already dying.
+//
+// note also there is a tradeoff in choosing switchrate parameter.  choosing it
+// high e.g. 1000Hz means dtrace reports results quickly but (i) may drop results
+// if they arrive too fast and (ii) uses a ton of cpu since dtrace app polls at
+// this freq.  choosing it a bit lower e.g 250Hz may delay reporting of results
+// but causes fewer drops and saves on cpu (runs at about 10%, rather than 20% when
+// switchrate=500Hz)
 char* dtrace_script="\
 -x quiet -x switchrate=250hz -n \
 '\
@@ -61,7 +68,7 @@ l_addr= &pcb->inp_dependladdr.inp46_local.ia46_addr4.s_addr; \
 r_addr = &pcb->inp_dependfaddr.inp46_foreign.ia46_addr4.s_addr; \
 localAddr = inet_ntoa((uint32_t*) l_addr); \
 remoteAddr = inet_ntoa((uint32_t*) r_addr); \
-printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d\\n\", execname, pid, af2, localAddr, localPort, remoteAddr, remotePort); \
+printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d,%s,%s\\n\", execname, pid, af2, localAddr, localPort, remoteAddr, remotePort,probefunc,probename); \
 } \
 syscall::connect*:return/af2==30/{ \
 localPort = ntohs((uint16_t) pcb->inp_lport); \
@@ -70,11 +77,11 @@ l6_addr= &pcb->inp_dependladdr.inp6_local; \
 r6_addr = &pcb->inp_dependfaddr.inp6_foreign; \
 localAddr = inet_ntoa6(l6_addr); \
 remoteAddr = inet_ntoa6(r6_addr); \
-printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d\\n\", execname, pid, af2, localAddr, localPort, remoteAddr, remotePort); \
+printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d,%s,%s\\n\", execname, pid, af2, localAddr, localPort, remoteAddr, remotePort,probefunc,probename); \
 } \
 ' ";
 
-int exec(char* cmd, int *pipefd) {
+int exec(char* cmd, int *pipefd, int d_sock2) {
 
 	pid_t pid = fork();
 
@@ -93,6 +100,11 @@ int exec(char* cmd, int *pipefd) {
 		//dup2(fd,STDERR_FILENO); // leave stderr alone though
 		close(pipefd[1]); close(pipefd[0]);
 		setbuf(stdout, NULL); // disable buffering on stdout
+		// close sockets not needed in child, just to be tidy
+		close(d_sock);
+		close(d_sock2);
+		close_sniffer_sock();
+		close_rst_sock();
 
 		int tries=0;
 		for (;;) {
@@ -152,7 +164,7 @@ void *dtrace(void *ptr) {
 		
 		INFO("Starting dtrace ...\n");
 		// start a new process to execute dtrace
-		dtrace_pid = exec(dtrace_cmd,pipefd);
+		dtrace_pid = exec(dtrace_cmd,pipefd,d_sock2);
 		if (dtrace_pid <= 0) {
 			ERR("Problem starting dtrace, pid=%d: %s\n", dtrace_pid,strerror(errno));
 			close(d_sock2);

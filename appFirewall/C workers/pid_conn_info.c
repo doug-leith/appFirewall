@@ -5,11 +5,136 @@
 #include "pid_conn_info.h"
 
 //global
-list_t pid_list=LIST_INITIALISER;
+static list_t pid_list=LIST_INITIALISER;
 #define STR_SIZE 1024
+static int changed = 0; // flag to GUI if pid list has changed
+
+// thread globals
+static pthread_cond_t pid_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t pid_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t pid_thread; // handle to pid watcher thread
+static int pid_thread_started = 0; // indicates whether pid watcher thread already running
+static int wakeup = 0;
+static void (*pid_watcher_hook)(void) = NULL;
 
 //--------------------------------------------------------
-//private
+// swift interface
+
+// thread safety for pid_list:
+// -pid_watcher runs in its own thread and calls refresh_active_conns().
+// -get_conn(),get_num_conns(),get_pid_changed(),set_pid_changed() are called from
+// swift ActiveConnsViewController which runs in a separate thread
+// -find_pid() is called by sniffer_blocker listener (via create_blockitem_from_addr())
+// from its own thread, and also from pid_watcher_hook()
+
+void *pid_watcher(void *ptr) {
+	struct timespec ts;
+	int res=0;
+	refresh_active_conns(0); // takes lock itself as needed
+	for(;;) {
+		clock_gettime(CLOCK_REALTIME, &ts);
+		# define PID_WATCHER_TIMEOUT 100 // in ms
+		ts.tv_nsec += PID_WATCHER_TIMEOUT*1000*1000;
+		
+		pthread_mutex_lock(&pid_mutex);
+		wakeup = 0; res = 0;
+		// release mutex and wait (either for timeout or a signal from]
+		// sniffer_blocker that a new conn has started) ...
+		while ((wakeup==0) && (res != ETIMEDOUT)) {
+			res = pthread_cond_timedwait(&pid_cond, &pid_mutex, &ts);
+		}
+		// have lock on mutex here.  release it
+		pthread_mutex_unlock(&pid_mutex);
+		
+		refresh_active_conns(0); // will take lock as needed
+
+		// handle waiting list, will take lock as needed
+		if (pid_watcher_hook != NULL) pid_watcher_hook();
+	}
+}
+
+void start_pid_watcher() {
+	// fire up thread that listens for pkts sent by helper
+	if (pid_thread_started==0) {
+		init_pid_list();
+		pthread_create(&pid_thread, NULL, pid_watcher, NULL);
+		pid_thread_started=1;
+	}
+}
+
+void signal_pid_watcher() {
+	// fire up thread that listens for pkts sent by helper
+	pthread_mutex_lock(&pid_mutex);
+	wakeup = 1;
+	pthread_cond_signal(&pid_cond);
+	pthread_mutex_unlock(&pid_mutex);
+}
+
+void set_pid_watcher_hook(void (*hook)(void)) {
+	pid_watcher_hook = hook;
+}
+
+conn_t* get_conn(int row) {
+	pthread_mutex_lock(&pid_mutex);
+	if (row > get_list_size(&pid_list)) {
+		pthread_mutex_unlock(&pid_mutex);
+		return NULL;
+	}
+	// take a copy of list item while we have lock
+	conn_t * c = malloc(sizeof(conn_t));
+	memcpy(c,get_list_item(&pid_list,row),sizeof(conn_t));
+	pthread_mutex_unlock(&pid_mutex);
+	return c;
+}
+
+void free_conn(conn_t* c) {
+	if (c) free(c);
+}
+
+int get_num_conns() {
+	pthread_mutex_lock(&pid_mutex);
+	int res = get_list_size(&pid_list);
+	pthread_mutex_unlock(&pid_mutex);
+	return res;
+}
+
+int get_pid_changed() {
+	pthread_mutex_lock(&pid_mutex);
+	int res=changed;
+	pthread_mutex_unlock(&pid_mutex);
+	return res;
+}
+
+void clear_pid_changed() {
+	pthread_mutex_lock(&pid_mutex);
+	changed=0;
+	pthread_mutex_unlock(&pid_mutex);
+}
+
+int find_pid(conn_raw_t *cr, char*name){
+	// find name of process associated with a network connection tuple
+	// (assumed to be an outgoing tuple, so src is local addr and dst
+	// is remote).
+	// called by sniffer_blocker on fast path.
+
+	conn_t c;
+	memcpy(&c.raw,cr,sizeof(conn_raw_t));
+	pthread_mutex_lock(&pid_mutex);
+	conn_t *res = in_list(&pid_list,&c,0); // list lookup only uses raw
+	if (res) { // found it !
+		strlcpy(name,res->name,BUFSIZE);
+		pthread_mutex_unlock(&pid_mutex);
+		return 1;
+	}
+	pthread_mutex_unlock(&pid_mutex);
+	char dn[INET6_ADDRSTRLEN];
+	robust_inet_ntop(&cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
+	INFO("find_pid() for %s ... not found\n", dn);
+	return 0;
+}
+
+//--------------------------------------------------------
+//private.
 
 inline int is_ipv4_localhost(struct in6_addr* addr){
 	const uint32_t dst_addr=((struct in_addr*)addr)->s_addr;
@@ -24,14 +149,14 @@ inline int is_ipv6_localhost(struct in6_addr* addr){
 
 int get_pid_name(int pid, char* name) {
 	// get process name etc associated with pid
-		struct proc_bsdshortinfo proc;
-    int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
-    if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
-				INFO("Cannot get process info for PID %d, likely has died.\n",pid);
-        return -1;
-    }
-    strlcpy(name,proc.pbsi_comm,MAXCOMLEN);
-    return 0;
+	struct proc_bsdshortinfo proc;
+	int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
+	if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
+		INFO("Cannot get process info for PID %d, likely has died.\n",pid);
+			return -1;
+	}
+	strlcpy(name,proc.pbsi_comm,MAXCOMLEN);
+	return 0;
 }
 
 char* pid_hash(const void *it) {
@@ -39,7 +164,8 @@ char* pid_hash(const void *it) {
 	// we do this by network connection, so child processes that
 	// share the same fd are lumped together
 	// we add the domain name to hash to catch cases where
-	// dns cache is updated to replace IP addr with name
+	// dns cache is updated to replace IP addr with name.
+	// should hold lock when call this
 	conn_t *item = (conn_t*) it;
 	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
 	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
@@ -50,6 +176,7 @@ char* pid_hash(const void *it) {
 }
 
 int pid_cmp(const void* it1, const void* it2){
+	// should hold lock when call this
 	conn_t *item1 = (conn_t*) it1;
 	conn_t *item2 = (conn_t*) it2;
 	char * temp1 = pid_hash(item1);
@@ -59,12 +186,27 @@ int pid_cmp(const void* it1, const void* it2){
 	return res;
 }
 
-int coalesce_conn(conn_t *c) {
+void init_pid_list() {
+	// should hold lock when call this
+	init_list(&pid_list,pid_hash,pid_cmp,0,"pid_list");
+}
+
+void dump_pidlist() {
+	// should hold lock when call this
+	int i;
+	for (i=0; i<get_list_size(&pid_list);i++) {
+		conn_t *b = get_list_item(&pid_list,i);
+		printf("%s %s\n",b->name,b->domain);
+	}
+}
+
+int coalesce_conn(list_t *l, conn_t *c) {
 	// rather than showing multiple entries in GUI
 	// for parallel connections by same app to same
 	// destination/port pair, we coalesce them.
-	for (int i=0; i<get_num_conns();i++) {
-		conn_t *c1 = get_conns(i);
+
+	for (int i=0; i<get_list_size(l);i++) {
+		conn_t *c1 = get_list_item(l,i);
 		if (strcmp(c1->name,c->name)!=0) continue;
 		if (!are_addr_same(c1->raw.af, &c1->raw.dst_addr, &c->raw.dst_addr)) continue;
 		if (!are_addr_same(c1->raw.af, &c1->raw.src_addr, &c->raw.src_addr)) continue;
@@ -75,32 +217,24 @@ int coalesce_conn(conn_t *c) {
 	return -1;
 }
 
-void dump_pidlist() {
-	int i;
-	for (i=0; i<get_num_conns();i++) {
-		conn_t *b = get_conns(i);
-		printf("%s %s\n",b->name,b->domain);
-	}
-}
-
-//--------------------------------------------------------
-// swift interface
-
-void init_pid_list() {
-	init_list(&pid_list,pid_hash,pid_cmp,0,"pid_list");
-}
-
 int refresh_active_conns(int localhost) {
-	// called by GUI to update list of active process
+	// called to update list of active process
 	// and network connectionsb(held in conns global var).
 	// returns 1 if set of active connections has changed,
 	// else 0, so that GUI knows whether it has to redraw itself
-	int changed = 0;
 	
+	// should hold lock when call this.
+	// this and init_pid_list() are the only routines
+	// which actually write to pid_list, the rest just read.
+
 	DEBUG2("refresh_active_conns()\n");
 		
-	list_t prev_list=pid_list;
-	init_pid_list();
+	// we'll populate a new list with pid info -- this will take a little time.
+	// then we copy this over to pid_list to update.  that way
+	// the GUI etc only ever see a fully updated pis list, not partially updates
+	// (which look nasty)
+	list_t new_pid_list;
+	init_list(&new_pid_list,pid_hash,pid_cmp,0,"new_pid_list");
 	
 	// get list of current processes
 	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
@@ -135,6 +269,7 @@ int refresh_active_conns(int localhost) {
 		struct proc_fdinfo *procFDInfo = (struct proc_fdinfo *)malloc(bufferSize);
 		if (!procFDInfo) {
 			ERR("Out of memory. Unable to allocate buffer with %d bytes\n", bufferSize);
+			free_list(&new_pid_list);
 			return 0;
 		}
 
@@ -214,62 +349,39 @@ int refresh_active_conns(int localhost) {
 			// ignore child processes sharing conn of parent
 			// - rely here on fact that parent will be processed
 			// here before any child ...
-			if (in_list(&pid_list, &c, 0)) continue;
+			if (in_list(&new_pid_list, &c, 0)) continue;
+
 			// if several parallel connections to same
 			// domain we just log first one (to keep GUI clean)
-			if (coalesce_conn(&c)>=0) continue;
-			// flag to GUI if it needs to refresh ..
-			if (!in_list(&prev_list, &c, 0)) {
+			if (coalesce_conn(&new_pid_list, &c)>=0) {
+				continue;
+			}
+			pthread_mutex_lock(&pid_mutex);
+			if (!in_list(&pid_list, &c, 0)) {
+				// we've added a new entry to pid list, flag to GUI if it needs to refresh
 				changed = 1;
 				//INFO("changed %s(%d): %s:%d -> %s:%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
 			}
-			add_item(&pid_list,&c,sizeof(conn_t));
+			pthread_mutex_unlock(&pid_mutex);
+
+			add_item(&new_pid_list,&c,sizeof(conn_t));
 		}
+		free(procFDInfo);
 	}
-	free_list(&prev_list);
+	pthread_mutex_lock(&pid_mutex);
+	if (get_list_size(&new_pid_list) != get_list_size(&pid_list)) {
+		// could be that we have only removed some processes from pid list,
+		// in which case changed=0 when get here
+		changed = 1;
+	}
+	// now copy new list over to pid_list.
+	free_list(&pid_list);
+	pid_list = new_pid_list;
+	pthread_mutex_unlock(&pid_mutex);
 	return changed;
 }
 
-conn_t* get_conns(int row) {
-	return get_list_item(&pid_list,row);
-}
 
-int get_num_conns() {
-	return get_list_size(&pid_list);
-}
-
-//--------------------------------------------------------
-// sniffer_blocker helpers
-
-int find_pid(conn_raw_t *cr, char*name){
-	// find name of process associated with a network connection tuple
-	// (assumed to be an outgoing tuple, so src is local addr and dst
-	// is remote)
-
-	// start by trying cached list of connections, v fast if we get match
-	conn_t c;
-	memcpy(&c.raw,cr,sizeof(conn_raw_t));
-	conn_t *res = in_list(&pid_list,&c,0); // list lookup only uses raw
-	if (res) { // found it !
-		strlcpy(name,res->name,BUFSIZE);
-		return 1;
-	}
-
-	// didn't find PID, usual with new connections (SYN-ACK).  make syscall
-	// to query current list of active questions, can be slow
-	char dn[INET6_ADDRSTRLEN];
-	robust_inet_ntop(&cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
-	refresh_active_conns(0);
-	res = in_list(&pid_list,&c,0);
-	if (res) { // found it !
-		strlcpy(name,res->name,BUFSIZE);
-		return 1;
-	}
-	// couldn't find PID.  likely was an emphemeral process that opening a
-	// brief connection and has gone away by time we get here (a few ms typically, and never more than 10ms).
-	INFO("find_pid() retrying for %s ... not found\n", dn);
-	return 0;
-}
 
 
 

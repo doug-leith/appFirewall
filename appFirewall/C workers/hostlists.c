@@ -8,7 +8,7 @@
 #include "hostlists.h"
 
 static int host_list_size=0;
-Hashtable *hl_htab=NULL; // hash table of pointers into black list for fast lookup
+static Hashtable *hl_htab=NULL; // hash table of pointers into black list for fast lookup
 #define STR_SIZE 1024
 
 void init_hosts_list() {

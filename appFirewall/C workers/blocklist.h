@@ -10,7 +10,6 @@
 #include <arpa/inet.h>
 #include "util.h"
 #include "pid_conn_info.h"
-#include "dtrace.h"
 #include "circular_list.h"
 
 // file for maintaining state over restarts
@@ -34,7 +33,6 @@ void sort_block_list(int asc1, int col);
 int bl_sort_cmp(const void* it1, const void* it2);
 
 bl_item_t conn_to_bl_item(const conn_t *item);
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr);
 
 char* get_blocklist_item_name(bl_item_t *item);
 char* get_blocklist_item_domain(bl_item_t *item);

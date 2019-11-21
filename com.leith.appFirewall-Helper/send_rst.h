@@ -18,5 +18,6 @@
 
 void init_libnet(void);
 void rst_accept_loop(void);
+void close_rst_sock(void);
 
 #endif /* send_rst_h */

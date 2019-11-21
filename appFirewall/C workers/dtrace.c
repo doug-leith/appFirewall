@@ -8,7 +8,7 @@
 // globals
 static int d_sock;
 static pthread_t thread; // handle to listener thread
-list_t dtrace_cache;
+static list_t dtrace_cache;
 
 char* dt_hash(const void *cc) {
 	// generate table lookup key string from block list item PID name
@@ -79,27 +79,11 @@ int parse_dt_line(char* line, conn_t *c) {
 	if (c->raw.dport<0 || c->raw.dport>65535) return -1;
 	
 	int res=robust_inet_pton(&c->raw.af,c->src_addr_name,&c->raw.src_addr);
-	/*if (res==0) { // likely mismatch between af and address type
-		if (c->raw.af == AF_INET) {
-		res=inet_pton(AF_INET6,c->src_addr_name,&c->raw.src_addr);
-			if (res == 1) c->raw.af = AF_INET6;
-		} else {
-			res=inet_pton(AF_INET,c->src_addr_name,&c->raw.src_addr);
-			if (res == 1) c->raw.af = AF_INET;
-		}
-	}*/
 	if (res!=1) {
 		INFO("Problem parsing src address from dtrace: %s\n",strerror(errno));
 		return -1;
 	}
 	res=robust_inet_pton(&c->raw.af,c->dst_addr_name,&c->raw.dst_addr);
-	/*if (res==0) { // likely mismatch between af and address type
-		if (c->raw.af == AF_INET) {
-			res=inet_pton(AF_INET6,c->dst_addr_name,&c->raw.dst_addr);
-		} else {
-			res=inet_pton(AF_INET,c->dst_addr_name,&c->raw.dst_addr);
-		}
-	}*/
 	if (res!=1) {
 		INFO("Problem parsing dst address from dtrace: %s\n",strerror(errno));
 		return -1;

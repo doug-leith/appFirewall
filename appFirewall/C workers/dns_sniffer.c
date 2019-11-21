@@ -2,7 +2,7 @@
 #include "dns_sniffer.h"
 
 // circular list of reverse DNS lookups based on sniffed DNS reply packets
-list_t dns_cache = LIST_INITIALISER;
+static list_t dns_cache = LIST_INITIALISER;
 
 #define STR_SIZE 1024
 

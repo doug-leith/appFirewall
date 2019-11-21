@@ -11,6 +11,10 @@ static time_t stats_time; // time when last asked pcap for stats
 static int p_sock, p_sock2=-1;
 static pthread_t listener_thread; // handle to listener thread
 
+void close_sniffer_sock() {
+	close(p_sock); close(p_sock2);
+}
+
 void start_sniffer(char* filter_exp) {
 	// fire up pcap listener ...
 	
@@ -31,18 +35,38 @@ void start_sniffer(char* filter_exp) {
 	}
 	
 	// create pcap listener
-	// args are: char *device, int snaplen, int promisc, int to_ms, char *ebuf
-	// nb: to_ms defines reader timeout, snaplen is #bytes kept for each pkt sniffed
-#define SNAPLEN 512 // needs to be big enough to capture dns payload
-#define TIMEOUT 1
-	if ((pd = pcap_open_live(intf, SNAPLEN, 0, TIMEOUT, ebuf)) == NULL) {
-		ERR("Couldn't initialize pcap sniffer %s\n",ebuf);
-		//EXITFAIL("Couldn't initialize pcap sniffer %s\n",ebuf);
+	if ((pd = pcap_create(intf, ebuf)) == NULL) {
+		ERR("Couldn't create pcap sniffer %s\n",ebuf);
 		exit(EXIT_FAILURE);
 	}
-	
+	#define SNAPLEN 512 // needs to be big enough to capture dns payload
+	if (pcap_set_snaplen(pd,SNAPLEN)!=0) {
+		WARN("Couldn't set snaplen on pcap sniffer: %s\n",pcap_geterr(pd));
+	}
+	if (pcap_set_immediate_mode(pd,1)!=0) { // deliver sniffed packets immediately.
+		WARN("Couldn't set immediate mode on pcap sniffer: %s\n",pcap_geterr(pd));
+	}
 	#define BUFFER_SIZE 2097152*8  // default is 2M=2097152, but we increase it to 16M
 	pcap_set_buffer_size(pd, BUFFER_SIZE);
+	
+	// try to list tstamp types, returns res=0 in MAC OS Mojave
+	int *tstamp_types;
+	int res = pcap_list_tstamp_types(pd, &tstamp_types);
+	if (res<0) {
+		WARN("Couldn't list timestamp types on pcap sniffer: %s\n",pcap_geterr(pd));
+	} else if (res==0) {
+		INFO("No timestamp types on pcap sniffer: res=%d\n",res);
+	} else {
+		for (int i = 0; i<res; i++) {
+			INFO("%s (%d) ",pcap_tstamp_type_val_to_name(tstamp_types[i]), tstamp_types[i]);
+		}
+	}
+	pcap_free_tstamp_types(tstamp_types);
+	// now that its configured, fire up listener
+	if (pcap_activate(pd)!=0) {
+		ERR("Couldn't activate pcap sniffer: %s\n",pcap_geterr(pd));
+		exit(EXIT_FAILURE);
+	}
 	
 	// set the filter ..
 	struct bpf_program fp;		/* The compiled filter expression */
@@ -56,7 +80,7 @@ void start_sniffer(char* filter_exp) {
 		//EXITFAIL("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(pd));
 		exit(EXIT_FAILURE);
 	}
-	
+		
 	// we need to specify the link layer header size.  have hard-wired in
 	// ethernet value of 14, so check link we have is compatible with this
 	int dl;
@@ -65,11 +89,15 @@ void start_sniffer(char* filter_exp) {
 		//EXITFAIL("Device %s not supported: %d\n", intf, dl);
 		exit(EXIT_FAILURE);
 	}
+	
 }
 
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 	// send pkt to GUI
 	DEBUG2("sniffed pkt, sending to GUI ... %d bytes\n",pkthdr->caplen);
+	//struct timeval ts = pkthdr->ts;
+	//struct timeval start; gettimeofday(&start, NULL);
+	//INFO("t (sniffed) %f\n", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
 	if (send(p_sock2, pkthdr, sizeof(struct pcap_pkthdr),0)<0) goto err;
 	if (send(p_sock2, pkt, pkthdr->caplen,0)<0) goto err;
 
@@ -121,7 +149,15 @@ void start_listener() {
 
 	// tcpflags doesn't work for ipv6, sigh.
 	// UDP on ports 443 likely to be quic
-	start_sniffer("(udp and port 53) or (tcp and (tcp[tcpflags]&tcp-syn!=0) || (ip6[6] == 6 && ip6[53]&tcp-syn!=0)) or (udp and port 443)");
+	//start_sniffer("(udp and port 53) or (tcp and (tcp[tcpflags]&tcp-syn!=0) || (ip6[6] == 6 && ip6[53]&tcp-syn!=0)) or (udp and port 443)");
+	
+	// just syn-acks
+	start_sniffer("\
+	(udp and port 53) \
+	or (tcp and (tcp[tcpflags]&tcp-syn!=0) and (tcp[tcpflags]&tcp-ack!=0)) \
+	or (ip6[6] == 6 and (ip6[53]&tcp-syn!=0) and (tcp[tcpflags]&tcp-ack!=0)) \
+	or (udp and port 443)");
+
 	INFO("pcap initialised\n");
 	pthread_create(&listener_thread, NULL, listener, NULL);
 }

@@ -15,12 +15,14 @@
 #include <signal.h>
 #include <pthread.h>
 #include "util.h"
+#include "pcap_sniffer.h"
+#include "send_rst.h"
 
 #define DTRACE_PORT 4
 
 void start_dtrace(int stdout);
 void *dtrace(void *ptr);
-int exec(char* cmd, int *pipefd);
+int exec(char* cmd, int *pipefd, int d_sock2);
 void kill_dtrace(void);
 
 #endif /* dtrace_h */

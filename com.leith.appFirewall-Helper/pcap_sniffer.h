@@ -22,5 +22,6 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 void *listener(void *ptr);
 void stop_listener(void);
 void start_listener(void);
+void close_sniffer_sock(void);
 
 #endif /* pcap_sniffer_h */

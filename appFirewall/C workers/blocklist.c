@@ -5,9 +5,6 @@
 static list_t block_list=LIST_INITIALISER;
 
 #define STR_SIZE 1024
-// stats on dtrace performance (summary: it never misses except maybe for
-// connections already in progress when app starts up) ...
-int dtrace_misses=0;
 
 char* bl_hash(const void *it) {
 	// generate table lookup key string from block list item
@@ -142,44 +139,5 @@ bl_item_t conn_to_bl_item(const conn_t *item) {
 		return bl;
 }
 
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
-	// create a new blocklist item from raw connection info (assumed to be
-	// outgoing connection, so src is local and dst is remote)
-	// populates all of blocklist item except for PID name
-	bl_item_t c;
-	memset(&c,0,sizeof(c));
-
-	// get human readable form of dest adddr
-	inet_ntop(cr->af, &cr->dst_addr, c.addr_name, INET6_ADDRSTRLEN);
-	char src[INET6_ADDRSTRLEN];
-	inet_ntop(cr->af, &cr->src_addr, src, INET6_ADDRSTRLEN);
-
-	// can we get PID from dtrace cache ?
-	int res=lookup_dtrace(cr, c.name);
-	if (res==0) { // v rare, so interesting
-		INFO("%s:%d->%s:%d NOT found in dtrace cache (%d misses), trying procinfo.\n", src,cr->sport,c.addr_name,cr->dport,dtrace_misses);
-		dtrace_misses++;
-		// try to get PID info
-		res=find_pid(cr,c.name);
-		//clock_t end1 = clock();
-		if (res==0) {
-			strcpy(c.name,"<unknown>");
-		}
-	} else {
-		INFO("%s:%d->%s:%d found in dtrace cache: %s\n",src,cr->sport,c.addr_name,cr->dport,c.name);
-	}
-
-	// try to get domain name from DNS cache
-	char* dns =lookup_dns_name(cr->af, cr->dst_addr);
-	if (dns!=NULL) {
-		//printf("dns found for %s\n",dns);
-		strlcpy(c.domain,dns,BUFSIZE);
-	} else {
-		//printf("dns not found for %s\n",c.addr_name);
-		strlcpy(c.domain,c.addr_name,INET6_ADDRSTRLEN);
-	}
-	
-	return c;
-}
 
 

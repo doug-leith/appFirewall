@@ -2,9 +2,7 @@
 //  dtrace.h
 //  appFirewall
 //
-//  Created by Doug Leith on 13/11/2019.
-//  Copyright © 2019 Doug Leith. All rights reserved.
-//
+
 
 #ifndef dtrace_h
 #define dtrace_h

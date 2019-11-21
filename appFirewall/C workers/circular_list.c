@@ -26,6 +26,17 @@ void free_list(list_t *l) {
 	l->list_size=0; l->list_start=0;
 }
 
+void deep_copy_list(list_t *l1, list_t *l2, int item_size) {
+	*l1 = *l2;
+	l1->htab = hashtable_new(MAXLIST);
+	for (int i=0; i<MAXLIST;i++) {
+		void* item = malloc(item_size);
+		memcpy(item, l2->list[i], item_size);
+		l1->list[i]=item;
+		add_item_to_htab(l1, item);
+	}
+}
+
 void* in_list(list_t *l, const void *item, int debug) {
 	// table lookup of list
 	if (l->hash == NULL) return NULL;
@@ -68,7 +79,7 @@ void del_from_htab(list_t *l, const void *item) {
 void add_item(list_t *l, void* item, int item_size) {
 	if (l->hash == NULL) return;
 	if (in_list(l, item, 0)) {
-		INFO("add_item() item %s exists.\n", l->hash(item));
+		INFO("add_item() item %s exists in list %s.\n", l->hash(item),l->list_name);
 		return;
 	}
 

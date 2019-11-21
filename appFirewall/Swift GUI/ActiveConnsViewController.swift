@@ -11,6 +11,8 @@ class ActiveConnsViewController: NSViewController {
 	@IBOutlet weak var tableView: NSTableView!
 	var timer : Timer!
 	var asc: Bool = true // whether shown in ascending/descending order
+	var blockedCount: Int = 0
+	var connCount: Int = 0
 		
 	override func viewDidLoad() {
 		// Do any additional setup after loading the view.
@@ -21,6 +23,8 @@ class ActiveConnsViewController: NSViewController {
 		// schedule refresh of connections list every 1s
 		timer = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
+		
+		start_pid_watcher() // start pid monitoring thread, its ok to call this multiple times
 	}
 
 	override func viewWillAppear() {
@@ -36,6 +40,11 @@ class ActiveConnsViewController: NSViewController {
 			tableView.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"pid",ascending:asc)
 			tableView.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
 		}
+		blockedCount = UserDefaults.standard.integer(forKey: "active_blockedCount")
+		connCount = UserDefaults.standard.integer(forKey: "active_connCount")
+		//UserDefaults.standard.set(0, forKey: "active_blockedCount")
+		//UserDefaults.standard.set(0, forKey: "active_connCount")
+		
 		refresh(timer:nil)
 		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished activeConns viewWillAppear()")
 	}
@@ -45,15 +54,16 @@ class ActiveConnsViewController: NSViewController {
 	}
 	
 	@objc func refresh(timer:Timer?) {
-		var force : Bool = true
-		if (timer != nil) {
-			force = false
+		var force : Bool = false;
+		if (timer == nil) {
+			force = true
 		}
 		let firstVisibleRow = tableView.rows(in: tableView.visibleRect).location
-		let changed = refresh_active_conns(0)
-		if (force || ((firstVisibleRow==0)
-			&& (changed == 1)) ) { 
+		//let changed = refresh_active_conns(0)
+		if (force || ((firstVisibleRow==0) && (Int(get_pid_changed()) != 0)) ) {
+			clear_pid_changed();
 			tableView.reloadData()
+			print("blocked conns = ",blockedCount,"/",connCount)
 		}
 	}
 
@@ -64,8 +74,9 @@ class ActiveConnsViewController: NSViewController {
 		save_blocklist(); save_whitelist()
 		save_dns_cache()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
+		UserDefaults.standard.set(blockedCount, forKey: "active_blockedCount")
+		UserDefaults.standard.set(connCount, forKey: "active_connCount")
 	}
-	
 	
 	@IBAction func helpButton(_ sender: helpButton!) {
 			sender.clickButton(msg:"This window logs the network connections currently being made by the apps running on your computer.  Note that connections can sometimes take a few seconds to die, during which time they may remain visible here.  Also, we only block connections when they try to start so its possible for some connections on the blacklist to be running temporarily, but they will be blocked when they try to restart.")
@@ -135,7 +146,7 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		var tip: String = ""
 	
 		let r = mapRow(row: row)
-		let item_ptr = get_conns(Int32(r))
+		let item_ptr = get_conn(Int32(r))
 		if (item_ptr == nil) { return nil }
 		var item = item_ptr!.pointee
 		var bl_item = conn_to_bl_item(item_ptr)
@@ -168,14 +179,21 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			} 
 			let name = String(cString: &bl_item.name.0)
 			let port = String(Int(item.raw.dport))
-			if (blocked == 0) {
+			connCount+=1
+			if ((white == 1) || (blocked == 0)) {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is not blocked."
 			} else if (blocked == 1) {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for application '"+name+"' by user black list."
+				blockedCount+=1
+				print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
 			} else if (blocked == 2) {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for all applications by hosts file."
+				blockedCount+=1
+				print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
 			} else {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for application '"+name+"' by hosts file."
+				blockedCount+=1
+				print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
 			}
 			content = domain
 			if (Int(item.raw.udp)==1) {
@@ -189,37 +207,21 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		if (cellIdentifier == "ButtonCell") {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? blButton else {return nil}
 			cell.udp = (Int(item.raw.udp)>0)
-			cell.bl_item = bl_item
+			cell.bl_item = bl_item // take a copy so ok to free() later
 			cell.updateButton()
 			cell.action = #selector(BlockBtnAction)
+			free_conn(item_ptr)
+			return cell
+		} else {
+			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
+			cell.textField?.stringValue = content
+			cell.textField?.toolTip = tip
+			setColor(cell: cell, udp: (Int(item.raw.udp)==1), white: white, blocked: blocked)
+			free_conn(item_ptr)
 			return cell
 		}
-		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
-		cell.textField?.stringValue = content
-		cell.textField?.toolTip = tip
-		setColor(cell: cell, udp: (Int(item.raw.udp)==1), white: white, blocked: blocked)
-		return cell		
 	}
-	
-	
-	/*func getRowText(row: Int) -> String {
-		let r = mapRow(row: row)
-		let item_ptr = get_conns(Int32(r))
-		if (item_ptr == nil) { return "" }
-		var item = item_ptr!.pointee
 		
-		let pid_name = String(cString: &item.name.0)+" ("+String(Int(item.pid))+")"
-		
-		let domain = String(cString: &item.domain.0)
-		var content: String=""
-		if (domain.count>0) {
-			content=domain+":"+String(Int(item.raw.dport))
-		} else {
-			content=String(cString: &item.dst_addr_name.0)+":"+String(Int(item.raw.dport))
-		}
-		return pid_name+" "+content
-	}*/
-	
 	func copy(sender: AnyObject?){
 		let indexSet = tableView.selectedRowIndexes
 		var text = ""

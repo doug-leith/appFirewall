@@ -1,10 +1,10 @@
 #include "log.h"
 
 // circular list
-list_t log_list;
-list_t filtered_log_list;
-FILE *fp_txt = NULL; // pointer to human readable log file
-int changed = 0; // flag to record whether log has been updated
+static list_t log_list;
+static list_t filtered_log_list;
+static FILE *fp_txt = NULL; // pointer to human readable log file
+static int changed = 0; // flag to record whether log has been updated
 #define STR_SIZE 1024
 
 char* log_hash(const void* it) {

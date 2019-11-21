@@ -14,9 +14,9 @@
 // 3. bls_htab blocks based on (app name,domain) pairs, so if
 // an app is only on this list then by default it can make
 // connections unless otherwise specified
-Hashtable *bls_htab=NULL; // black list based on (app name,domain) pairs
-Hashtable *bls_app_htab=NULL; // black list based on app name only
-Hashtable *wls_app_htab=NULL; // whitelist based on (app name,domain) pairs
+static Hashtable *bls_htab=NULL; // black list based on (app name,domain) pairs
+static Hashtable *bls_app_htab=NULL; // black list based on app name only
+static Hashtable *wls_app_htab=NULL; // whitelist based on (app name,domain) pairs
 #define STR_SIZE 1024
 
 void init_blocklists_tabs() {

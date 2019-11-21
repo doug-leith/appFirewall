@@ -282,23 +282,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("storage path "+path)
 	}
 	
-	func log_rotate() {
-	// rotate human readable log file if getting too large
-	let path = String(cString: get_path())
-	let logfile = path + "/log.txt"
+	func log_rotate(logName: String) {
+		// rotate human readable log file if getting too large
+		let path = String(cString: get_path())
+		let logfile = path + "/" + logName
 		do {
-				let attr = try FileManager.default.attributesOfItem(atPath: logfile)
-				let fileSize = attr[FileAttributeKey.size] as! UInt64
-				if (fileSize > 100000000) { // 100M
-						// rotate
-						print("Rotating log")
-						save_log() // this will flush human-readable log file
-						try FileManager.default.removeItem(atPath:logfile+".0")
-						try FileManager.default.moveItem(atPath:logfile, toPath: logfile+".0")
-						load_log() // this we reopen human-readable log file
-				}
+			let attr = try FileManager.default.attributesOfItem(atPath: logfile)
+			let fileSize = attr[FileAttributeKey.size] as! UInt64
+			if (fileSize > 100000000) { // 100M
+				// rotate
+				print("Rotating log")
+				save_log() // this will flush human-readable log file
+				try FileManager.default.removeItem(atPath:logfile+".0")
+				try FileManager.default.moveItem(atPath:logfile, toPath: logfile+".0")
+				load_log() // this we reopen human-readable log file
+			}
 		} catch {
-				print("Problem rotating log: "+error.localizedDescription)
+				print("Problem rotating log "+logName+": "+error.localizedDescription)
 		}
 
 	}
@@ -317,7 +317,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				raise(SIGCHLD)
 		}
 		// rotate log files if they're getting too large
-		log_rotate()
+		log_rotate(logName: "log.txt")
+		log_rotate(logName: "app_log.txt")
+
 		
 		// update menubar button tooltip
 		if let button = statusItem.button {
@@ -372,15 +374,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		load_whitelist()
 		load_dns_cache()
 		prefController.load_hostlists() // might be slow
-		init_pid_list()
 		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"files loaded in applicationWillFinishLaunching()")
 
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper
     DispatchQueue.global(qos: .background).async {
-			print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"starting listeners")
+			//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"starting listeners")
 			start_helper_listeners()
-			print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"listeners started")
+			//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"listeners started")
 		}
 		
 		// schedule house-keeping ...

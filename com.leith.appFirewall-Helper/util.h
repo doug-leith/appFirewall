@@ -13,6 +13,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/errno.h>
+#include <sys/un.h>
+#include <sys/stat.h>
 
 const static int verbose=1;          // debugging level
 // apple logging to system.log
