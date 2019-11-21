@@ -46,6 +46,8 @@ int get_num_conns(void);
 void init_pid_list(void);
 char* pid_hash(const void *it);
 int pid_cmp(const void* it1, const void* it2);
+void dump_pidlist(list_t *l);
+int find_fds(int pid, char* name, list_t* new_pid_list, list_t* new_gui_pid_list);
 
 void start_pid_watcher(void);
 void signal_pid_watcher(void);

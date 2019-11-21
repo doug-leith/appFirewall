@@ -9,7 +9,7 @@ static int changed = 0; // flag to record whether log has been updated
 
 char* log_hash(const void* it) {
 	log_line_t *item = (log_line_t*)it;
-	int len = (int)(strlen(item->log_line)+strlen(item->time_str));
+	int len = (int)(strlen(item->log_line)+strlen(item->time_str)+2);
 	char* temp = malloc(len);
 	strlcpy(temp,item->time_str,len);
 	strlcat(temp,item->log_line,len);
@@ -53,7 +53,7 @@ void get_log_addr_name(int row, char* str, int len) {
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
 	changed = 1; // record for GUI fact that log has been updated
 	//printf("append_log, %d\n",changed);
-	log_line_t *l = malloc(sizeof(log_line_t));
+	log_line_t *l = malloc(sizeof(log_line_t)+2);
 	strlcpy(l->log_line,str,LOGSTRSIZE);
 	time_t t; time(&t);
 	//str=asctime(localtime(&t)); str[strlen(str)-1]=0; // remove "\n"

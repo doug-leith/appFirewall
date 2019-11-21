@@ -51,7 +51,7 @@ https://gist.github.com/amitu/2134968 // for apple, v useful !
 // but causes fewer drops and saves on cpu (runs at about 10%, rather than 20% when
 // switchrate=500Hz)
 char* dtrace_script="\
--x quiet -x switchrate=250hz -n \
+-x quiet -x switchrate=200hz -n \
 '\
 syscall::connect*:entry{ \
 connect_fd = arg0; \

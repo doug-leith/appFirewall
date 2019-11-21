@@ -286,21 +286,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// rotate human readable log file if getting too large
 		let path = String(cString: get_path())
 		let logfile = path + "/" + logName
+		var fileSize : UInt64 = 0
 		do {
 			let attr = try FileManager.default.attributesOfItem(atPath: logfile)
-			let fileSize = attr[FileAttributeKey.size] as! UInt64
-			if (fileSize > 100000000) { // 100M
-				// rotate
-				print("Rotating log")
-				save_log() // this will flush human-readable log file
-				try FileManager.default.removeItem(atPath:logfile+".0")
-				try FileManager.default.moveItem(atPath:logfile, toPath: logfile+".0")
-				load_log() // this we reopen human-readable log file
-			}
+			fileSize = attr[FileAttributeKey.size] as! UInt64
 		} catch {
 				print("Problem rotating log "+logName+": "+error.localizedDescription)
 		}
-
+		if (fileSize > 100000000) { // 100M
+			// rotate
+			print("Rotating log "+logfile)
+			do {
+				try FileManager.default.removeItem(atPath:logfile+".0")
+			} catch {
+					print("Rotating log "+logName+": "+error.localizedDescription)
+			}
+			do {
+				try FileManager.default.moveItem(atPath:logfile, toPath: logfile+".0")
+				} catch {
+						print("Rotating log "+logName+": "+error.localizedDescription)
+				}
+		}
 	}
 	
 	@objc func refresh() {
@@ -317,7 +323,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				raise(SIGCHLD)
 		}
 		// rotate log files if they're getting too large
+		save_log() // this will flush human-readable log file
 		log_rotate(logName: "log.txt")
+		load_log() // we reopen human-readable log file
 		log_rotate(logName: "app_log.txt")
 
 		

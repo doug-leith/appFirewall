@@ -71,8 +71,6 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 		res=find_pid(cr,c.name);
 		//clock_t end1 = clock();
 		if (res==0) {
-			// didn't succeed, refresh pid info (takes a while, so we don't wait here)
-			signal_pid_watcher();
 			// we'll now add this conn to waiting list and try again once
 			// /proc has updated or new dtrace info arrives
 			strcpy(c.name,"<unknown>");
@@ -195,6 +193,9 @@ void process_conn_waiting_list(void) {
 					process_conn(&cr_w, &c_w, &r_sock); // process
 					wait_misses++;
 					del=1; // flag that need to remove this conn from waiting list
+				} else {
+					// an outstanding conn, refresh pid info again
+					signal_pid_watcher();
 				}
 			} else {
 				// got process name, we can proceed
@@ -385,6 +386,9 @@ void *listener(void *ptr) {
 			pthread_mutex_lock(&wait_list_mutex);
 			add_item(&waiting_list,&cr,sizeof(conn_raw_t));
 			pthread_mutex_unlock(&wait_list_mutex);
+			// refresh pid info (takes a while, so we don't wait here)
+			//printf("signalling after adding\n");
+			signal_pid_watcher();
 		} else {
 			// got PID name, proceed with processing ...
 			// if on block list, send rst.  otherwise just log conn and move on

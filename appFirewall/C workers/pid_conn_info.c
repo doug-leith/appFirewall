@@ -10,6 +10,12 @@ static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
 #define STR_SIZE 1024
 static int changed = 0; // flag to GUI if pid list has changed
 
+// cache of recent PIDs
+#define PID_CACHE_SIZE 2
+static int last_pid[PID_CACHE_SIZE] = {-1};
+static char last_pid_name[PID_CACHE_SIZE][MAXCOMLEN];
+static int last_pid_size = 0;
+
 // thread globals
 static pthread_cond_t pid_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t pid_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -28,15 +34,46 @@ static void (*pid_watcher_hook)(void) = NULL;
 // -find_pid() is called by sniffer_blocker listener (via create_blockitem_from_addr())
 // from its own thread, and also from pid_watcher_hook()
 
+#define NSEC_PER_SEC 1000000000
+struct timespec timespec_normalise(struct timespec ts) {
+	while(ts.tv_nsec >= NSEC_PER_SEC) {
+		++(ts.tv_sec);
+		ts.tv_nsec -= NSEC_PER_SEC;
+	}
+	while(ts.tv_nsec <= -NSEC_PER_SEC) {
+		--(ts.tv_sec);
+		ts.tv_nsec += NSEC_PER_SEC;
+	}
+	if(ts.tv_nsec < 0 && ts.tv_sec > 0) {
+		--(ts.tv_sec);
+		ts.tv_nsec = NSEC_PER_SEC - (-1 * ts.tv_nsec);
+	} else if(ts.tv_nsec > 0 && ts.tv_sec < 0) {
+		++(ts.tv_sec);
+		ts.tv_nsec = -NSEC_PER_SEC - (-1 * ts.tv_nsec);
+	}
+	return ts;
+}
+
+struct timespec timespec_add(struct timespec ts1, struct timespec ts2) {
+	ts1 = timespec_normalise(ts1);
+	ts2 = timespec_normalise(ts2);
+	ts1.tv_sec  += ts2.tv_sec;
+	ts1.tv_nsec += ts2.tv_nsec;
+	return timespec_normalise(ts1);
+}
+
 void *pid_watcher(void *ptr) {
 	// runs in its own thread to keep pid_list uodated
-	struct timespec ts;
+	struct timespec ts, now, timeout;
+	# define PID_WATCHER_TIMEOUT 500 // in ms
+	timeout.tv_sec = 0;
+	timeout.tv_nsec = PID_WATCHER_TIMEOUT*(NSEC_PER_SEC/1000);
+
 	int res=0;
 	refresh_active_conns(0); // takes lock itself as needed
 	for(;;) {
-		clock_gettime(CLOCK_REALTIME, &ts);
-		# define PID_WATCHER_TIMEOUT 500 // in ms
-		ts.tv_nsec += PID_WATCHER_TIMEOUT*1000*1000;
+		clock_gettime(CLOCK_REALTIME, &now);
+		ts = timespec_add(now,timeout);
 		
 		pthread_mutex_lock(&pid_mutex);
 		res = 0;
@@ -44,7 +81,11 @@ void *pid_watcher(void *ptr) {
 		// sniffer_blocker that a new conn has started) ...
 		while ((wakeup==0) && (res != ETIMEDOUT)) {
 			res = pthread_cond_timedwait(&pid_cond, &pid_mutex, &ts);
+			if ((res!=0) && (res!=ETIMEDOUT)) {
+				WARN("pid_watcher() cond error: %s", strerror(errno));
+			}
 		}
+		//printf("waking up, wakeup=%d\n",wakeup);
 		wakeup = 0; // if a signal occurs now this will be reset to be non-zero
 		// have lock on mutex here.  release it
 		pthread_mutex_unlock(&pid_mutex);
@@ -71,6 +112,7 @@ void signal_pid_watcher() {
 	wakeup = 1;
 	pthread_cond_signal(&pid_cond);
 	pthread_mutex_unlock(&pid_mutex);
+	//printf("signal sent\n");
 }
 
 void set_pid_watcher_hook(void (*hook)(void)) {
@@ -102,6 +144,7 @@ int get_num_conns() {
 	pthread_mutex_lock(&pid_mutex);
 	int res = get_list_size(&gui_pid_list);
 	pthread_mutex_unlock(&pid_mutex);
+	//dump_pidlist(&gui_pid_list);
 	return res;
 }
 
@@ -131,16 +174,56 @@ int find_pid(conn_raw_t *cr, char*name){
 	pthread_mutex_lock(&pid_mutex);
 	conn_t *res = in_list(&pid_list,&c,0); // list lookup only uses raw
 	if (res) { // found it !
-		strlcpy(name,res->name,BUFSIZE);
+		strlcpy(name,res->name,MAXCOMLEN);
 		pthread_mutex_unlock(&pid_mutex);
-		INFO("found\n");
+		INFO("found.\n");
+		last_pid[last_pid_size%PID_CACHE_SIZE]=res->pid;
+		strlcpy(last_pid_name[last_pid_size%PID_CACHE_SIZE],name,MAXCOMLEN);
+		last_pid_size++;
 		return 1;
 	}
 	pthread_mutex_unlock(&pid_mutex);
+	// we cache last few PIDs and then try to
+	// do a targetted refresh of their network conns here -- fast.
+	// if we get a hit then we catch pid name earlier,
+	// at the cost of slightly longer processing time on
+	// sniffer_blocker fast path, so would want to keep number of PIDs checked *small*
+	// might as well stash pid info in pid_list while we're at it,
+	// in case it contains multiple new connections (previously used a temp list
+	// and threw away pid results each time).
+	if (last_pid_size > 0) {
+		struct timeval start; gettimeofday(&start, NULL);
+		//list_t l;
+		//init_list(&l,pid_hash,pid_cmp,0,"temp_pid_list");
+		list_t *l = &pid_list;
+		pthread_mutex_lock(&pid_mutex);
+		for (int i = 0; i< last_pid_size; i++) {
+			if (last_pid[i%PID_CACHE_SIZE]<=0) continue;
+			if (find_fds(last_pid[i%PID_CACHE_SIZE], last_pid_name[i%PID_CACHE_SIZE], l, NULL)!=1) {
+				last_pid[i%PID_CACHE_SIZE]=-1; // a dud, probably cached process has died
+			} else if (in_list(l,&c,0)) { // list lookup only uses raw
+				pthread_mutex_unlock(&pid_mutex);
+				strlcpy(name,last_pid_name[i%PID_CACHE_SIZE],MAXCOMLEN);
+				//free_list(l);
+				struct timeval end; gettimeofday(&end, NULL);
+				INFO("found using last_pid cache (t=%f).\n", (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+				return 1;
+			}
+		}
+		//free_list(&l);
+		pthread_mutex_unlock(&pid_mutex);
+		struct timeval end; gettimeofday(&end, NULL);
+		INFO(" (last pid t=%f) \n", (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+	}
+	
+	// failed. we'll now trigger refresh of pid_info by watcher thread.
+	// nb: there's a possibility that will miss connection if it dies before
+	// watcher completes refresh
+	
 	/*char dn[INET6_ADDRSTRLEN];
 	robust_inet_ntop(&cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 	INFO("find_pid() for %s ... not found\n", dn);*/
-	INFO("not found\n");
+	INFO("not found.\n");
 	return 0;
 }
 
@@ -236,24 +319,6 @@ void dump_pidlist(list_t *l) {
 		printf("%s(%d): %s:%d -> %s(%s):%d udp=%d\n", b->name, b->pid, b->src_addr_name, b->raw.sport, b->domain, b->dst_addr_name, b->raw.dport, b->raw.udp);
 	}
 }
-
-/*int coalesce_conn(list_t *l, conn_t *c) {
-	// rather than showing multiple entries in GUI
-	// for parallel connections by same app to same
-	// destination/port pair, we coalesce them.
-
-	for (int i=0; i<get_list_size(l);i++) {
-		conn_t *c1 = get_list_item(l,i);
-		if (strcmp(c1->name,c->name)!=0) continue;
-		if (!are_addr_same(c1->raw.af, &c1->raw.dst_addr, &c->raw.dst_addr)) continue;
-		if (!are_addr_same(c1->raw.af, &c1->raw.src_addr, &c->raw.src_addr)) continue;
-		if (c1->raw.dport != c->raw.dport) continue;
-		// found a match with same process name and dest:port (but might have
-		// different source port
-		return i;
-	}
-	return -1;
-}*/
 
 int find_fds(int pid, char* name, list_t* new_pid_list, list_t* new_gui_pid_list) {
 	// Get the list of network connections for process PID
@@ -356,19 +421,19 @@ int find_fds(int pid, char* name, list_t* new_pid_list, list_t* new_gui_pid_list
 		// connections to same domain (differing only in src port) then hash
 		// for gui_pid_list treats these as same so we just log first one in GUI pid list
 		// (to keep GUI clean)
-		//if ( (!in_list(new_gui_pid_list, &c, 0)) && (coalesce_conn(new_gui_pid_list,
-		if (!in_list(new_gui_pid_list, &c, 0)) {
-			add_item(new_gui_pid_list,&c,sizeof(conn_t));
+		if (new_gui_pid_list) {
+			if (!in_list(new_gui_pid_list, &c, 0)) {
+				add_item(new_gui_pid_list,&c,sizeof(conn_t));
+			}
+			pthread_mutex_lock(&pid_mutex);
+			if (!in_list(&gui_pid_list, &c, 0)) {
+				// we've added a new entry to pid list, flag to GUI if it needs to refresh
+				changed = 1;
+				//INFO("changed %s(%d): %s:%d -> %s(%s):%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp);
+		  	//dump_pidlist(&gui_pid_list);
+			}
+			pthread_mutex_unlock(&pid_mutex);
 		}
-		
-		pthread_mutex_lock(&pid_mutex);
-		if (!in_list(&gui_pid_list, &c, 0)) {
-			// we've added a new entry to pid list, flag to GUI if it needs to refresh
-			changed = 1;
-			//INFO("changed %s(%d): %s:%d -> %s(%s):%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp);
-			//dump_pidlist(&gui_pid_list);
-		}
-		pthread_mutex_unlock(&pid_mutex);
 	}
 	free(procFDInfo);
 	return 1;
