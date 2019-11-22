@@ -35,6 +35,7 @@ typedef struct conn_t {
 
 int get_pid_name(int pid, char* name);
 int find_pid(conn_raw_t *c, char*name);
+void cache_pid(int pid);
 int is_ipv4_localhost(struct in6_addr* addr);
 int is_ipv6_localhost(struct in6_addr* addr);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);

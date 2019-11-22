@@ -163,6 +163,14 @@ void clear_pid_changed() {
 	pthread_mutex_unlock(&pid_mutex);
 }
 
+void cache_pid(int pid) {
+	// we freshen cache using dtrace info since it gets most hits
+	pthread_mutex_lock(&pid_mutex);
+	last_pid[last_pid_size%PID_CACHE_SIZE]=pid;
+	last_pid_size++;
+	pthread_mutex_unlock(&pid_mutex);
+}
+
 int find_pid(conn_raw_t *cr, char*name){
 	// find name of process associated with a network connection tuple
 	// (assumed to be an outgoing tuple, so src is local addr and dst
@@ -176,12 +184,15 @@ int find_pid(conn_raw_t *cr, char*name){
 	if (res) { // found it !
 		strlcpy(name,res->name,MAXCOMLEN);
 		pthread_mutex_unlock(&pid_mutex);
-		INFO("found.\n");
+		stats.pidinfo_hits++;
+		INFO("found\n");
 		last_pid[last_pid_size%PID_CACHE_SIZE]=res->pid;
 		strlcpy(last_pid_name[last_pid_size%PID_CACHE_SIZE],name,MAXCOMLEN);
 		last_pid_size++;
 		return 1;
 	}
+	stats.pidinfo_misses++;
+
 	pthread_mutex_unlock(&pid_mutex);
 	// we cache last few PIDs and then try to
 	// do a targetted refresh of their network conns here -- fast.
@@ -191,6 +202,7 @@ int find_pid(conn_raw_t *cr, char*name){
 	// might as well stash pid info in pid_list while we're at it,
 	// in case it contains multiple new connections (previously used a temp list
 	// and threw away pid results each time).
+	float t=-1;
 	if (last_pid_size > 0) {
 		struct timeval start; gettimeofday(&start, NULL);
 		//list_t l;
@@ -205,24 +217,24 @@ int find_pid(conn_raw_t *cr, char*name){
 				pthread_mutex_unlock(&pid_mutex);
 				strlcpy(name,last_pid_name[i%PID_CACHE_SIZE],MAXCOMLEN);
 				//free_list(l);
+				stats.pidinfo_cachehits++;
 				struct timeval end; gettimeofday(&end, NULL);
-				INFO("found using last_pid cache (t=%f).\n", (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+				stats.sum_t_pidinfo_cache += (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
+				stats.n_t_pidinfo_cache++;
+				INFO("found using last_pid.\n");
 				return 1;
 			}
 		}
 		//free_list(&l);
 		pthread_mutex_unlock(&pid_mutex);
+		stats.pidinfo_cachemisses++;
 		struct timeval end; gettimeofday(&end, NULL);
-		INFO(" (last pid t=%f) \n", (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+		t = (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
 	}
-	
+
 	// failed. we'll now trigger refresh of pid_info by watcher thread.
 	// nb: there's a possibility that will miss connection if it dies before
 	// watcher completes refresh
-	
-	/*char dn[INET6_ADDRSTRLEN];
-	robust_inet_ntop(&cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
-	INFO("find_pid() for %s ... not found\n", dn);*/
 	INFO("not found.\n");
 	return 0;
 }

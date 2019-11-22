@@ -27,7 +27,7 @@ int dt_cmp(const void *cc1, const void *cc2) {
 	return (memcmp(c1,c2,sizeof(conn_t))==0);
 }
 
-int lookup_dtrace(conn_raw_t *cr, char* name) {
+int lookup_dtrace(conn_raw_t *cr, char* name, int* pid) {
 	// get PID name corresponding to connection cr
 	conn_t c;
 	c.raw = *cr;
@@ -37,6 +37,7 @@ int lookup_dtrace(conn_raw_t *cr, char* name) {
 	conn_t *res = in_list(&dtrace_cache, &c, 0);
 	if (res != NULL) {
 		strlcpy(name,res->name,MAXCOMLEN);
+		*pid = res->pid;
 		return 1;
 	}
 	return 0;

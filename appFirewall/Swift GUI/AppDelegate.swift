@@ -316,6 +316,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		//save_log()
 		//save_blocklist()
 		//save_dns_cache()
+		print_stats() // output current performance stats
 		
 		// check is listener thread (for talking with helper process that
 		// has root priviledge) has run into trouble -- if so, its fatal
@@ -376,6 +377,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// and initialise active conn qos logging
 		UserDefaults.standard.set(0, forKey: "active_blockedCount")
 		UserDefaults.standard.set(0, forKey: "active_connCount")
+		
+		// set default logging level
+		UserDefaults.standard.register(defaults: ["logging_level":1])
+		// can change this at command line using "defaults write" command
+		let log_level = UserDefaults.standard.integer(forKey: "logging_level")
+		set_logging_level(Int32(log_level))
 
 		// set up handler to catch C errors
 		setup_sigterm_handler()

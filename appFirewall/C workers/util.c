@@ -5,6 +5,28 @@
 static char error_msg[STR_SIZE];
 static char data_path[STR_SIZE];
 
+// stats
+stats_t stats;
+
+// loggin level
+int verbose = 1;
+
+void set_logging_level(int level) {
+	verbose = level;
+}
+
+void print_stats() {
+	INFO("dtrace hits %d/misses %d, pidinfo hits %d/misses %d, pidinfo_cache hits %d/misses %d.  avg times: sniff %.2f, not blocked %.2f, blocked %.2f, dns %.2f, udp %.2f, waitinglist hits %.2f/misses %.2f, pidinfo cache %.2f\n",
+	stats.dtrace_hits, stats.dtrace_misses,stats.pidinfo_hits, stats.pidinfo_misses,stats.pidinfo_cachehits, stats.pidinfo_cachemisses,
+	stats.sum_t_sniff/stats.n_t_sniff*1000, stats.sum_t_notblocked/stats.n_t_notblocked*1000,
+	stats.sum_t_blocked/stats.n_t_blocked*1000,
+	stats.sum_t_dns/stats.n_t_dns*1000,
+	stats.sum_t_udp/stats.n_t_udp*1000,
+	stats.sum_t_waitinglist_hits/stats.n_t_waitinglist_hits*1000, stats.sum_t_waitinglist_misses/stats.n_t_waitinglist_misses*1000,
+	stats.sum_t_pidinfo_cache/stats.n_t_pidinfo_cache*1000
+	);
+}
+
 // swift interface
 char* get_error_msg() {
 	return error_msg;

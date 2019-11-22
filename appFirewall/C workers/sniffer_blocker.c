@@ -9,10 +9,6 @@ static int r_sock, p_sock;
 static int is_running=0;
 static int num_conns_blocked=0;
 static list_t waiting_list=LIST_INITIALISER;
-static int wait_hits=0, wait_misses=0;
-// stats on dtrace performance (summary: it rarely misses except maybe for
-// connections already in progress when app starts up) ...
-int dtrace_misses=0;
 
 // cache recent UDP connections so only log new ones
 // (since no internal ESTABLISHED state held, unlike TCP)
@@ -63,10 +59,11 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 	inet_ntop(cr->af, &cr->src_addr, src, INET6_ADDRSTRLEN);
 
 	// can we get PID from dtrace cache ?
-	int res=lookup_dtrace(cr, c.name);
+	int pid;
+	int res=lookup_dtrace(cr, c.name, &pid);
 	if (res==0) { // quite rare, so interesting
-		INFO("%s:%d->%s:%d NOT found in dtrace cache (%d misses), trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport,dtrace_misses);
-		dtrace_misses++;
+		INFO("%s:%d->%s:%d NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
+		stats.dtrace_misses++;
 		// try to get PID info from /proc
 		res=find_pid(cr,c.name);
 		//clock_t end1 = clock();
@@ -76,7 +73,9 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 			strcpy(c.name,"<unknown>");
 		}
 	} else {
-		INFO("%s:%d->%s:%d found in dtrace cache: %s\n",src,cr->sport,c.addr_name,cr->dport,c.name);
+		stats.dtrace_hits++;
+		cache_pid(pid); // cache successful pid for pidinfo lookup
+		INFO("%s:%d->%s:%d found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 	}
 
 	// try to get domain name from DNS cache
@@ -127,11 +126,13 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock) {
 		append_log(str, long_str, c, cr, blocked);
 
 		if (!blocked) {
-			//clock_t end = clock();
-			//printf("t (not blocked) %f\n",(end - begin)*1.0 / CLOCKS_PER_SEC);
 			INFO("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
 			struct timeval end; gettimeofday(&end, NULL);
 			INFO("(not blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
+			stats.sum_t_sniff+=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
+			stats.n_t_sniff++;
+			stats.sum_t_notblocked+=(end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
+			stats.n_t_notblocked++;
 			return; // nothing more needs done
 		}
 		
@@ -156,6 +157,10 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock) {
 		INFO("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
 		struct timeval end; gettimeofday(&end, NULL);
 		INFO(" (blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
+		stats.sum_t_sniff+=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
+		stats.n_t_sniff++;
+		stats.sum_t_blocked+=(end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
+		stats.n_t_blocked++;
 		return;
 		
 	err_r:
@@ -172,7 +177,7 @@ void process_conn_waiting_list(void) {
 		pthread_mutex_lock(&wait_list_mutex);
 
 		if (get_list_size(&waiting_list) !=0 ) {
-			INFO("waiting list size = %d, hits=%d, misses=%d\n",get_list_size(&waiting_list),wait_hits,wait_misses);
+			INFO("waiting list size = %d, hits=%d, misses=%d\n",get_list_size(&waiting_list),stats.waitinglist_hits,stats.waitinglist_misses);
 		}
 		struct timeval end; gettimeofday(&end, NULL);
 		int i = 0;
@@ -190,9 +195,12 @@ void process_conn_waiting_list(void) {
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
 						> WAIT_TIMEOUT) {
 					INFO("wait timeout for %s %s\n",c_w.name,c_w.addr_name);
-					process_conn(&cr_w, &c_w, &r_sock); // process
-					wait_misses++;
+					stats.waitinglist_misses++;
+					struct timeval end; gettimeofday(&end, NULL);
+					stats.sum_t_waitinglist_misses+=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
+					stats.n_t_waitinglist_misses++;
 					del=1; // flag that need to remove this conn from waiting list
+					process_conn(&cr_w, &c_w, &r_sock); // process
 				} else {
 					// an outstanding conn, refresh pid info again
 					signal_pid_watcher();
@@ -200,9 +208,12 @@ void process_conn_waiting_list(void) {
 			} else {
 				// got process name, we can proceed
 				INFO("delayed processing of %s %s\n",c_w.name,c_w.addr_name);
-				process_conn(&cr_w, &c_w, &r_sock); // process
-				wait_hits++;
+				stats.waitinglist_hits++;
+				struct timeval end; gettimeofday(&end, NULL);
+				stats.sum_t_waitinglist_hits+=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
+				stats.n_t_waitinglist_hits++;
 				del = 1; // flag that need to remove this conn from waiting list
+				process_conn(&cr_w, &c_w, &r_sock); // process
 			}
 			
 			pthread_mutex_lock(&wait_list_mutex);
@@ -287,6 +298,8 @@ void *listener(void *ptr) {
 				// pass to DNS sniffer
 				INFO("t (sniffed dns) %f\n", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
 				dns_sniffer(&pkthdr,nexth);
+				stats.sum_t_dns+=(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
+				stats.n_t_dns++;
 				continue;
 			} else if (dport == 443) {
 				// likely to be quic.  can't block it yet, but can log the
@@ -332,21 +345,25 @@ void *listener(void *ptr) {
 					INFO("t (sniffed) %f ", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
 					struct timeval endu; gettimeofday(&endu, NULL);
 					INFO(" (UDP not blocked) %f\n", (endu.tv_sec - ts.tv_sec) +(endu.tv_usec - ts.tv_usec)/1000000.0);
+					stats.sum_t_udp+=(endu.tv_sec - ts.tv_sec) +(endu.tv_usec - ts.tv_usec)/1000000.0;
+					stats.n_t_udp++;
 				}
 			}
 			continue;
 		}
 		
-		if (proto != IPPROTO_TCP) { // shouldn't happen
-			INFO("t (sniffed not tcp) %f\n", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
+		if (proto != IPPROTO_TCP) {
+			// shouldn't happen
+			WARN("sniffed pkt is not tcp\n");
 			continue;
 		}
 
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
 		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
 		int synack = (tcp->th_flags & (TH_SYN)) && (tcp->th_flags & (TH_ACK));
-		if ( (!syn) && (!synack)) { // not SYN or SYN-ACK, ignore.  shouldn't happen
-			INFO("t (sniffed tcp not syn/syn-ack) %f\n", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
+		if ( (!syn) && (!synack)) {
+			// not SYN or SYN-ACK, ignore.  shouldn't happen
+			WARN("sniffed tcp pkt is not syn/syn-ack\n");
 			continue;
 		}
 		

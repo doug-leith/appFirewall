@@ -25,7 +25,7 @@ class LogViewController: NSViewController {
 		tableView.dataSource = self
 
 		// schedule refresh of connections list every 1s
-		timer = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
+		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 	}
 	

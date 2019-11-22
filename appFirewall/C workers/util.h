@@ -13,7 +13,7 @@
 #include <string.h>
 #include <ctype.h>
 
-const static int verbose=1;          // debugging level
+extern int verbose;          // debugging level
 
 /*#include <os/log.h> // apple logging
 #define ERR(fmt, ...) do{os_log_error(OS_LOG_DEFAULT,fmt, ##__VA_ARGS__);}while(0)
@@ -34,6 +34,23 @@ const static int verbose=1;          // debugging level
 #define BUFSIZE 256
 #define LINEBUF_SIZE 4096 // max line size of dtrace line
 
+typedef struct {
+	int pidinfo_hits, pidinfo_misses;
+	int pidinfo_cachehits, pidinfo_cachemisses;
+	int dtrace_hits, dtrace_misses;
+	int waitinglist_hits, waitinglist_misses;
+	float sum_t_waitinglist_hits, sum_t_waitinglist_misses;
+	int n_t_waitinglist_hits, n_t_waitinglist_misses;
+	float sum_t_sniff, sum_t_notblocked, sum_t_blocked;
+	int n_t_sniff, n_t_notblocked, n_t_blocked;
+	float sum_t_udp, sum_t_dns;
+	int n_t_udp, n_t_dns;
+	float sum_t_pidinfo_cache;
+	int n_t_pidinfo_cache;
+} stats_t;
+
+extern stats_t stats;
+
 char* get_error_msg(void);
 void set_error_msg(char* msg);
 
@@ -49,5 +66,7 @@ const char* robust_inet_ntop(int *af, const void * restrict src, char * restrict
 char *trimwhitespace(char *str);
 void redirect_stdout(void);
 
+void print_stats(void);
+void set_logging_level(int level);
 
 #endif
