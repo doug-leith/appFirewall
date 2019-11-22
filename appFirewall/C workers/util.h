@@ -26,7 +26,8 @@ extern int verbose;          // debugging level
 #define ERR(args ...) do{fprintf(stdout,"ERROR: "); fprintf(stderr, args);}while(0)
 #define WARN(args ...) do{fprintf(stdout,"WARNING: "); fprintf(stderr, args);}while(0)
 #define INFO(args ...) if (verbose) fprintf(stdout, args)
-#define DEBUG2(args ...) if (verbose>1) fprintf(stdout, args)
+#define INFO2(args ...) if (verbose>1) fprintf(stdout, args)
+#define DEBUG2(args ...) if (verbose>2) fprintf(stdout, args)
 
 // raise SIGCHLD event in C to display popup to user before exiting on error.
 #define EXITFAIL(args ...) do{char str[1024]; sprintf(str,args); set_error_msg(str);raise(SIGCHLD);}while(0)
