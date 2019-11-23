@@ -141,6 +141,7 @@ void clear_pid_changed() {
 }
 
 void print_escapees() {
+	INFO2("Escapees:\n");
 	dump_connlist(&escapee_list);
 }
 

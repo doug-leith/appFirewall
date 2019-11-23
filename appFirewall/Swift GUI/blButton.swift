@@ -23,7 +23,7 @@ class blButton: NSButton {
 	func updateButton() {
 		// refresh the contents based on current data
 		var bl_item = self.bl_item!
-		var white: Int = 0
+		/*var white: Int = 0
 		if (in_whitelist_htab(&bl_item, 0) != nil) {
 			white = 1
 		}
@@ -35,7 +35,9 @@ class blButton: NSButton {
 			blocked = 2
 		} else if (in_blocklists_htab(&bl_item) != nil) {
 			blocked = 3
-		}
+		}*/
+		let blocked = Int(blocked_status(&bl_item))
+		let white = Int(is_white(&bl_item))
 				
 		if (self.udp) { // QUIC, can't block yet
 			self.title = ""

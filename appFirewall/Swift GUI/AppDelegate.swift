@@ -313,6 +313,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	@objc func stats() {
 		print_stats() // output current performance stats
+		count_stats = count_stats+1
 		if (count_stats>6) {
 			print_escapees()
 			count_stats = 0

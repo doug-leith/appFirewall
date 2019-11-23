@@ -11,8 +11,6 @@ class ActiveConnsViewController: NSViewController {
 	@IBOutlet weak var tableView: NSTableView!
 	var timer : Timer!
 	var asc: Bool = true // whether shown in ascending/descending order
-	var blockedCount: Int = 0
-	var connCount: Int = 0
 		
 	override func viewDidLoad() {
 		// Do any additional setup after loading the view.
@@ -40,8 +38,6 @@ class ActiveConnsViewController: NSViewController {
 			tableView.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"pid",ascending:asc)
 			tableView.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
 		}
-		blockedCount = UserDefaults.standard.integer(forKey: "active_blockedCount")
-		connCount = UserDefaults.standard.integer(forKey: "active_connCount")
 		
 		refresh(timer:nil)
 		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished activeConns viewWillAppear()")
@@ -61,7 +57,6 @@ class ActiveConnsViewController: NSViewController {
 		if (force || ((firstVisibleRow==0) && (Int(get_pid_changed()) != 0)) ) {
 			clear_pid_changed();
 			tableView.reloadData()
-			print("blocked conns = ",blockedCount,"/",connCount)
 		}
 	}
 
@@ -72,8 +67,6 @@ class ActiveConnsViewController: NSViewController {
 		save_blocklist(); save_whitelist()
 		save_dns_cache()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
-		UserDefaults.standard.set(blockedCount, forKey: "active_blockedCount")
-		UserDefaults.standard.set(connCount, forKey: "active_connCount")
 	}
 	
 	@IBAction func helpButton(_ sender: helpButton!) {
@@ -148,7 +141,7 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		if (item_ptr == nil) { return nil }
 		var item = item_ptr!.pointee
 		var bl_item = conn_to_bl_item(item_ptr)
-		let domain = String(cString: &bl_item.domain.0)
+		/*let domain = String(cString: &bl_item.domain.0)
 
 		var white: Int = 0
 		if (in_whitelist_htab(&bl_item, 0) != nil) {
@@ -161,9 +154,10 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			blocked = 2
 		} else if (in_blocklists_htab(&bl_item) != nil) {
 			blocked = 3
-		}
-		
-		//print(domain,white,blocked)
+		}*/
+		let blocked = Int(blocked_status(&bl_item))
+		let white = Int(is_white(&bl_item))
+
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "ProcessCell"
 			content=String(cString: &item.name.0)
@@ -177,21 +171,17 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			} 
 			let name = String(cString: &bl_item.name.0)
 			let port = String(Int(item.raw.dport))
-			connCount+=1
 			if ((white == 1) || (blocked == 0)) {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is not blocked."
 			} else if (blocked == 1) {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for application '"+name+"' by user black list."
-				blockedCount+=1
-				print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
+				//print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
 			} else if (blocked == 2) {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for all applications by hosts file."
-				blockedCount+=1
-				print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
+				//print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
 			} else {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for application '"+name+"' by hosts file."
-				blockedCount+=1
-				print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
+				//print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
 			}
 			content = domain
 			if (Int(item.raw.udp)==1) {

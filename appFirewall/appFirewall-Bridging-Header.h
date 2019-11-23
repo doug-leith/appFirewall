@@ -19,4 +19,5 @@
 #include "hostlists.h"
 #include "blocklists.h"
 #include "table.h"
+#include "is_blocked.h"
 

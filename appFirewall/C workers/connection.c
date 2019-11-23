@@ -27,7 +27,6 @@ void dump_connlist(list_t *l) {
 	int i;
 	for (i=0; i<get_list_size(l);i++) {
 		conn_t *b = get_list_item(l,i);
-		//printf("%s %s(%s)\n",b->name,b->domain,b->dst_addr_name);
-		printf("%s(%d): %s:%d -> %s(%s):%d udp=%d\n", b->name, b->pid, b->src_addr_name, b->raw.sport, b->domain, b->dst_addr_name, b->raw.dport, b->raw.udp);
+		INFO2("%s(%d): %s:%d -> %s(%s):%d udp=%d\n", b->name, b->pid, b->src_addr_name, b->raw.sport, b->domain, b->dst_addr_name, b->raw.dport, b->raw.udp);
 	}
 }
