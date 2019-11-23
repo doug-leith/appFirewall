@@ -96,7 +96,7 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 		p = calloc(1, sizeof(Bucket));
 		p->key = key;
 		int len = (int)strlen(key_string)+1;
-		if (len>STR_SIZE) len = STR_SIZE;
+		if (len>STR_SIZE) len = STR_SIZE; // just being careful
 		p->key_string = malloc(len);
 		strlcpy(p->key_string,key_string,len);
 		p->link = table->buckets[i];

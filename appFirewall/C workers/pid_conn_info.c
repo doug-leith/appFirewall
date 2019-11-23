@@ -5,20 +5,24 @@
 #include "pid_conn_info.h"
 
 //global
-static list_t pid_list=LIST_INITIALISER;
+static list_t pid_list=LIST_INITIALISER; // list of active pid's and network conns
 static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
-#define STR_SIZE 1024
+static Hashtable* pid_list_fdtab=NULL; // table for fast lookup of pid_list using socket fd
+static list_t escapee_list=LIST_INITIALISER; // list of blocked yet active connections
 static int changed = 0; // flag to GUI if pid list has changed
 
-// cache of recent PIDs
+// cache of recent PIDs and their names
 #define PID_CACHE_SIZE 2
-static int last_pid[PID_CACHE_SIZE] = {-1};
-static char last_pid_name[PID_CACHE_SIZE][MAXCOMLEN];
-static int last_pid_size = 0;
+static list_t last_pid_list=LIST_INITIALISER;
+typedef struct last_pid_item_t {
+	int pid;
+	char name[MAXCOMLEN];;
+} last_pid_item_t;
 
 // thread globals
 static pthread_cond_t pid_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t pid_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t gui_pid_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t pid_thread; // handle to pid watcher thread
 static int pid_thread_started = 0; // indicates whether pid watcher thread already running
 static int wakeup = 0;
@@ -34,39 +38,12 @@ static void (*pid_watcher_hook)(void) = NULL;
 // -find_pid() is called by sniffer_blocker listener (via create_blockitem_from_addr())
 // from its own thread, and also from pid_watcher_hook()
 
-#define NSEC_PER_SEC 1000000000
-struct timespec timespec_normalise(struct timespec ts) {
-	while(ts.tv_nsec >= NSEC_PER_SEC) {
-		++(ts.tv_sec);
-		ts.tv_nsec -= NSEC_PER_SEC;
-	}
-	while(ts.tv_nsec <= -NSEC_PER_SEC) {
-		--(ts.tv_sec);
-		ts.tv_nsec += NSEC_PER_SEC;
-	}
-	if(ts.tv_nsec < 0 && ts.tv_sec > 0) {
-		--(ts.tv_sec);
-		ts.tv_nsec = NSEC_PER_SEC - (-1 * ts.tv_nsec);
-	} else if(ts.tv_nsec > 0 && ts.tv_sec < 0) {
-		++(ts.tv_sec);
-		ts.tv_nsec = -NSEC_PER_SEC - (-1 * ts.tv_nsec);
-	}
-	return ts;
-}
-
-struct timespec timespec_add(struct timespec ts1, struct timespec ts2) {
-	ts1 = timespec_normalise(ts1);
-	ts2 = timespec_normalise(ts2);
-	ts1.tv_sec  += ts2.tv_sec;
-	ts1.tv_nsec += ts2.tv_nsec;
-	return timespec_normalise(ts1);
-}
-
 void *pid_watcher(void *ptr) {
 	// runs in its own thread to keep pid_list uodated
 	struct timespec ts, now, timeout;
 	# define PID_WATCHER_TIMEOUT 500 // in ms
 	timeout.tv_sec = 0;
+	#define NSEC_PER_SEC 1000000000
 	timeout.tv_nsec = PID_WATCHER_TIMEOUT*(NSEC_PER_SEC/1000);
 
 	int res=0;
@@ -100,7 +77,7 @@ void *pid_watcher(void *ptr) {
 void start_pid_watcher() {
 	// fire up watcher thread
 	if (pid_thread_started==0) {
-		init_pid_list();
+		init_pid_lists();
 		pthread_create(&pid_thread, NULL, pid_watcher, NULL);
 		pid_thread_started=1;
 	}
@@ -122,15 +99,15 @@ void set_pid_watcher_hook(void (*hook)(void)) {
 
 conn_t* get_conn(int row) {
 	// for use by swift GUI
-	pthread_mutex_lock(&pid_mutex);
+	pthread_mutex_lock(&gui_pid_mutex);
 	if (row > get_list_size(&gui_pid_list)) {
-		pthread_mutex_unlock(&pid_mutex);
+		pthread_mutex_unlock(&gui_pid_mutex);
 		return NULL;
 	}
 	// take a copy of list item while we have lock
 	conn_t * c = malloc(sizeof(conn_t));
 	memcpy(c,get_list_item(&gui_pid_list,row),sizeof(conn_t));
-	pthread_mutex_unlock(&pid_mutex);
+	pthread_mutex_unlock(&gui_pid_mutex);
 	return c;
 }
 
@@ -141,33 +118,41 @@ void free_conn(conn_t* c) {
 
 int get_num_conns() {
 	// for use by swift GUI
-	pthread_mutex_lock(&pid_mutex);
+	pthread_mutex_lock(&gui_pid_mutex);
 	int res = get_list_size(&gui_pid_list);
-	pthread_mutex_unlock(&pid_mutex);
-	//dump_pidlist(&gui_pid_list);
+	pthread_mutex_unlock(&gui_pid_mutex);
+	//dump_connlist(&gui_pid_list);
 	return res;
 }
 
 int get_pid_changed() {
 	// for use by swift GUI
-	pthread_mutex_lock(&pid_mutex);
+	pthread_mutex_lock(&gui_pid_mutex);
 	int res=changed;
-	pthread_mutex_unlock(&pid_mutex);
+	pthread_mutex_unlock(&gui_pid_mutex);
 	return res;
 }
 
 void clear_pid_changed() {
 	// for use by swift GUI
-	pthread_mutex_lock(&pid_mutex);
+	pthread_mutex_lock(&gui_pid_mutex);
 	changed=0;
-	pthread_mutex_unlock(&pid_mutex);
+	pthread_mutex_unlock(&gui_pid_mutex);
 }
 
-void cache_pid(int pid) {
+void print_escapees() {
+	dump_connlist(&escapee_list);
+}
+
+void cache_pid(int pid, char* name) {
 	// we freshen cache using dtrace info since it gets most hits
+	last_pid_item_t it;
+	it.pid = pid; strlcpy(it.name,name,MAXCOMLEN);
 	pthread_mutex_lock(&pid_mutex);
-	last_pid[last_pid_size%PID_CACHE_SIZE]=pid;
-	last_pid_size++;
+	// only add new pid if not already in list
+	if (!in_list(&last_pid_list,&it,0)) {
+		add_item(&last_pid_list,&it,sizeof(last_pid_item_t));
+	}
 	pthread_mutex_unlock(&pid_mutex);
 }
 
@@ -175,86 +160,71 @@ int find_pid(conn_raw_t *cr, char*name){
 	// find name of process associated with a network connection tuple
 	// (assumed to be an outgoing tuple, so src is local addr and dst
 	// is remote).
-	// called by sniffer_blocker on fast path.
+	// called by sniffer_blocker on fast path so needs to be efficient
 
 	conn_t c;
 	memcpy(&c.raw,cr,sizeof(conn_raw_t));
 	pthread_mutex_lock(&pid_mutex);
+	// lookup existing pid info list to see if connection is on it.
+	// lookup only uses raw part of conn_t
 	conn_t *res = in_list(&pid_list,&c,0); // list lookup only uses raw
 	if (res) { // found it !
 		strlcpy(name,res->name,MAXCOMLEN);
 		pthread_mutex_unlock(&pid_mutex);
+		INFO2("found\n");
 		stats.pidinfo_hits++;
-		INFO("found\n");
-		last_pid[last_pid_size%PID_CACHE_SIZE]=res->pid;
-		strlcpy(last_pid_name[last_pid_size%PID_CACHE_SIZE],name,MAXCOMLEN);
-		last_pid_size++;
+		cache_pid(res->pid, name);
 		return 1;
 	}
 	stats.pidinfo_misses++;
 
 	pthread_mutex_unlock(&pid_mutex);
 	// we cache last few PIDs and then try to
-	// do a targetted refresh of their network conns here -- fast.
+	// do a targetted refresh of their network conns here.
 	// if we get a hit then we catch pid name earlier,
 	// at the cost of slightly longer processing time on
 	// sniffer_blocker fast path, so would want to keep number of PIDs checked *small*
 	// might as well stash pid info in pid_list while we're at it,
-	// in case it contains multiple new connections (previously used a temp list
-	// and threw away pid results each time).
-	float t=-1;
-	if (last_pid_size > 0) {
-		struct timeval start; gettimeofday(&start, NULL);
-		//list_t l;
-		//init_list(&l,pid_hash,pid_cmp,0,"temp_pid_list");
-		list_t *l = &pid_list;
-		pthread_mutex_lock(&pid_mutex);
-		for (int i = 0; i< last_pid_size; i++) {
-			if (last_pid[i%PID_CACHE_SIZE]<=0) continue;
-			if (find_fds(last_pid[i%PID_CACHE_SIZE], last_pid_name[i%PID_CACHE_SIZE], l, NULL)!=1) {
-				last_pid[i%PID_CACHE_SIZE]=-1; // a dud, probably cached process has died
-			} else if (in_list(l,&c,0)) { // list lookup only uses raw
-				pthread_mutex_unlock(&pid_mutex);
-				strlcpy(name,last_pid_name[i%PID_CACHE_SIZE],MAXCOMLEN);
-				//free_list(l);
-				stats.pidinfo_cachehits++;
-				struct timeval end; gettimeofday(&end, NULL);
-				stats.sum_t_pidinfo_cache += (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
-				stats.n_t_pidinfo_cache++;
-				INFO("found using last_pid.\n");
-				return 1;
-			}
+	// in case it contains multiple new connections.
+	
+	struct timeval start; gettimeofday(&start, NULL);
+	list_t *l = &pid_list;
+	
+	pthread_mutex_lock(&pid_mutex);
+	for (int i = 0; i< get_list_size(&last_pid_list); i++) {
+		last_pid_item_t *it = get_list_item(&last_pid_list,i);
+		if (it->pid<=0) continue; // shouldn't happen
+		
+		if (find_fds(it->pid, it->name, pid_list_fdtab, l, pid_list_fdtab, NULL)!=1) {
+			continue; // cached pid is a dud, probably cached process has died
+		} else if (in_list(l,&c,0)) { // list lookup only uses raw
+			pthread_mutex_unlock(&pid_mutex);
+			strlcpy(name,it->name,MAXCOMLEN);
+			stats.pidinfo_cachehits++;
+			struct timeval end; gettimeofday(&end, NULL);
+			float t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
+			cm_add_sample(&stats.cm_t_pidinfo_cache_hit,t);
+			INFO2("found using last_pid.\n");
+			return 1;
 		}
-		//free_list(&l);
-		pthread_mutex_unlock(&pid_mutex);
-		stats.pidinfo_cachemisses++;
-		struct timeval end; gettimeofday(&end, NULL);
-		t = (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
 	}
+	struct timeval end; gettimeofday(&end, NULL);
+	float t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
+	cm_add_sample(&stats.cm_t_pidinfo_cache_miss,t);	pthread_mutex_unlock(&pid_mutex);
+	stats.pidinfo_cachemisses++;
 
 	// failed. we'll now trigger refresh of pid_info by watcher thread.
 	// nb: there's a possibility that will miss connection if it dies before
 	// watcher completes refresh
-	INFO("not found.\n");
+	INFO2("not found.\n");
 	return 0;
 }
 
 //--------------------------------------------------------
 //private.
 
-inline int is_ipv4_localhost(struct in6_addr* addr){
-	const uint32_t dst_addr=((struct in_addr*)addr)->s_addr;
-	return (dst_addr==htonl(INADDR_LOOPBACK))
-					|| (dst_addr==htonl(INADDR_ANY));
-}
-
-inline int is_ipv6_localhost(struct in6_addr* addr){
-	// is in6addr_loopback in host or network byte order ?
-	return memcmp(&addr->s6_addr,&in6addr_loopback.s6_addr,16)==0;
-}
-
 int get_pid_name(int pid, char* name) {
-	// get process name etc associated with pid
+	// use syscall to get process name associated with pid
 	struct proc_bsdshortinfo proc;
 	int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
 	if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
@@ -263,31 +233,6 @@ int get_pid_name(int pid, char* name) {
 	}
 	strlcpy(name,proc.pbsi_comm,MAXCOMLEN);
 	return 0;
-}
-
-char* pid_hash(const void *it) {
-	// generate table lookup key string
-	// we do this by network connection, so child processes that
-	// share the same fd are lumped together.
-	// should hold lock when call this
-	conn_t *item = (conn_t*) it;
-	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
-	robust_inet_ntop(&item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
-	char* temp = malloc(2*INET6_ADDRSTRLEN+64);
-	sprintf(temp,"%s:%d-%s:%d",sn,item->raw.sport,dn,item->raw.dport);
-	return temp;
-}
-
-int pid_cmp(const void* it1, const void* it2){
-	// should hold lock when call this
-	conn_t *item1 = (conn_t*) it1;
-	conn_t *item2 = (conn_t*) it2;
-	char * temp1 = pid_hash(item1);
-	char * temp2 = pid_hash(item2);
-	int res = (strcmp(temp1,temp2)==0);
-	free(temp1); free(temp2);
-	return res;
 }
 
 char* gui_pid_hash(const void *it) {
@@ -305,35 +250,33 @@ char* gui_pid_hash(const void *it) {
 	return temp;
 }
 
-int gui_pid_cmp(const void* it1, const void* it2){
-	// should hold lock when call this
-	conn_t *item1 = (conn_t*) it1;
-	conn_t *item2 = (conn_t*) it2;
-	char * temp1 = gui_pid_hash(item1);
-	char * temp2 = gui_pid_hash(item2);
-	int res = (strcmp(temp1,temp2)==0);
-	free(temp1); free(temp2);
-	return res;
+char* pid_hash(const void *it) {
+	last_pid_item_t *item = (last_pid_item_t*) it;
+	char* temp = malloc(STR_SIZE);
+	sprintf(temp,"%d",item->pid);
+	return temp;
 }
 
-void init_pid_list() {
-	// should hold lock when call this
-	init_list(&pid_list,pid_hash,pid_cmp,0,"pid_list");
-	init_list(&gui_pid_list,gui_pid_hash,gui_pid_cmp,0,"pid_list");
+char* pid_fdtab_hash(const int fd, const int pid) {
+	char* temp = malloc(STR_SIZE);
+	sprintf(temp,"%d:%d",pid,fd);
+	return temp;
 }
 
-void dump_pidlist(list_t *l) {
+void init_pid_lists() {
 	// should hold lock when call this
-	int i;
-	for (i=0; i<get_list_size(l);i++) {
-		conn_t *b = get_list_item(l,i);
-		//printf("%s %s(%s)\n",b->name,b->domain,b->dst_addr_name);
-		printf("%s(%d): %s:%d -> %s(%s):%d udp=%d\n", b->name, b->pid, b->src_addr_name, b->raw.sport, b->domain, b->dst_addr_name, b->raw.dport, b->raw.udp);
-	}
+	init_list(&pid_list,conn_hash,NULL,0,-1,"pid_list");
+	init_list(&gui_pid_list,gui_pid_hash,NULL,0,-1,"pid_list");
+	init_list(&last_pid_list,pid_hash,NULL,1,PID_CACHE_SIZE,"last_pid_list");
+	pid_list_fdtab = hashtable_new(1024);
+	init_list(&escapee_list,conn_hash,NULL,1,-1,"escapee_list");
 }
 
-int find_fds(int pid, char* name, list_t* new_pid_list, list_t* new_gui_pid_list) {
-	// Get the list of network connections for process PID
+int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab, list_t* new_gui_pid_list) {
+	// Refresh the list of network connections for process with PID pid.
+	// can call this function without holding lock, and also
+	// ok to call with lock already held -- it will reuse lock/take new lock
+	// as needed.
 	
 	// Figure out the size of the buffer needed to hold the list of open FDs
 	int bufferSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
@@ -362,71 +305,110 @@ int find_fds(int pid, char* name, list_t* new_pid_list, list_t* new_gui_pid_list
 		
 		if (procFDInfo[i].proc_fdtype != PROX_FDTYPE_SOCKET)
 			continue; // not a socket fd
-		struct socket_fdinfo socketInfo;
-		memset(&socketInfo,0,sizeof(socketInfo));
-		int res = proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
-		if (res != sizeof(struct socket_fdinfo)) continue;
-		
-		int state = socketInfo.psi.soi_proto.pri_tcp.tcpsi_state;
-		if ((socketInfo.psi.soi_kind != SOCKINFO_TCP)
-				&& (socketInfo.psi.soi_kind != SOCKINFO_IN)) continue; // unix sock or the like
-		if ((socketInfo.psi.soi_kind == SOCKINFO_TCP) && (state != TSI_S_ESTABLISHED))
-			continue; // TCP, but not an established connection. don't log it
-		
-		c.pid=pid;
-		strlcpy(c.name, name, MAXCOMLEN);
-		struct in_sockinfo* sockinfo = &socketInfo.psi.soi_proto.pri_tcp.tcpsi_ini;
-		c.raw.af=socketInfo.psi.soi_family;
-		memset(&c.raw.src_addr,0,sizeof(struct in6_addr));
-		memset(&c.raw.dst_addr,0,sizeof(struct in6_addr));
-		if (sockinfo->insi_vflag==INI_IPV4) { // IPv4
-			if (c.raw.af !=AF_INET) {
-				//WARN("pid_conn(): mismatch between af's %d/%d\n",c.raw.af,AF_INET);
-				// happens with matlab
-				c.raw.af = AF_INET;
-			}
-			memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
-			memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
-			if (is_ipv4_localhost(&c.raw.dst_addr))
-				continue; // ignore localhost .
-		} else { // IPv6
-			if (c.raw.af !=AF_INET6) {
-				//WARN("pid_conn(): mismatch between af's %d/%d\n",c.raw.af,AF_INET6);
-				// happens with matlab
-				c.raw.af = AF_INET6;
-			}
-			memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
-			memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
-			if (is_ipv6_localhost(&c.raw.dst_addr))
-				continue; // ignore localhost .
+			
+		// an important optimisation.  if procFDInfo[i].proc_fd already known
+		// we can just grab its info and copy over, saving on call to proc_pidfdinfo()
+		// which is expensive
+		int res=pthread_mutex_trylock(&pid_mutex);
+		char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
+		conn_t* it = hashtable_get(old_pid_list_fdtab, key);
+		int match=0;
+		if (it != NULL) { // got a match
+			memcpy(&c,it,sizeof(conn_t));
+			match = 1;
 		}
-		robust_inet_ntop(&c.raw.af, &c.raw.src_addr, c.src_addr_name, INET6_ADDRSTRLEN);
-		robust_inet_ntop(&c.raw.af, &c.raw.dst_addr, c.dst_addr_name, INET6_ADDRSTRLEN);
-		// ignore IPv6 link-local connections
-		char* mask="fe80:";
-		if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
-			continue; // ignore IPv6 link local addresses
+		if (res != EBUSY) {
+			// we took the lock ourselves, so let's release it
+			pthread_mutex_unlock(&pid_mutex);
 		}
-		c.raw.sport =  (int)ntohs(sockinfo->insi_lport);
-		c.raw.dport = (int)ntohs(sockinfo->insi_fport);
+		//match = 0;
+		if (!match) {
+			// we need to call proc_pidfdinfo() to get the connection info
+			struct socket_fdinfo socketInfo;
+			memset(&socketInfo,0,sizeof(socketInfo));
+			int res = proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
+			if (res != sizeof(struct socket_fdinfo)) continue;
+			
+			int state = socketInfo.psi.soi_proto.pri_tcp.tcpsi_state;
+			if ((socketInfo.psi.soi_kind != SOCKINFO_TCP)
+					&& (socketInfo.psi.soi_kind != SOCKINFO_IN)) continue; // unix sock or the like
+			if ((socketInfo.psi.soi_kind == SOCKINFO_TCP) && (state != TSI_S_ESTABLISHED))
+				continue; // TCP, but not an established connection. don't log it
+			
+			c.pid=pid; c.fd=procFDInfo[i].proc_fd;
+			strlcpy(c.name, name, MAXCOMLEN);
+			struct in_sockinfo* sockinfo = &socketInfo.psi.soi_proto.pri_tcp.tcpsi_ini;
+			c.raw.af=socketInfo.psi.soi_family;
+			memset(&c.raw.src_addr,0,sizeof(struct in6_addr));
+			memset(&c.raw.dst_addr,0,sizeof(struct in6_addr));
+			if (sockinfo->insi_vflag==INI_IPV4) { // IPv4
+				if (c.raw.af !=AF_INET) {
+					//WARN("pid_conn(): mismatch between af's %d/%d\n",c.raw.af,AF_INET);
+					// happens with matlab
+					c.raw.af = AF_INET;
+				}
+				memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_46.i46a_addr4, sizeof(struct in_addr));
+				memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_46.i46a_addr4, sizeof(struct in_addr));
+				if (is_ipv4_localhost(&c.raw.dst_addr))
+					continue; // ignore localhost .
+			} else { // IPv6
+				if (c.raw.af !=AF_INET6) {
+					//WARN("pid_conn(): mismatch between af's %d/%d\n",c.raw.af,AF_INET6);
+					// happens with matlab
+					c.raw.af = AF_INET6;
+				}
+				memcpy(&c.raw.src_addr, &sockinfo->insi_laddr.ina_6, sizeof(struct in6_addr));
+				memcpy(&c.raw.dst_addr, &sockinfo->insi_faddr.ina_6, sizeof(struct in6_addr));
+				if (is_ipv6_localhost(&c.raw.dst_addr))
+					continue; // ignore localhost .
+			}
+			robust_inet_ntop(&c.raw.af, &c.raw.src_addr, c.src_addr_name, INET6_ADDRSTRLEN);
+			robust_inet_ntop(&c.raw.af, &c.raw.dst_addr, c.dst_addr_name, INET6_ADDRSTRLEN);
+			// ignore IPv6 link-local connections
+			char* mask="fe80:";
+			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
+				continue; // ignore IPv6 link local addresses
+			}
+			c.raw.sport =  (int)ntohs(sockinfo->insi_lport);
+			c.raw.dport = (int)ntohs(sockinfo->insi_fport);
+			
+			// we only log UDP to port 443 just now (likely QUIC)
+			c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN)
+			&& (c.raw.dport == 443);
+			
+			DEBUG2("%s(%d): %s:%d -> %s:%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
+		}
 		
-		// we only log UDP to port 443 just now (likely QUIC)
-		c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN)
-		&& (c.raw.dport == 443);
-		
-		DEBUG2("%s(%d): %s:%d -> %s:%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
-		
+		// lookup domain name for connection.  do this even for existing connections
+		// as might have sniffed new dns packet since first saw connection
 		char* dns=lookup_dns_name(c.raw.af,c.raw.dst_addr);
 		if (dns!=NULL) {
-			strlcpy(c.domain,dns,BUFSIZE);
+			strlcpy(c.domain,dns,MAXDOMAINLEN);
 		} else {
 			strlcpy(c.domain,c.dst_addr_name,INET6_ADDRSTRLEN);
 		}
+		
 		// ignore child processes sharing conn of parent
 		// - rely here on fact that parent will be processed
 		// here before any child ...
+		// nb: if new_pid_list=old_pid_list this is fine, will skip duplicates
 		if (!in_list(new_pid_list, &c, 0)) {
 			add_item(new_pid_list,&c,sizeof(conn_t));
+			// get a pointer to new table entry ...
+			conn_t *it = in_list(new_pid_list,&c,0);
+			// and add it to fd lookup table
+			char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
+			hashtable_put(new_pid_list_fdtab, key, it);
+		}
+		
+		bl_item_t b;
+		strlcpy(b.name,name,MAXCOMLEN);
+		strlcpy(b.domain,c.domain,MAXDOMAINLEN);
+		strlcpy(b.addr_name,c.dst_addr_name,INET6_ADDRSTRLEN);
+		if (is_blocked(&b) && !in_list(&escapee_list,&c,0)) {
+			// if active connection is supposed to have been blocked
+			// we log this interesting fact.  
+			add_item(&escapee_list,&c,sizeof(conn_t));
 		}
 		
 		// ignore child processes again, and also if several parallel
@@ -437,14 +419,16 @@ int find_fds(int pid, char* name, list_t* new_pid_list, list_t* new_gui_pid_list
 			if (!in_list(new_gui_pid_list, &c, 0)) {
 				add_item(new_gui_pid_list,&c,sizeof(conn_t));
 			}
-			pthread_mutex_lock(&pid_mutex);
+			int res=pthread_mutex_trylock(&gui_pid_mutex);
 			if (!in_list(&gui_pid_list, &c, 0)) {
 				// we've added a new entry to pid list, flag to GUI if it needs to refresh
 				changed = 1;
 				//INFO("changed %s(%d): %s:%d -> %s(%s):%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp);
-		  	//dump_pidlist(&gui_pid_list);
+		  	//dump_connlist(&gui_pid_list);
 			}
-			pthread_mutex_unlock(&pid_mutex);
+			if (res != EBUSY) {
+				pthread_mutex_unlock(&gui_pid_mutex);
+			}
 		}
 	}
 	free(procFDInfo);
@@ -458,8 +442,6 @@ int refresh_active_conns(int localhost) {
 	// else 0, so that GUI knows whether it has to redraw itself
 	
 	// should hold lock when call this.
-	// this and init_pid_list() are the only routines
-	// which actually write to pid_list, the rest just read.
 
 	DEBUG2("refresh_active_conns()\n");
 		
@@ -467,11 +449,10 @@ int refresh_active_conns(int localhost) {
 	// then we copy this over to pid_list to update.  that way
 	// the GUI etc only ever see a fully updated pis list, not partial updates
 	// (which look nasty)
-	list_t new_pid_list;
-	init_list(&new_pid_list,pid_hash,pid_cmp,0,"new_pid_list");
-	list_t new_gui_pid_list;
-	init_list(&new_gui_pid_list,gui_pid_hash,gui_pid_cmp,0,"new_gui_pid_list");
-
+	list_t new_pid_list; init_list(&new_pid_list,conn_hash,NULL,0,-1,"new_pid_list");
+	list_t new_gui_pid_list; init_list(&new_gui_pid_list,gui_pid_hash,NULL,0,-1,"new_gui_pid_list");
+	Hashtable *new_pid_list_fdtab = hashtable_new(1024);
+	
 	// get list of current processes
 	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
 
@@ -493,25 +474,31 @@ int refresh_active_conns(int localhost) {
 			continue;
 		}
 		
-		if (find_fds(pid, name, &new_pid_list, &new_gui_pid_list)<0) {
+		if (find_fds(pid, name, pid_list_fdtab, &new_pid_list, new_pid_list_fdtab, &new_gui_pid_list)<0) {
 			free_list(&new_pid_list);
 			free_list(&new_gui_pid_list);
+			hashtable_free(new_pid_list_fdtab);
 			return 0;
 		}
 	}
-	pthread_mutex_lock(&pid_mutex);
+	pthread_mutex_lock(&gui_pid_mutex);
 	if (get_list_size(&new_gui_pid_list) != get_list_size(&gui_pid_list)) {
 		// could be that we have only removed some processes from pid list,
 		// in which case changed=0 when get here
 		//INFO("size changed: %d/%d\n",get_list_size(&new_gui_pid_list),get_list_size(&gui_pid_list));
 		changed = 1;
 	}
-	// now copy new list over to pid_list and gui_pid_list.
-	free_list(&pid_list);
-	pid_list = new_pid_list;
-	free_list(&gui_pid_list);
-	gui_pid_list = new_gui_pid_list;
+	free_list(&gui_pid_list); gui_pid_list = new_gui_pid_list;
+	pthread_mutex_unlock(&gui_pid_mutex);
+	// now copy new list over to pid_list
+	pthread_mutex_lock(&pid_mutex);
+	free_list(&pid_list); pid_list = new_pid_list;
+	hashtable_free(pid_list_fdtab); pid_list_fdtab = new_pid_list_fdtab;
 	pthread_mutex_unlock(&pid_mutex);
+	
+	// update stats
+	stats.num_escapees = get_list_size(&escapee_list);
+	
 	return changed;
 }
 

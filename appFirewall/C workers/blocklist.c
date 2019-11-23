@@ -4,28 +4,27 @@
 // globals
 static list_t block_list=LIST_INITIALISER;
 
-#define STR_SIZE 1024
-
 char* bl_hash(const void *it) {
 	// generate table lookup key string from block list item
 	bl_item_t *item = (bl_item_t*) it;
-	int len = (int)(strlen(item->name)+strlen(item->domain)+2);
+	int len = (int)(strlen(item->name)+strlen(item->domain)+4);
 	if (len>STR_SIZE) len=STR_SIZE; // just to be safe !
 	char* temp = malloc(len);
 	strlcpy(temp,item->name, len);
+	strlcat(temp,":", len);
 	strlcat(temp,item->domain, len);
 	return temp;
 }
 
-int bl_cmp(const void* it1, const void* it2){
+/*int bl_cmp(const void* it1, const void* it2){
 	bl_item_t *item1 = (bl_item_t*) it1;
 	bl_item_t *item2 = (bl_item_t*) it2;
 	return ( (strcmp(item1->name,item2->name)==0)
 				&& (strcmp(item1->domain,item2->domain)==0) );
-}
+}*/
 
 void init_block_list() {
-	init_list(&block_list, bl_hash, bl_cmp,  0, "block_list");
+	init_list(&block_list, bl_hash, NULL,  0, -1, "block_list");
 }
 
 static int asc=1, col=0;
@@ -133,9 +132,9 @@ void load_blocklist(void) {
 
 bl_item_t conn_to_bl_item(const conn_t *item) {
 		bl_item_t bl;
-		strlcpy(bl.name, item->name,BUFSIZE);
-		strlcpy(bl.addr_name, item->dst_addr_name,BUFSIZE);
-		strlcpy(bl.domain, item->domain,BUFSIZE);
+		strlcpy(bl.name, item->name,MAXCOMLEN);
+		strlcpy(bl.addr_name, item->dst_addr_name,INET6_ADDRSTRLEN);
+		strlcpy(bl.domain, item->domain,MAXDOMAINLEN);
 		return bl;
 }
 

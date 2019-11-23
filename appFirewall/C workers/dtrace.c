@@ -11,7 +11,7 @@ static pthread_t thread; // handle to listener thread
 static list_t dtrace_cache;
 static void (*dtrace_watcher_hook)(void) = NULL;
 
-char* dt_hash(const void *cc) {
+/*char* dt_hash(const void *cc) {
 	// generate table lookup key string from block list item PID name
 	// and dest address
 	conn_t *c = (conn_t*)cc;
@@ -19,13 +19,13 @@ char* dt_hash(const void *cc) {
 	char* temp = malloc(len);
 	sprintf(temp,"%s:%d-%s:%d",c->src_addr_name,c->raw.sport,c->dst_addr_name,c->raw.dport);
 	return temp;
-}
+}*/
 
-int dt_cmp(const void *cc1, const void *cc2) {
+/*int dt_cmp(const void *cc1, const void *cc2) {
 	conn_t *c1 = (conn_t*)cc1;
 	conn_t *c2 = (conn_t*)cc2;
 	return (memcmp(c1,c2,sizeof(conn_t))==0);
-}
+}*/
 
 int lookup_dtrace(conn_raw_t *cr, char* name, int* pid) {
 	// get PID name corresponding to connection cr
@@ -82,12 +82,12 @@ int parse_dt_line(char* line, conn_t *c) {
 	
 	int res=robust_inet_pton(&c->raw.af,c->src_addr_name,&c->raw.src_addr);
 	if (res!=1) {
-		INFO("Problem parsing src address from dtrace: %s\n",strerror(errno));
+		WARN("Problem parsing src address from dtrace: %s\n",strerror(errno));
 		return -1;
 	}
 	res=robust_inet_pton(&c->raw.af,c->dst_addr_name,&c->raw.dst_addr);
 	if (res!=1) {
-		INFO("Problem parsing dst address from dtrace: %s\n",strerror(errno));
+		WARN("Problem parsing dst address from dtrace: %s\n",strerror(errno));
 		return -1;
 	}
 	return 0;
@@ -138,7 +138,7 @@ void *dtrace_listener(void *ptr) {
 
 void start_dtrace_listener() {
 	// fire up thread that listens for pkts sent by helper
-	init_list(&dtrace_cache,dt_hash,dt_cmp,1,"dtrace_cache");	
+	init_list(&dtrace_cache,conn_hash,NULL,1,-1,"dtrace_cache");	
 	pthread_create(&thread, NULL, dtrace_listener, NULL);
 }
 

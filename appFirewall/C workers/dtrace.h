@@ -11,7 +11,8 @@
 #include <pthread.h>
 #include "util.h"
 #include "helper.h"
-#include "pid_conn_info.h"
+//#include "pid_conn_info.h"
+#include "connection.h"
 #include "circular_list.h"
 
 #define DTRACE_PORT 4

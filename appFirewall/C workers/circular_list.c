@@ -5,21 +5,39 @@
 
 #include "circular_list.h"
 
-void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(const void* item1, const void* item2), int circular, char* name) {
+int list_cmp(char* (*hash)(const void* item),const void* item1, const void* item2) {
+	// default method for comparing list entries, using hash
+	char * temp1 = hash(item1);
+	char * temp2 = hash(item2);
+	int res = (strcmp(temp1,temp2)==0);
+	free(temp1); free(temp2);
+	return res;
+}
+
+void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*hash)(const void* item),const void* item1, const void* item2), int circular, int size, char* name) {
 	l->hash = hash;
-	l->cmp = cmp;
+	if (cmp) {
+		l->cmp = cmp;
+	} else {
+		l->cmp = list_cmp;
+	}
 	l->circular = circular;
-	l->htab = hashtable_new(MAXLIST);
 	l->list_size=0; l->list_start=0;
+	if ((size>0) && (size < MAXLIST)) {
+		l->maxsize=size;
+	} else {
+		l->maxsize=MAXLIST;
+	}
+	l->htab = hashtable_new(l->maxsize);
 	for (int i=0; i<MAXLIST;i++) l->list[i]=NULL;
-	strlcpy(l->list_name,name,BUFSIZE);
+	strlcpy(l->list_name,name,STR_SIZE);
 }
 
 void free_list(list_t *l) {
 	for (int i=l->list_start; i<l->list_start+l->list_size;i++) {
-		if (l->list[i%MAXLIST]) {
-			free(l->list[i%MAXLIST]);
-			l->list[i%MAXLIST]=NULL;
+		if (l->list[i%l->maxsize]) {
+			free(l->list[i%l->maxsize]);
+			l->list[i%l->maxsize]=NULL;
 		}
 	}
 	if (l->htab!=NULL) hashtable_free(l->htab);
@@ -28,11 +46,11 @@ void free_list(list_t *l) {
 
 void deep_copy_list(list_t *l1, list_t *l2, int item_size) {
 	*l1 = *l2;
-	l1->htab = hashtable_new(MAXLIST);
-	for (int i=0; i<MAXLIST;i++) {
+	l1->htab = hashtable_new(l1->maxsize);
+	for (int i=l2->list_start; i<l2->list_start+l2->list_size;i++) {
 		void* item = malloc(item_size);
-		memcpy(item, l2->list[i], item_size);
-		l1->list[i]=item;
+		memcpy(item, l2->list[i%l2->maxsize], item_size);
+		l1->list[i%l1->maxsize]=item;
 		add_item_to_htab(l1, item);
 	}
 }
@@ -54,7 +72,7 @@ int find_item_row(list_t *l, const void* item) {
 	if (l->hash == NULL) return -1;
 	int posn;
 	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
-		if ((l->cmp(l->list[posn%MAXLIST],item))) {
+		if ((l->cmp(l->hash,l->list[posn%l->maxsize],item))) {
 				break; //found a match
 		}
 	}
@@ -79,22 +97,22 @@ void del_from_htab(list_t *l, const void *item) {
 void add_item(list_t *l, void* item, int item_size) {
 	if (l->hash == NULL) return;
 	if (in_list(l, item, 0)) {
-		INFO("add_item() item %s exists in list %s.\n", l->hash(item),l->list_name);
+		INFO2("add_item() item %s exists in list %s.\n", l->hash(item),l->list_name);
 		return;
 	}
 
 	void* it = malloc(item_size);
 	memcpy(it,item,item_size); // we take a copy
-	if (l->list_size < MAXLIST) {
-		int end = (l->list_start+l->list_size)%MAXLIST;
+	if (l->list_size < l->maxsize) {
+		int end = (l->list_start+l->list_size)%l->maxsize;
 		l->list[end] = it;
 		l->list_size++;
 	} else if (l->circular){
-		del_from_htab(l, l->list[l->list_start%MAXLIST]);
+		del_from_htab(l, l->list[l->list_start%l->maxsize]);
 		l->list_start++; l->list_size--;
-		int end = (l->list_start+l->list_size)%MAXLIST;
+		int end = (l->list_start+l->list_size)%l->maxsize;
 		l->list[end] = it;
-		INFO("add_item() %s circular list %s full.\n",l->hash(item),l->list_name);
+		INFO2("add_item() %s circular list %s full.\n",l->hash(item),l->list_name);
 		l->list_size++;
 	} else {
 		free(it);
@@ -109,18 +127,18 @@ int del_item(list_t *l, const void* item) {
 	if (l->hash == NULL) return -1;
 	int i,posn;
 	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
-		if ((l->cmp(l->list[posn%MAXLIST],item))) {
+		if ((l->cmp(l->hash,l->list[posn%l->maxsize],item))) {
 				break; //found a match
 		}
 	}
 	if (posn==l->list_start+l->list_size) {
-		INFO("del_item() %s item not found.\n", l->hash(item));
+		INFO2("del_item() %s item not found.\n", l->hash(item));
 		return -1;
 	}
 	del_from_htab(l,item);  //need to do this before do free
-	free(l->list[posn%MAXLIST]);
+	free(l->list[posn%l->maxsize]);
 	for (i=posn; i<l->list_start+l->list_size-1; i++) {
-		l->list[i%MAXLIST] = l->list[(i+1)%MAXLIST];
+		l->list[i%l->maxsize] = l->list[(i+1)%l->maxsize];
 	}
 	l->list_size--;
 	//dump_hashtable(l->htab);
@@ -132,7 +150,7 @@ int get_list_size(list_t *l) {
 }
 
 void* get_list_item(list_t *l, int row) {
-	return l->list[(l->list_start+row)%MAXLIST];
+	return l->list[(l->list_start+row)%l->maxsize];
 }
 
 void sort_list(list_t *l, int (*sort_cmp)(const void *, const void *)) {
@@ -157,7 +175,7 @@ void save_list(list_t *l, char* path, int item_size) {
 		return;
 	}
 	for(i = l->list_start; i < l->list_start+l->list_size; i++){
-		int res=(int)fwrite(l->list[i%MAXLIST],item_size,1,fp);
+		int res=(int)fwrite(l->list[i%l->maxsize],item_size,1,fp);
 		if (res<1) {
 			WARN("Problem saving %s: %s\n", path, strerror(errno));
 			break;
@@ -170,8 +188,8 @@ void load_list(list_t *l, char* path, int item_size) {
 	
 	// initialise hash table
 	if (l->htab!=NULL) hashtable_free(l->htab);
-	l->htab = hashtable_new(MAXLIST);
-	l->list_size = 0; l->list_start=0;
+	l->list_size = 0; l->list_start=0; l->maxsize=MAXLIST;
+	l->htab = hashtable_new(l->maxsize);
 	//return;
 
 	// open and read file
@@ -191,7 +209,7 @@ void load_list(list_t *l, char* path, int item_size) {
 		l->list_size=0;
 		return;
 	}
-	if (l->list_size>MAXLIST) {
+	if (l->list_size>l->maxsize) {
 		WARN("Problem loading %s: list_size %d too large\n",path,l->list_size);
 		l->list_size=0;
 		return;

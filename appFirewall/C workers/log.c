@@ -5,22 +5,15 @@ static list_t log_list;
 static list_t filtered_log_list;
 static FILE *fp_txt = NULL; // pointer to human readable log file
 static int changed = 0; // flag to record whether log has been updated
-#define STR_SIZE 1024
 
 char* log_hash(const void* it) {
 	log_line_t *item = (log_line_t*)it;
-	int len = (int)(strlen(item->log_line)+strlen(item->time_str)+2);
+	int len = (int)(strlen(item->log_line)+strlen(item->time_str)+4);
 	char* temp = malloc(len);
 	strlcpy(temp,item->time_str,len);
+	strlcat(temp,":",len);
 	strlcat(temp,item->log_line,len);
 	return temp;
-}
-
-int log_cmp(const void* it1, const void* it2) {
-	log_line_t *item1 = (log_line_t*)it1;
-	log_line_t *item2 = (log_line_t*)it2;
-	return ((strcmp(item1->time_str, item2->time_str)==0)
-					&& (strcmp(item1->log_line, item2->log_line)==0) );
 }
 
 int has_log_changed(void) {
@@ -85,12 +78,12 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 void clear_log() {
 	changed = 2; // record fact that log has been updated
 	free_list(&log_list);
-	init_list(&log_list,log_hash,log_cmp,1,"log_list");
+	init_list(&log_list,log_hash,NULL,1,-1,"log_list");
 }
 
 void filter_log_list(int show_blocked, const char* str) {
 	free_list(&filtered_log_list);
-	init_list(&filtered_log_list,log_hash,log_cmp,1,"filtered_log_list");
+	init_list(&filtered_log_list,log_hash,NULL,1,-1,"filtered_log_list");
 	for (int i=0; i<get_log_size(); i++) {
 		log_line_t *l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
@@ -122,45 +115,6 @@ void save_log(void) {
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
 	save_list(&log_list, path, sizeof(log_line_t));
-
-	/*FILE *fp = fopen (path,"w+");
-	if (fp==NULL) {
-		WARN("Problem opening %s for writing: %s\n", LOGFILE, strerror(errno));
-		return;
-	}
-	//
-	int res = (int)fwrite(&log_start,sizeof(log_start),1,fp);
-	if (res<1) {
-		ERR("Problem saving start to %s: %s\n", LOGFILE,strerror(errno));
-		return;
-	}
-	res = (int)fwrite(&log_size,sizeof(log_size),1,fp);
-	if (res<1) {
-		ERR("Problem saving size to %s: %s\n", LOGFILE,strerror(errno));
-		return;
-	}
-	int i;
-	for(i = log_start; i < log_start+log_size; i++){
-		int res = (int)fwrite(&log_lines[i%MAXLOGSIZE].blocked,sizeof(int),1,fp);
-		if (res<1) {
-			WARN("Problem saving to %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-		int len = (int)strlen(log_lines[i%MAXLOGSIZE].time_str);
-		fwrite(&len,sizeof(len),1,fp);
-		fwrite(log_lines[i%MAXLOGSIZE].time_str,len,1,fp);
-		len = (int)strlen(log_lines[i%MAXLOGSIZE].log_line);
-		fwrite(&len,sizeof(len),1,fp);
-		fwrite(log_lines[i%MAXLOGSIZE].log_line,len,1,fp);
-		fwrite(&log_lines[i%MAXLOGSIZE].bl_item,sizeof(struct bl_item_t),1,fp);
-		res = (int)fwrite(&log_lines[i%MAXLOGSIZE].raw,sizeof(struct conn_raw_t),1,fp);
-		if (res<1) {
-			WARN("Problem saving to %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-	}
-	fclose(fp);
-	*/
 }
 
 void load_log() {
@@ -176,84 +130,8 @@ void load_log() {
 	
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
-	init_list(&log_list,log_hash,log_cmp,1,"log_list");
-	load_list(&log_list, path, sizeof(log_line_t));
-	init_list(&filtered_log_list,log_hash,log_cmp,1,"filtered_log_list");
-	
-	/*fp_txt = fopen (path,"a");
-	if (fp_txt==NULL) {
-		WARN("Problem opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));
-	}
-	
-	strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,LOGFILE,STR_SIZE);
-	FILE *fp = fopen (path,"r");
-	if (fp==NULL) {
-		WARN("Problem opening %s for reading: %s\n", LOGFILE, strerror(errno));
-		log_start=0; log_size=0;
-		return;
-	}
+	init_list(&log_list,log_hash,NULL,1,-1,"log_list");
+	init_list(&filtered_log_list,log_hash,NULL,1,-1,"filtered_log_list");
 	//return;
-	int i;
-	int res=(int)fread(&log_start,sizeof(log_start),1,fp);
-	if (res<1 || log_start<0) {
-		WARN("Problem loading log_start from %s: %s", LOGFILE, strerror(errno));
-		log_start=0; log_size=0;
-		return;
-	}
-	res=(int)fread(&log_size,sizeof(log_size),1,fp);
-	if (res<1 || log_size>MAXLOGSIZE) {
-		WARN("Problem loading log_size from %s: %s", LOGFILE, strerror(errno));
-		log_start=0; log_size=0;
-		return;
-	}
-	DEBUG2("log_start=%d, log_size=%d\n",log_start,log_size);
-	log_start=0; // might as well reset this since we're loading a fresh copy of log
-	for(i = 0; i < log_size; i++){
-		int res = (int)fread(&log_lines[i%MAXLOGSIZE].blocked,sizeof(int),1,fp);
-		if (res<1) {
-			WARN("Problem loading blocked from %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-		int len;
-		res = (int)fread(&len,sizeof(len),1,fp);
-		if (res<1 || (len > STR_SIZE) ) {
-			WARN("Problem loading time_str len from %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-		log_lines[i%MAXLOGSIZE].time_str = calloc(1,len+1);
-		res = (int)fread(log_lines[i%MAXLOGSIZE].time_str,len,1,fp);
-		if (res<1 || (len > STR_SIZE)) {
-			WARN("Problem loading time_str from %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-		res = (int)fread(&len,sizeof(len),1,fp);
-		if (res<1 || (len > STR_SIZE)) {
-			WARN("Problem loading log_line len from %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-		log_lines[i%MAXLOGSIZE].log_line = calloc(1,len+1);
-		res = (int)fread(log_lines[i%MAXLOGSIZE].log_line,len,1,fp);
-		if (res<1) {
-			WARN("Problem loading log_line from %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-		res = (int)fread(&log_lines[i%MAXLOGSIZE].bl_item,sizeof(struct bl_item_t),1,fp);
-		if (res<1) {
-			WARN("Problem loading bl_item from %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-		res = (int)fread(&log_lines[i%MAXLOGSIZE].raw,sizeof(struct conn_raw_t),1,fp);
-		if (res<1) {
-			WARN("Problem loading raw from %s: %s\n", LOGFILE,strerror(errno));
-			break;
-		}
-	}
-	if (i<log_size) {
-		WARN("Read too few records from %s: expected %d, got %d\n",LOGFILE,log_size,i);
-		log_size = i;
-	}
-	fclose(fp);*/
+	load_list(&log_list, path, sizeof(log_line_t));
 }
-
-//--------------------------------------------------------

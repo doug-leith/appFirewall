@@ -15,6 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	// private variables
 	// timer for periodic polling ...
 	var timer : Timer!
+	var timer_stats: Timer!
+	var count_stats: Int = 0
 	// menubar button ...
 	var statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
 	// create a preference pane instance
@@ -309,14 +311,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		}
 	}
 	
+	@objc func stats() {
+		print_stats() // output current performance stats
+		if (count_stats>6) {
+			print_escapees()
+			count_stats = 0
+		}
+	}
+	
 	@objc func refresh() {
 		// note: state is saved on window close, no need to do it here
 		// (and if we do it here it might be interrupted by a window
 		// close event and lead to file corruption
-		//save_log()
-		//save_blocklist()
-		//save_dns_cache()
-		print_stats() // output current performance stats
+		//save_log(); save_blocklist(); save_dns_cache()
 		
 		// check is listener thread (for talking with helper process that
 		// has root priviledge) has run into trouble -- if so, its fatal
@@ -379,21 +386,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		UserDefaults.standard.set(0, forKey: "active_connCount")
 		
 		// set default logging level
-		UserDefaults.standard.register(defaults: ["logging_level":1])
+		UserDefaults.standard.register(defaults: ["logging_level":2])
 		// can change this at command line using "defaults write" command
 		let log_level = UserDefaults.standard.integer(forKey: "logging_level")
 		set_logging_level(Int32(log_level))
+		init_stats();
 
 		// set up handler to catch C errors
 		setup_sigterm_handler()
 		
 		// reload state
-		load_log()
-		load_blocklist()
-		load_whitelist()
+		load_log(); load_blocklist(); load_whitelist()
 		load_dns_cache()
 		prefController.load_hostlists() // might be slow
-		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"files loaded in applicationWillFinishLaunching()")
 
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper
@@ -404,7 +409,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// schedule house-keeping ...
 		timer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
-		
+		timer_stats = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
+		timer.tolerance = 1 // we don't mind if it runs quite late
+
 		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished applicationWillFinishLaunching()")
 		//let t = NSApplication.shared.mainWindow?.contentViewController as? NSTabViewController
 		//t?.tabView.selectedTabViewItem?.viewController?.viewWillAppear()

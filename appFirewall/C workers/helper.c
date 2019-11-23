@@ -8,7 +8,7 @@
 
 int connect_to_helper(int port) {
 	// open socket to helper process (that has priviledge to use raw socket)
-	char err_msg[1024];
+	char err_msg[STR_SIZE];
 	
 	int sock=-1;
 	INFO("Trying to connect to appFirewall-Helper on port %d ...\n", port);

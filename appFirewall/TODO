@@ -8,4 +8,6 @@
 
 // send keep-alive ping from app to helper on port 4, so if helper dies (or dtrace dies etc) then can respond ??
 
+// report in log on multiple connection attempts (just now these are coalesced into a single entry).  need to add callback to table for when add_item fails because item already exists, then keep count and tweak logline entry.
+
 

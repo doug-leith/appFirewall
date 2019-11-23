@@ -10,7 +10,8 @@
 #include <netinet/in.h>
 #include <string.h>
 #include "util.h"
-#include "blocklist.h"
+//#include "blocklist.h"
+#include "is_blocked.h"
 #include "circular_list.h"
 
 // file for maintaining state over restarts

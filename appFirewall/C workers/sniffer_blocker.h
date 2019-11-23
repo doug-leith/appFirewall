@@ -15,15 +15,12 @@
 #include "util.h"
 #include "pid_conn_info.h"
 #include "log.h"
-#include "blocklist.h"
-#include "whitelist.h"
-#include "hostlists.h"
-#include "blocklists.h"
 #include "dns_sniffer.h"
 #include "libnet.h"
 #include "circular_list.h"
-#include "pid_conn_info.h"
+#include "connection.h"
 #include "dtrace.h"
+#include "is_blocked.h"
 
 #define RST_PORT 2
 #define PCAP_PORT 3

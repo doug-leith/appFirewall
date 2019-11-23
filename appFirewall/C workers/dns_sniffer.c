@@ -4,8 +4,6 @@
 // circular list of reverse DNS lookups based on sniffed DNS reply packets
 static list_t dns_cache = LIST_INITIALISER;
 
-#define STR_SIZE 1024
-
 // DNS header struct
 struct dnshdr {
 	uint16_t id;
@@ -25,11 +23,11 @@ char* dns_hash(const void* it) {
 	return temp;
 }
 
-int dns_cmp(const void* it1, const void* it2) {
+/*int dns_cmp(const void* it1, const void* it2) {
 	dns_item_t *item1 = (dns_item_t*)it1;
 	dns_item_t *item2 = (dns_item_t*)it2;
 	return are_addr_same(item1->af, &item1->addr, &item2->addr);
-}
+}*/
 
 char* lookup_dns_name(int af, struct in6_addr addr) {
 	dns_item_t d;
@@ -49,7 +47,7 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	dns_item_t d;
 	d.af=af;
 	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
-	strlcpy(d.name,name,BUFSIZE);
+	strlcpy(d.name,name,MAXDOMAINLEN);
 	//printf("adding %s/'%s'\n",d.name,dns_hash(&d));
 	add_item(&dns_cache,&d,sizeof(dns_item_t));
 }
@@ -63,7 +61,7 @@ void save_dns_cache(void) {
 void load_dns_cache(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
-	init_list(&dns_cache,dns_hash,dns_cmp,1,"dns_cache");
+	init_list(&dns_cache,dns_hash,NULL,1,-1,"dns_cache");
 	//return;
 	load_list(&dns_cache,path,sizeof(dns_item_t));
 }
@@ -162,7 +160,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	if (!an) return; // response is empty, probably responding with an error
 	
 	/* Parse the Question section */
-	u_char *tmp, *label=NULL, buf[BUFSIZE];
+	u_char *tmp, *label=NULL, buf[MAXDOMAINLEN];
 	uint16_t qtype = 0;
 
 	tmp = (u_char *)payload;
@@ -170,7 +168,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	for (i=0;i<qd;i++) {
 		/* Get the first question's label and question type */
 		if (!qtype) {
-			label = dns_label_to_str(&tmp, buf, BUFSIZ, payload, end);
+			label = dns_label_to_str(&tmp, buf, MAXDOMAINLEN, payload, end);
 			tmp++;
 			qtype = ntohs(*(uint16_t *)tmp);
 			//printf("%d %s\n", qtype,label);

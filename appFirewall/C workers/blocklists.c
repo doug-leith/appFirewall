@@ -17,7 +17,6 @@
 static Hashtable *bls_htab=NULL; // black list based on (app name,domain) pairs
 static Hashtable *bls_app_htab=NULL; // black list based on app name only
 static Hashtable *wls_app_htab=NULL; // whitelist based on (app name,domain) pairs
-#define STR_SIZE 1024
 
 void init_blocklists_tabs() {
 	// initialise hash table
@@ -99,7 +98,7 @@ void load_blocklistfile(const char* fname) {
 			if (inet_pton(AF_INET6,first,&addr6)==1) break; // its an IPv6 address
 			// looks ok, hopefully its an app process name
 			bl_item_t b;
-			strlcpy(b.name,first,BUFSIZE);
+			strlcpy(b.name,first,MAXCOMLEN);
 			
 			// get second word,
 			char* second = strtok_r(NULL, ",", &ptr);
@@ -121,13 +120,13 @@ void load_blocklistfile(const char* fname) {
 			// if first character is a "-" we're adding
 			// (name,domain) pair to whitelist, else to blacklist
 			Hashtable *htab=NULL;
-			char domain[BUFSIZE];
+			char domain[MAXDOMAINLEN];
 			if (second[0]=='-') {
 				htab = wls_app_htab;
-				strlcpy(domain,&second[1],BUFSIZE);
+				strlcpy(domain,&second[1],MAXDOMAINLEN);
 			} else {
 				htab = bls_htab;
-				strlcpy(domain,&second[0],BUFSIZE);
+				strlcpy(domain,&second[0],MAXDOMAINLEN);
 			}
 			// rest should be the domain name
 			if (!strcmp(domain,"localhost")) continue;
@@ -135,7 +134,7 @@ void load_blocklistfile(const char* fname) {
 			if (!strcmp(domain,"local")) continue;
 			if (!strcmp(domain,"ip6-localhost")) continue;
 			if (!strcmp(domain,"ip6-loopback")) continue;
-			strlcpy(b.domain, domain, BUFSIZE);
+			strlcpy(b.domain, domain, MAXDOMAINLEN);
 
 			// and add to blocklists table
 			char *str = bl_hash(&b);

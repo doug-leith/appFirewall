@@ -12,6 +12,7 @@
 #include <sys/errno.h>
 #include <string.h>
 #include <ctype.h>
+#include "percentile.h"
 
 extern int verbose;          // debugging level
 
@@ -32,22 +33,16 @@ extern int verbose;          // debugging level
 // raise SIGCHLD event in C to display popup to user before exiting on error.
 #define EXITFAIL(args ...) do{char str[1024]; sprintf(str,args); set_error_msg(str);raise(SIGCHLD);}while(0)
 
-#define BUFSIZE 256
 #define LINEBUF_SIZE 4096 // max line size of dtrace line
+#define STR_SIZE 1024
 
 typedef struct {
 	int pidinfo_hits, pidinfo_misses;
 	int pidinfo_cachehits, pidinfo_cachemisses;
 	int dtrace_hits, dtrace_misses;
 	int waitinglist_hits, waitinglist_misses;
-	float sum_t_waitinglist_hits, sum_t_waitinglist_misses;
-	int n_t_waitinglist_hits, n_t_waitinglist_misses;
-	float sum_t_sniff, sum_t_notblocked, sum_t_blocked;
-	int n_t_sniff, n_t_notblocked, n_t_blocked;
-	float sum_t_udp, sum_t_dns;
-	int n_t_udp, n_t_dns;
-	float sum_t_pidinfo_cache;
-	int n_t_pidinfo_cache;
+	cm_quantile cm_t_notblocked, cm_t_blocked, cm_t_waitinglist_hit, cm_t_waitinglist_miss, cm_t_dns,cm_t_pidinfo_cache_hit, cm_t_pidinfo_cache_miss, cm_t_sniff, cm_t_udp;
+	int num_escapees;
 } stats_t;
 
 extern stats_t stats;
@@ -61,6 +56,8 @@ void set_path(const char* path);
 int readn(int fd, void* buf, int n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
+int is_ipv4_localhost(struct in6_addr* addr);
+int is_ipv6_localhost(struct in6_addr* addr);
 int robust_inet_pton(int *af, const char * restrict src, void * restrict dst);
 const char* robust_inet_ntop(int *af, const void * restrict src, char * restrict dst, socklen_t size);
 
@@ -69,5 +66,8 @@ void redirect_stdout(void);
 
 void print_stats(void);
 void set_logging_level(int level);
+void init_stats(void);
+
+struct timespec timespec_add(struct timespec ts1, struct timespec ts2);
 
 #endif

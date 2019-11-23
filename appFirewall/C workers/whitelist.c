@@ -7,10 +7,9 @@
 
 // globals
 static list_t white_list=LIST_INITIALISER;
-#define STR_SIZE 1024
 
 void init_white_list() {
-	init_list(&white_list, bl_hash, bl_cmp,  0, "white_list");
+	init_list(&white_list, bl_hash, NULL,  0, -1, "white_list");
 }
 
 bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug) {

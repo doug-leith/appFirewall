@@ -14,11 +14,12 @@
 #include <pcap.h>
 #include "util.h"
 #include "circular_list.h"
+#include "connection.h"
 
 typedef struct dns_item_t {
 	struct in6_addr addr;
 	int af;
-	char name[BUFSIZE];
+	char name[MAXDOMAINLEN];
 } dns_item_t;
 
 #define DNSFILE "dns.dat"

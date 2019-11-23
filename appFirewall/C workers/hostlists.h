@@ -13,6 +13,7 @@
 #include <sys/errno.h>
 #include "util.h"
 #include "table.h"
+#include "connection.h"
 
 #define HTABSIZE 250000
 

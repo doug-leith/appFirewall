@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include "util.h"
-//#include "sniffer_blocker.h"
 #include "dtrace.h"
 
 #define MAXTRIES 10

@@ -25,27 +25,6 @@ int udp_cache_size=0, udp_cache_start=0;
 //--------------------------------------------------------
 // private functions
 
-char* wait_hash(const void *it) {
-	// generate table lookup key string
-	conn_raw_t *item = (conn_raw_t*) it;
-	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-	robust_inet_ntop(&item->af,&item->src_addr,sn,INET6_ADDRSTRLEN);
-	robust_inet_ntop(&item->af,&item->dst_addr,dn,INET6_ADDRSTRLEN);
-	char* temp = malloc(2*INET6_ADDRSTRLEN+64);
-	sprintf(temp,"%s:%d-%s:%d",sn,item->sport,dn,item->dport);
-	return temp;
-}
-
-int wait_cmp(const void* it1, const void* it2){
-	conn_raw_t *item1 = (conn_raw_t*) it1;
-	conn_raw_t *item2 = (conn_raw_t*) it2;
-	char * temp1 = wait_hash(item1);
-	char * temp2 = wait_hash(item2);
-	int res = (strcmp(temp1,temp2)==0);
-	free(temp1); free(temp2);
-	return res;
-}
-
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 	// create a new blocklist item from raw connection info (assumed to be
 	// outgoing connection, so src is local and dst is remote)
@@ -62,7 +41,7 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 	int pid;
 	int res=lookup_dtrace(cr, c.name, &pid);
 	if (res==0) { // quite rare, so interesting
-		INFO("%s:%d->%s:%d NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
+		INFO2("%s:%d->%s:%d NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
 		stats.dtrace_misses++;
 		// try to get PID info from /proc
 		res=find_pid(cr,c.name);
@@ -74,65 +53,53 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 		}
 	} else {
 		stats.dtrace_hits++;
-		cache_pid(pid); // cache successful pid for pidinfo lookup
-		INFO("%s:%d->%s:%d found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
+		cache_pid(pid, c.name); // cache successful pid for pidinfo lookup
+		INFO2("%s:%d->%s:%d found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 	}
 
 	// try to get domain name from DNS cache
 	char* dns =lookup_dns_name(cr->af, cr->dst_addr);
 	if (dns!=NULL) {
 		//printf("dns found for %s\n",dns);
-		strlcpy(c.domain,dns,BUFSIZE);
+		strlcpy(c.domain,dns,MAXDOMAINLEN);
 	} else {
 		//printf("dns not found for %s\n",c.addr_name);
-		strlcpy(c.domain,c.addr_name,INET6_ADDRSTRLEN);
+		strlcpy(c.domain,c.addr_name,MAXDOMAINLEN);
 	}
 	
 	return c;
 }
 
-void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock) {
-		int blocked=0;
-		if (in_whitelist_htab(c,0)!=NULL) {
-			// whitelisted
-			blocked=0;
-		} else {
-			if (in_blocklist_htab(c,0)!=NULL) { // table lookup, faster !
-				blocked=1;
-				//in_blocklist_htab(&c,1); // dumps hash table, for debugging
-			} else if (in_blocklists_htab(c) != NULL) {
-				// in block list file
-				blocked = 3;
-			} else if (in_hostlist_htab(c->domain) != NULL) {
-				// in hosts list
-				blocked = 2;
-			}
-		}
+void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
+
+		int blocked = is_blocked(c);
 		DEBUG2("%s %s %d\n",c->name,c->addr_name,blocked);
 
 		// log the connection
 		char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN];
 		inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
-		char dns[BUFSIZE], dst_name[BUFSIZE];
+		char dns[MAXDOMAINLEN], dst_name[MAXDOMAINLEN];
 		if (strlen(c->domain)>0) {
 			sprintf(dns,"%s (%s)",c->addr_name,c->domain);
-			strlcpy(dst_name,c->domain,BUFSIZE);
+			strlcpy(dst_name,c->domain,MAXDOMAINLEN);
 		} else {
-			strlcpy(dns,c->addr_name,BUFSIZE);
-			strlcpy(dst_name,c->addr_name,BUFSIZE);
+			strlcpy(dns,c->addr_name,MAXDOMAINLEN);
+			strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
 		}
 		sprintf(str,"%s → %s:%d", c->name, dst_name, cr->dport);
 		sprintf(long_str,"%s %s:%d -> %s:%d", c->name, dn, cr->dport, dns, cr->sport);
 		append_log(str, long_str, c, cr, blocked);
 
 		if (!blocked) {
-			INFO("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
+			INFO2("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
 			struct timeval end; gettimeofday(&end, NULL);
-			INFO("(not blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
-			stats.sum_t_sniff+=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
-			stats.n_t_sniff++;
-			stats.sum_t_notblocked+=(end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
-			stats.n_t_notblocked++;
+			INFO2("(not blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
+			if (logstats) {
+				float t=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
+				cm_add_sample(&stats.cm_t_sniff,t);
+				t=(end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
+				cm_add_sample(&stats.cm_t_notblocked,t);
+			}
 			return; // nothing more needs done
 		}
 		
@@ -154,13 +121,15 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock) {
 	
 		//clock_t end = clock();
 		//printf("t (blocked) %f\n",(end - begin)*1.0 / CLOCKS_PER_SEC);
-		INFO("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
+		INFO2("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
 		struct timeval end; gettimeofday(&end, NULL);
-		INFO(" (blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
-		stats.sum_t_sniff+=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
-		stats.n_t_sniff++;
-		stats.sum_t_blocked+=(end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
-		stats.n_t_blocked++;
+		INFO2(" (blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
+		if (logstats) {
+			float t = (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
+			cm_add_sample(&stats.cm_t_sniff,t);
+			t = (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
+			cm_add_sample(&stats.cm_t_blocked,t);
+		}
 		return;
 		
 	err_r:
@@ -177,7 +146,7 @@ void process_conn_waiting_list(void) {
 		pthread_mutex_lock(&wait_list_mutex);
 
 		if (get_list_size(&waiting_list) !=0 ) {
-			INFO("waiting list size = %d, hits=%d, misses=%d\n",get_list_size(&waiting_list),stats.waitinglist_hits,stats.waitinglist_misses);
+			INFO2("waiting list size = %d, hits=%d, misses=%d\n",get_list_size(&waiting_list),stats.waitinglist_hits,stats.waitinglist_misses);
 		}
 		struct timeval end; gettimeofday(&end, NULL);
 		int i = 0;
@@ -194,26 +163,26 @@ void process_conn_waiting_list(void) {
 				#define WAIT_TIMEOUT 0.02 // 20ms
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
 						> WAIT_TIMEOUT) {
-					INFO("wait timeout for %s %s\n",c_w.name,c_w.addr_name);
+					INFO2("wait timeout for %s %s\n",c_w.name,c_w.addr_name);
+					process_conn(&cr_w, &c_w, &r_sock,0); // process
 					stats.waitinglist_misses++;
 					struct timeval end; gettimeofday(&end, NULL);
-					stats.sum_t_waitinglist_misses+=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
-					stats.n_t_waitinglist_misses++;
+					float t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
+					cm_add_sample(&stats.cm_t_waitinglist_miss,t);
 					del=1; // flag that need to remove this conn from waiting list
-					process_conn(&cr_w, &c_w, &r_sock); // process
 				} else {
 					// an outstanding conn, refresh pid info again
 					signal_pid_watcher();
 				}
 			} else {
 				// got process name, we can proceed
-				INFO("delayed processing of %s %s\n",c_w.name,c_w.addr_name);
+				INFO2("delayed processing of %s %s\n",c_w.name,c_w.addr_name);
+				process_conn(&cr_w, &c_w, &r_sock,0); // process
 				stats.waitinglist_hits++;
 				struct timeval end; gettimeofday(&end, NULL);
-				stats.sum_t_waitinglist_hits+=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
-				stats.n_t_waitinglist_hits++;
+				float t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
+				cm_add_sample(&stats.cm_t_waitinglist_hit,t);
 				del = 1; // flag that need to remove this conn from waiting list
-				process_conn(&cr_w, &c_w, &r_sock); // process
 			}
 			
 			pthread_mutex_lock(&wait_list_mutex);
@@ -243,7 +212,7 @@ void *listener(void *ptr) {
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
 
-	init_list(&waiting_list,wait_hash,wait_cmp,1,"waiting_list");
+	init_list(&waiting_list,conn_raw_hash,NULL,1,-1,"waiting_list");
 	
 	// set up handler for waiting list (connections for which we didn't manage to
 	// get the process name immediately)
@@ -267,7 +236,12 @@ void *listener(void *ptr) {
 		
 		struct timeval ts = pkthdr.ts;
 		struct timeval start; gettimeofday(&start, NULL);
-		
+		#define TIMEOUT 2 // SYN packets >2s old are dropped (syn timeout), likely due to wakeup after sleep
+		if (start.tv_sec - ts.tv_sec > TIMEOUT) {
+			INFO("received stale syn-ack, %f old. discard\n",(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
+			continue;
+		}
+
 		int version = (*(pkt + pcap_off))>>4; // get IP version
 		int proto, af;
 		struct in6_addr src, dst;
@@ -296,10 +270,10 @@ void *listener(void *ptr) {
 			int dport=ntohs(udp->uh_dport);
 			if (sport == 53 || dport == 53) {
 				// pass to DNS sniffer
-				INFO("t (sniffed dns) %f\n", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
+				float t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
+				INFO2("t (sniffed dns) %f\n", t);
 				dns_sniffer(&pkthdr,nexth);
-				stats.sum_t_dns+=(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
-				stats.n_t_dns++;
+				cm_add_sample(&stats.cm_t_dns,t);
 				continue;
 			} else if (dport == 443) {
 				// likely to be quic.  can't block it yet, but can log the
@@ -332,7 +306,7 @@ void *listener(void *ptr) {
 					// carry out PID and DNS lookup
 					bl_item_t c = create_blockitem_from_addr(&cr);
 					// log connection
-					char dns[BUFSIZE]={0};
+					char dns[MAXDOMAINLEN]={0};
 					if (strlen(c.domain)) {
 						sprintf(dns,"%s (%s)",c.addr_name,c.domain);
 					}
@@ -342,11 +316,13 @@ void *listener(void *ptr) {
 					sprintf(long_str,"%s UDP/QUIC %s:%d -> %s:%d", c.name, sn, sport, dns, dport);
 					append_log(str, long_str, &c, &cr, 0); // can't block QUIC yet ...
 					
-					INFO("t (sniffed) %f ", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
+					float t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
+					INFO2("t (sniffed) %f ", t);
+					cm_add_sample(&stats.cm_t_sniff,t);
 					struct timeval endu; gettimeofday(&endu, NULL);
-					INFO(" (UDP not blocked) %f\n", (endu.tv_sec - ts.tv_sec) +(endu.tv_usec - ts.tv_usec)/1000000.0);
-					stats.sum_t_udp+=(endu.tv_sec - ts.tv_sec) +(endu.tv_usec - ts.tv_usec)/1000000.0;
-					stats.n_t_udp++;
+					t =(endu.tv_sec - ts.tv_sec) +(endu.tv_usec - ts.tv_usec)/1000000.0;
+					INFO2(" (UDP not blocked) %f\n",t );
+					cm_add_sample(&stats.cm_t_udp,t);
 				}
 			}
 			continue;
@@ -409,7 +385,7 @@ void *listener(void *ptr) {
 		} else {
 			// got PID name, proceed with processing ...
 			// if on block list, send rst.  otherwise just log conn and move on
-			process_conn(&cr, &c, &r_sock);
+			process_conn(&cr, &c, &r_sock,1);
 		}
 		continue;
 		

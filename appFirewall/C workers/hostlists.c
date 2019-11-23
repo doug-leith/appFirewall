@@ -9,7 +9,6 @@
 
 static int host_list_size=0;
 static Hashtable *hl_htab=NULL; // hash table of pointers into black list for fast lookup
-#define STR_SIZE 1024
 
 void init_hosts_list() {
 	// initialise hash table
@@ -22,8 +21,8 @@ void init_hosts_list() {
 void* in_hostlist_htab(const char *domain) {
 	if (hl_htab!=NULL) {
 		if (!strncmp(domain," (",2)) { // swift adds spaces and () around string, sigh
-			char temp[BUFSIZE];
-			strlcpy(temp,domain+2,BUFSIZE);
+			char temp[MAXDOMAINLEN];
+			strlcpy(temp,domain+2,MAXDOMAINLEN);
 			temp[strlen(temp)-1]=0;
 			//printf("in_hostlist_htab swift %s/%s\n", domain, temp);
 			return hashtable_get(hl_htab, temp);

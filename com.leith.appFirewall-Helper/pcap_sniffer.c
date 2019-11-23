@@ -95,9 +95,6 @@ void start_sniffer(char* filter_exp) {
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 	// send pkt to GUI
 	DEBUG2("sniffed pkt, sending to GUI ... %d bytes\n",pkthdr->caplen);
-	//struct timeval ts = pkthdr->ts;
-	//struct timeval start; gettimeofday(&start, NULL);
-	//INFO("t (sniffed) %f\n", (start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
 	if (send(p_sock2, pkthdr, sizeof(struct pcap_pkthdr),0)<0) goto err;
 	if (send(p_sock2, pkt, pkthdr->caplen,0)<0) goto err;
 

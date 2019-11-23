@@ -15,16 +15,34 @@ void set_logging_level(int level) {
 	verbose = level;
 }
 
+void init_stats() {
+	memset(&stats,0,sizeof(stats_t));
+	double quants[] = {0.5, 0.90, 0.99};
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_notblocked);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_blocked);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_waitinglist_hit);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_waitinglist_miss);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_dns);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_pidinfo_cache_hit);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_pidinfo_cache_miss);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_sniff);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_udp);
+}
+
 void print_stats() {
-	INFO("dtrace hits %d/misses %d, pidinfo hits %d/misses %d, pidinfo_cache hits %d/misses %d, waitinglist hits %d/misses %d.  avg times: sniff %.2f, not blocked %.2f, blocked %.2f, dns %.2f, udp %.2f, waitinglist hits %.2f/misses %.2f, pidinfo cache %.2f\n",
+	INFO("dtrace hits %d/misses %d, pidinfo hits %d/misses %d, pidinfo_cache hits %d/misses %d, waitinglist hits %d/misses %d, #escapees %d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f\n",
 	stats.dtrace_hits, stats.dtrace_misses,stats.pidinfo_hits, stats.pidinfo_misses,stats.pidinfo_cachehits, stats.pidinfo_cachemisses,
-	stats.n_t_waitinglist_hits,stats.n_t_waitinglist_misses,
-	stats.sum_t_sniff/stats.n_t_sniff*1000, stats.sum_t_notblocked/stats.n_t_notblocked*1000,
-	stats.sum_t_blocked/stats.n_t_blocked*1000,
-	stats.sum_t_dns/stats.n_t_dns*1000,
-	stats.sum_t_udp/stats.n_t_udp*1000,
-	stats.sum_t_waitinglist_hits/stats.n_t_waitinglist_hits*1000, stats.sum_t_waitinglist_misses/stats.n_t_waitinglist_misses*1000,
-	stats.sum_t_pidinfo_cache/stats.n_t_pidinfo_cache*1000
+	stats.waitinglist_hits,stats.waitinglist_misses,
+	stats.num_escapees,
+	cm_query(&stats.cm_t_sniff,0.5)*1000, cm_query(&stats.cm_t_sniff,0.9)*1000,
+	cm_query(&stats.cm_t_notblocked,0.5)*1000, cm_query(&stats.cm_t_notblocked,0.9)*1000,
+	cm_query(&stats.cm_t_blocked,0.5)*1000, cm_query(&stats.cm_t_blocked,0.9)*1000,
+	cm_query(&stats.cm_t_dns,0.5)*1000, cm_query(&stats.cm_t_dns,0.9)*1000,
+	cm_query(&stats.cm_t_udp,0.5)*1000, cm_query(&stats.cm_t_udp,0.9)*1000,
+	cm_query(&stats.cm_t_waitinglist_hit,0.5)*1000, cm_query(&stats.cm_t_waitinglist_hit,0.9)*1000,
+	cm_query(&stats.cm_t_waitinglist_miss,0.5)*1000, cm_query(&stats.cm_t_waitinglist_miss,0.9)*1000,
+	cm_query(&stats.cm_t_pidinfo_cache_hit,0.5)*1000, cm_query(&stats.cm_t_pidinfo_cache_hit,0.9)*1000,
+	cm_query(&stats.cm_t_pidinfo_cache_miss,0.5)*1000, cm_query(&stats.cm_t_pidinfo_cache_miss,0.9)*1000
 	);
 }
 
@@ -178,4 +196,43 @@ const char* robust_inet_ntop(int *af, const void * restrict src, char * restrict
 		}
 	}
 	return res;
+}
+
+#define NSEC_PER_SEC 1000000000
+struct timespec timespec_normalise(struct timespec ts) {
+	while(ts.tv_nsec >= NSEC_PER_SEC) {
+		++(ts.tv_sec);
+		ts.tv_nsec -= NSEC_PER_SEC;
+	}
+	while(ts.tv_nsec <= -NSEC_PER_SEC) {
+		--(ts.tv_sec);
+		ts.tv_nsec += NSEC_PER_SEC;
+	}
+	if(ts.tv_nsec < 0 && ts.tv_sec > 0) {
+		--(ts.tv_sec);
+		ts.tv_nsec = NSEC_PER_SEC - (-1 * ts.tv_nsec);
+	} else if(ts.tv_nsec > 0 && ts.tv_sec < 0) {
+		++(ts.tv_sec);
+		ts.tv_nsec = -NSEC_PER_SEC - (-1 * ts.tv_nsec);
+	}
+	return ts;
+}
+
+struct timespec timespec_add(struct timespec ts1, struct timespec ts2) {
+	ts1 = timespec_normalise(ts1);
+	ts2 = timespec_normalise(ts2);
+	ts1.tv_sec  += ts2.tv_sec;
+	ts1.tv_nsec += ts2.tv_nsec;
+	return timespec_normalise(ts1);
+}
+
+inline int is_ipv4_localhost(struct in6_addr* addr){
+	const uint32_t dst_addr=((struct in_addr*)addr)->s_addr;
+	return (dst_addr==htonl(INADDR_LOOPBACK))
+					|| (dst_addr==htonl(INADDR_ANY));
+}
+
+inline int is_ipv6_localhost(struct in6_addr* addr){
+	// is in6addr_loopback in host or network byte order ?
+	return memcmp(&addr->s6_addr,&in6addr_loopback.s6_addr,16)==0;
 }
