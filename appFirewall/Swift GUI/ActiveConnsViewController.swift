@@ -137,24 +137,12 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		var tip: String = ""
 	
 		let r = mapRow(row: row)
-		let item_ptr = get_conn(Int32(r))
-		if (item_ptr == nil) { return nil }
-		var item = item_ptr!.pointee
-		var bl_item = conn_to_bl_item(item_ptr)
-		/*let domain = String(cString: &bl_item.domain.0)
-
-		var white: Int = 0
-		if (in_whitelist_htab(&bl_item, 0) != nil) {
-			white = 1
-		}
-		var blocked: Int = 0
-		if (in_blocklist_htab(&bl_item, 0) != nil) {
-			blocked = 1
-		} else if (in_hostlist_htab(domain) != nil) {
-			blocked = 2
-		} else if (in_blocklists_htab(&bl_item) != nil) {
-			blocked = 3
-		}*/
+		//let item_ptr = get_conn(Int32(r))
+		//if (item_ptr == nil) { return nil }
+		//var item = item_ptr!.pointee
+		//var bl_item = conn_to_bl_item(item_ptr)
+		var item = get_conn(Int32(r))
+		var bl_item = conn_to_bl_item(&item)
 		let blocked = Int(blocked_status(&bl_item))
 		let white = Int(is_white(&bl_item))
 
@@ -198,14 +186,12 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			cell.bl_item = bl_item // take a copy so ok to free() later
 			cell.updateButton()
 			cell.action = #selector(BlockBtnAction)
-			free_conn(item_ptr)
 			return cell
 		} else {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
 			cell.textField?.stringValue = content
 			cell.textField?.toolTip = tip
 			setColor(cell: cell, udp: (Int(item.raw.udp)==1), white: white, blocked: blocked)
-			free_conn(item_ptr)
 			return cell
 		}
 	}

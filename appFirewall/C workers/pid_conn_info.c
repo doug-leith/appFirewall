@@ -8,7 +8,11 @@
 static list_t pid_list=LIST_INITIALISER; // list of active pid's and network conns
 static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
 static Hashtable* pid_list_fdtab=NULL; // table for fast lookup of pid_list using socket fd
+#define TABSIZE 1024
 static list_t escapee_list=LIST_INITIALISER; // list of blocked yet active connections
+static pthread_mutex_t escapee_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int escapee_thread_count=0;
+#define ESCAPEEMAX 10 // max num of escapees we try to catch concurrently
 static int changed = 0; // flag to GUI if pid list has changed
 
 // cache of recent PIDs and their names
@@ -97,16 +101,16 @@ void set_pid_watcher_hook(void (*hook)(void)) {
 	pid_watcher_hook = hook;
 }
 
-conn_t* get_conn(int row) {
+conn_t get_conn(int row) {
 	// for use by swift GUI
+	conn_t c;
+	memset(&c,0,sizeof(conn_t));
 	pthread_mutex_lock(&gui_pid_mutex);
 	if (row > get_list_size(&gui_pid_list)) {
 		pthread_mutex_unlock(&gui_pid_mutex);
-		return NULL;
+		return c;
 	}
-	// take a copy of list item while we have lock
-	conn_t * c = malloc(sizeof(conn_t));
-	memcpy(c,get_list_item(&gui_pid_list,row),sizeof(conn_t));
+	memcpy(&c,get_list_item(&gui_pid_list,row),sizeof(conn_t));
 	pthread_mutex_unlock(&gui_pid_mutex);
 	return c;
 }
@@ -141,8 +145,10 @@ void clear_pid_changed() {
 }
 
 void print_escapees() {
-	INFO2("Escapees:\n");
-	dump_connlist(&escapee_list);
+	if (get_list_size(&escapee_list)>0) {
+		INFO2("Escapees:\n");
+		dump_connlist(&escapee_list);
+	}
 }
 
 void cache_pid(int pid, char* name) {
@@ -229,8 +235,8 @@ int get_pid_name(int pid, char* name) {
 	struct proc_bsdshortinfo proc;
 	int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
 	if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
-		INFO("Cannot get process info for PID %d, likely has died.\n",pid);
-			return -1;
+		//INFO("Cannot get process info for PID %d, likely has died.\n",pid);
+		return -1;
 	}
 	strlcpy(name,proc.pbsi_comm,MAXCOMLEN);
 	return 0;
@@ -247,7 +253,7 @@ char* gui_pid_hash(const void *it) {
 	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
 	robust_inet_ntop(&item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
 	char* temp = malloc(2*INET6_ADDRSTRLEN+strlen(item->domain)+64);
-	sprintf(temp,"%s-%s:%d-%s",sn,dn,item->raw.dport,item->domain);
+	sprintf(temp,"%s-%s:%u-%s",sn,dn,item->raw.dport,item->domain);
 	return temp;
 }
 
@@ -269,7 +275,7 @@ void init_pid_lists() {
 	init_list(&pid_list,conn_hash,NULL,0,-1,"pid_list");
 	init_list(&gui_pid_list,gui_pid_hash,NULL,0,-1,"pid_list");
 	init_list(&last_pid_list,pid_hash,NULL,1,PID_CACHE_SIZE,"last_pid_list");
-	pid_list_fdtab = hashtable_new(1024);
+	pid_list_fdtab = hashtable_new(TABSIZE);
 	init_list(&escapee_list,conn_hash,NULL,1,-1,"escapee_list");
 }
 
@@ -307,12 +313,16 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		if (procFDInfo[i].proc_fdtype != PROX_FDTYPE_SOCKET)
 			continue; // not a socket fd
 			
-		// an important optimisation.  if procFDInfo[i].proc_fd already known
+		// an optimisation.  if procFDInfo[i].proc_fd already known
 		// we can just grab its info and copy over, saving on call to proc_pidfdinfo()
 		// which is expensive
+		// NB: reuse of file descriptors means that can make mistakes here e.g.
+		// if between calls to here a process closes a connection and new one is
+		// opened (to new destination) but has the same fd.
 		int res=pthread_mutex_trylock(&pid_mutex);
 		char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
 		conn_t* it = hashtable_get(old_pid_list_fdtab, key);
+		free(key);
 		int match=0;
 		if (it != NULL) { // got a match
 			memcpy(&c,it,sizeof(conn_t));
@@ -322,7 +332,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			// we took the lock ourselves, so let's release it
 			pthread_mutex_unlock(&pid_mutex);
 		}
-		//match = 0;
+		match = 0;
 		if (!match) {
 			// we need to call proc_pidfdinfo() to get the connection info
 			struct socket_fdinfo socketInfo;
@@ -370,14 +380,14 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
 				continue; // ignore IPv6 link local addresses
 			}
-			c.raw.sport =  (int)ntohs(sockinfo->insi_lport);
-			c.raw.dport = (int)ntohs(sockinfo->insi_fport);
+			c.raw.sport =  ntohs(sockinfo->insi_lport);
+			c.raw.dport = ntohs(sockinfo->insi_fport);
 			
 			// we only log UDP to port 443 just now (likely QUIC)
 			c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN)
 			&& (c.raw.dport == 443);
 			
-			DEBUG2("%s(%d): %s:%d -> %s:%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
+			DEBUG2("%s(%d): %s:%u -> %s:%u udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
 		}
 		
 		// lookup domain name for connection.  do this even for existing connections
@@ -400,16 +410,56 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			// and add it to fd lookup table
 			char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
 			hashtable_put(new_pid_list_fdtab, key, it);
+			free(key);
 		}
 		
+		// is this a connection which outght to have been blocked (and "escapee") ?
 		bl_item_t b;
 		strlcpy(b.name,name,MAXCOMLEN);
 		strlcpy(b.domain,c.domain,MAXDOMAINLEN);
 		strlcpy(b.addr_name,c.dst_addr_name,INET6_ADDRSTRLEN);
-		if (is_blocked(&b) && !in_list(&escapee_list,&c,0)) {
-			// if active connection is supposed to have been blocked
-			// we log this interesting fact.  
-			add_item(&escapee_list,&c,sizeof(conn_t));
+		// get log entry for this item, if it exists.
+		log_line_t *l = find_log_by_conn(name,&c.raw,0);
+		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c.raw.udp==0)) {
+			// its an active connection that is supposed to have been blocked
+			pthread_mutex_lock(&escapee_mutex);
+			if ( (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX)) {
+				// a new escapee, add to the active list ...
+				add_item(&escapee_list,&c,sizeof(conn_t));
+				pthread_mutex_unlock(&escapee_mutex);
+				conn_t *e = malloc(sizeof(conn_t));
+				memcpy(e,&c,sizeof(conn_t));
+				// get the initial seq number of conn from log, if possible.
+				if (l==NULL) {
+					//INFO("escapee not in log %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
+					// guess ! the seq number is used to prompt local to send a pkt
+					// when connection is idle so that we can get the real seq number
+					// from it. its not needed for conns sending pkts already. this will
+					// probably fail unless connection is already sending pkts
+					e->raw.seq =rand(); e->raw.ack =rand();
+					stats.escapees_not_in_log++;
+				} else {
+					// we get the seq number from syn-ack in log ...
+					e->raw.seq =l->raw.seq; e->raw.ack =l->raw.ack;
+					struct timeval start; gettimeofday(&start, NULL);
+					#define TIMEOUT 10 // 10secs
+					if (start.tv_sec - l->raw.ts.tv_sec < TIMEOUT) {
+						// keep some stats
+						stats.num_escapees++;
+					} else {
+						//an ancient connections.  seq number is maybe too old now,
+						// should we just choose a randome one, or otherwise adjust it ?
+						stats.stale_escapees++;
+					}
+				}
+				// and ask helper to catch this "escapee" connection
+				pthread_t escapee_thread;
+				pthread_create(&escapee_thread,NULL,catch_escapee,e);
+				cm_add_sample(&stats.cm_escapee_thread_count,escapee_thread_count);
+				// escapee_thread will now remove from escapee_list and free (e)
+			} else {
+				pthread_mutex_unlock(&escapee_mutex);
+			}
 		}
 		
 		// ignore child processes again, and also if several parallel
@@ -424,7 +474,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			if (!in_list(&gui_pid_list, &c, 0)) {
 				// we've added a new entry to pid list, flag to GUI if it needs to refresh
 				changed = 1;
-				//INFO("changed %s(%d): %s:%d -> %s(%s):%d udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp);
+				//INFO("changed %s(%d): %s:%u -> %s(%s):%u udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp);
 		  	//dump_connlist(&gui_pid_list);
 			}
 			if (res != EBUSY) {
@@ -452,7 +502,7 @@ int refresh_active_conns(int localhost) {
 	// (which look nasty)
 	list_t new_pid_list; init_list(&new_pid_list,conn_hash,NULL,0,-1,"new_pid_list");
 	list_t new_gui_pid_list; init_list(&new_gui_pid_list,gui_pid_hash,NULL,0,-1,"new_gui_pid_list");
-	Hashtable *new_pid_list_fdtab = hashtable_new(1024);
+	Hashtable *new_pid_list_fdtab = hashtable_new(TABSIZE);
 	
 	// get list of current processes
 	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
@@ -496,15 +546,73 @@ int refresh_active_conns(int localhost) {
 	free_list(&pid_list); pid_list = new_pid_list;
 	hashtable_free(pid_list_fdtab); pid_list_fdtab = new_pid_list_fdtab;
 	pthread_mutex_unlock(&pid_mutex);
-	
-	// update stats
-	stats.num_escapees = get_list_size(&escapee_list);
-	
+		
 	return changed;
 }
 
+#define CATCHER_PORT 5
+#include "helper.h"
+void *catch_escapee(void *ptr) {
+	pthread_mutex_lock(&escapee_mutex);
+	escapee_thread_count++;
+	pthread_mutex_unlock(&escapee_mutex);
 
+	conn_t *e = (conn_t*)ptr;
+	struct timeval start; gettimeofday(&start, NULL);
 
+	int c_sock;
+	// block here if helper is busy with killing a connection
+	if ( (c_sock=connect_to_helper(CATCHER_PORT,1))<0 ) {
+		return NULL;  //either helper has gone away or listen queue for escapees is full
+	}
+	//struct timeval end0; gettimeofday(&end0, NULL);
+	//printf("catch escapee connected, %fs\n",(end0.tv_sec - start.tv_sec) +(end0.tv_usec - start.tv_usec)/1000000.0);
 
+	// disable SIGPIPE, we'll catch such errors ourselves
+	signal(SIGPIPE, SIG_IGN);
+
+	ssize_t res;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	if ( (res=send(c_sock, &e->pid, sizeof(int),0) )<=0) goto err;
+	if ( (res=send(c_sock, &e->raw.af, sizeof(int),0) )<=0) goto err;
+	if ( (res=send(c_sock, &e->raw.dst_addr, sizeof(struct in6_addr),0) )<=0) goto err;
+	if ( (res=send(c_sock, &e->raw.dport, sizeof(uint16_t),0) )<=0) goto err;
+	if ( (res=send(c_sock, &e->raw.ack, sizeof(uint32_t),0) )<=0) goto err;
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	int8_t ok=0; read(c_sock, &ok, 1); // wait here until helper is done
+	// remove escapee from active list, will be re-added if conn still exists
+	// next time find_fds() is called.
+	struct timeval end; gettimeofday(&end, NULL);
+	float t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
+	char *result="FAILED to stop";
+	if (ok==1) {
+		result="STOPPED";
+		stats.escapees_hits++;
+		cm_add_sample(&stats.cm_t_escapees_hits,t);
+	} else if (ok==-1) {
+		result="NOT FOUND";
+	} else {
+		stats.escapees_misses++;
+		cm_add_sample(&stats.cm_t_escapees_misses,t);
+	}
+	INFO("escapee %s(%d) fd=%d %s:%u -> %s(%s):%u ack=%u,udp=%d: %s. t=%fs\n", e->name, e->pid, e->fd,e->src_addr_name, e->raw.sport, e->domain, e->dst_addr_name, e->raw.dport, e->raw.ack,e->raw.udp,result,t);
+	del_item(&escapee_list,e);
+	free(e);
+	close(c_sock);
+	pthread_mutex_lock(&escapee_mutex);
+	escapee_thread_count--;
+	pthread_mutex_unlock(&escapee_mutex);
+	return NULL;
+	
+err:
+	WARN("write escapee: %s", strerror(errno));
+	del_item(&escapee_list,e);
+	free(e);
+	close(c_sock);
+	pthread_mutex_lock(&escapee_mutex);
+	escapee_thread_count--;
+	pthread_mutex_unlock(&escapee_mutex);
+	return NULL;
+}
 
 

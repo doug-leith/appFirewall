@@ -26,7 +26,7 @@ void* in_list(list_t *l, const void *item, int debug);
 int find_item_row(list_t *l, const void* item);
 void add_item_to_htab(list_t *l, void *item);
 void del_from_htab(list_t *l, const void *item);
-void add_item(list_t *l, void* item, int item_size);
+void* add_item(list_t *l, void* item, int item_size);
 int del_item(list_t *l, const void* item);
 int get_list_size(list_t *l);
 void* get_list_item(list_t *l, int row);

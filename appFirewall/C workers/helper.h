@@ -18,7 +18,7 @@
 void start_listener(void);
 void stop_listener(void);
 
-int connect_to_helper(int port);
+int connect_to_helper(int port,int quiet);
 void start_helper_listeners(void);
 void stop_helper_listeners(void);
 

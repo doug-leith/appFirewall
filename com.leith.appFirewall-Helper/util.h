@@ -16,7 +16,7 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 
-const static int verbose=1;          // debugging level
+const static int verbose=2;          // debugging level
 // apple logging to system.log
 #include <os/log.h>
 #define ERR_LOG(fmt, ...) do{os_log_error(OS_LOG_DEFAULT,fmt, ##__VA_ARGS__);}while(0)
@@ -26,13 +26,19 @@ const static int verbose=1;          // debugging level
 #define ERR(fmt,args ...) do{char buf[32]; fprintf(stderr,"%s ERROR: ",now(buf)); fprintf(stdout, fmt,args);}while(0)
 #define WARN(args ...) do{char buf[32];fprintf(stderr,"%s WARNING: ",now(buf)); fprintf(stdout, args);}while(0)
 #define INFO(args ...) if (verbose) do{char buf[32]; fprintf(stdout, "%s: ",now(buf));fprintf(stdout, args);}while(0)
+#define INFO2(args ...) if (verbose>1) do{char buf[32]; fprintf(stdout, "%s: ",now(buf));fprintf(stdout, args);}while(0)
 #define DEBUG2(args ...) if (verbose>1) fprintf(stdout, args)
 
-#define LINEBUF_SIZE 4096 // max line size of dtrace line
+#define LINEBUF_SIZE 4096 // max line size of readn line
+#define RECV_TIMEOUT 10 // 10s for socket read timeout
+#define SND_TIMEOUT 10 // 10s for socket send timeout
 
 char* now(char* buf);
 int readn(int fd, void* buf, int n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
-int bind_to_port(int port);
+int bind_to_port(int port, int q);
+int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
+void set_recv_timeout(int sockfd, int timeout);
+void set_snd_timeout(int sockfd, int timeout);
 
 #endif /* util_h */

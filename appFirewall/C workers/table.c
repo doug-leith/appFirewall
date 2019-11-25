@@ -58,7 +58,7 @@ void*
 hashtable_remove(Hashtable *table, const char* key_string) {
 	Bucket **pp;
 	Key key = hash(key_string);
-	uint32_t i = key%table->size;
+	unsigned long i = key%( (unsigned long)table->size);
 	for (pp = &table->buckets[i]; *pp; pp = &(*pp)->link)
 		if ((key == (*pp)->key) && (strcmp(key_string,(*pp)->key_string)==0) ) {
 			// found a match
@@ -76,7 +76,7 @@ void*
 hashtable_get(Hashtable *table, const char* key_string) {
 	Bucket *p;
 	Key key = hash(key_string);
-	uint32_t i = key%table->size;
+	unsigned long i = key%( (unsigned long)table->size);
 	for (p = table->buckets[i]; p; p = p->link)
 		if ((key == p->key) && (strcmp(key_string,p->key_string)==0) )
 			break;
@@ -88,7 +88,7 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 	Bucket *p;
 	void *prev;
 	Key key = hash(key_string);
-	uint32_t i = key%table->size;
+	unsigned long i = key%( (unsigned long)table->size);
 	for (p = table->buckets[i]; p; p = p->link)
 		if ((key == p->key) && (strcmp(key_string,p->key_string)==0))
 			break; // already exists, overwrite value

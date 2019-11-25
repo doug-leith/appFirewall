@@ -6,12 +6,12 @@
 
 #include "helper.h"
 
-int connect_to_helper(int port) {
+int connect_to_helper(int port, int quiet) {
 	// open socket to helper process (that has priviledge to use raw socket)
 	char err_msg[STR_SIZE];
 	
 	int sock=-1;
-	INFO("Trying to connect to appFirewall-Helper on port %d ...\n", port);
+	if (!quiet) INFO("Trying to connect to appFirewall-Helper on port %d ... \n", port);
 	int tries=0;
 	while (tries < MAXTRIES) {
 		DEBUG2("Try %d\n",tries);
@@ -20,7 +20,7 @@ int connect_to_helper(int port) {
 		//if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 			ERR("socket: %s", strerror(errno));
 			 // tell GUI to popup error to user
-			sprintf(err_msg,"Problem connecting to appFirewall-Helper, socket: %s", strerror(errno));
+			sprintf(err_msg,"Problem connecting to appFirewall-Helper, socket: %s\n", strerror(errno));
 			set_error_msg(err_msg);
 			return -1;
 		}
@@ -77,7 +77,7 @@ int connect_to_helper(int port) {
 	yes=1;
 	setsockopt(sock,IPPROTO_TCP,TCP_SENDMOREACKS ,&yes,sizeof(yes));
 	
-	INFO("connected to port %d.\n", port);
+	if (!quiet) INFO("connected to port %d.\n", port);
 	return sock;
 }
 
@@ -91,3 +91,4 @@ void stop_helper_listeners() {
 	stop_listener();
 	stop_dtrace_listener();
 }
+

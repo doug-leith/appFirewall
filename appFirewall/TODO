@@ -2,12 +2,6 @@
 
 // resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 
-// sending of RST to existing connections i.e. not just on SYN-ACK.  that way can recover from missing the SYN-ACK
-
 // rotate /Libary/Logs/appFirewall-Helper.log when gets too big, same for ~/Libary/Application Support/app_log.txt
 
-// send keep-alive ping from app to helper on port 4, so if helper dies (or dtrace dies etc) then can respond ??
-
-// report in log on multiple connection attempts (just now these are coalesced into a single entry).  need to add callback to table for when add_item fails because item already exists, then keep count and tweak logline entry.
-
-
+// allow client to adjust log level in appFirewall-Helper ?

@@ -2,17 +2,31 @@
 
 // circular list
 static list_t log_list;
+
 static list_t filtered_log_list;
 static FILE *fp_txt = NULL; // pointer to human readable log file
 static int changed = 0; // flag to record whether log has been updated
 
 char* log_hash(const void* it) {
-	log_line_t *item = (log_line_t*)it;
-	int len = (int)(strlen(item->log_line)+strlen(item->time_str)+4);
+	log_line_t* l = (log_line_t*)it;
+	char* temp0 = conn_raw_hash(&l->raw);
+	int len = (int)(strlen(temp0)+strlen(l->bl_item.name)+2);
+	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
-	strlcpy(temp,item->time_str,len);
-	strlcat(temp,":",len);
-	strlcat(temp,item->log_line,len);
+	sprintf(temp,"%s:%s",l->bl_item.name,temp0);
+	free(temp0);
+	return temp;
+}
+
+char* filtered_log_hash(const void *it) {
+	// this will coalesce multiple connections by same app to same
+	// domain that occur within same 1s time slot into a single
+	// log entry
+	log_line_t* l = (log_line_t*)it;
+	int len = (int)(strlen(l->time_str)+strlen(l->log_line)+4);
+	if (len>STR_SIZE) len = STR_SIZE;
+	char* temp = malloc(len);
+	sprintf(temp,"%s:%s",l->time_str,l->log_line);
 	return temp;
 }
 
@@ -29,8 +43,11 @@ int get_log_size(void) {
 	return get_list_size(&log_list);
 }
 
-int find_log_item_row(log_line_t* item) {
-	return find_item_row(&log_list, item);
+log_line_t* find_log_by_conn(char* name, conn_raw_t* item, int debug) {
+	log_line_t l;
+	memcpy(&l.raw,item,sizeof(conn_raw_t));
+	strlcpy(l.bl_item.name,name,MAXCOMLEN);
+	return in_list(&log_list,&l,0);
 }
 
 log_line_t* get_log_row(int row) {
@@ -59,7 +76,6 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	l->blocked = blocked;
 	
 	add_item(&log_list, l, sizeof(log_line_t));
-	//printf("append_log: %s %d ",long_str,log_size );
 	
 	// and update human-readable log file
 	if (fp_txt) {
@@ -73,6 +89,7 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 			WARN("Problem re-opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));
 		}
 	}
+	free(l); // free our temp copy
 }
 
 void clear_log() {
@@ -83,12 +100,33 @@ void clear_log() {
 
 void filter_log_list(int show_blocked, const char* str) {
 	free_list(&filtered_log_list);
-	init_list(&filtered_log_list,log_hash,NULL,1,-1,"filtered_log_list");
+	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
 	for (int i=0; i<get_log_size(); i++) {
 		log_line_t *l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
 			if ((strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
-				add_item(&filtered_log_list,l,sizeof(log_line_t));
+				log_line_t *l_existing = add_item(&filtered_log_list,l,sizeof(log_line_t));
+				if (l_existing) {
+					// we've just tried to add a duplicate entry
+					// -- happens when many connection attempts are made in quick succession
+					// since filtered_log_list coalesces log entries with same time_str (so
+					// with timestamps within one second of one another)
+					char * loc0 = strstr(l_existing->log_line,"(");
+					char * loc1 = strstr(l_existing->log_line,")");
+					if ((loc0 != NULL) && (loc1!=NULL) && (loc1>loc0) ) {
+						char first_part[LOGSTRSIZE], count_str[LOGSTRSIZE];
+						strlcpy(first_part,l_existing->log_line,LOGSTRSIZE);
+						first_part[loc0-l_existing->log_line]='\0';
+						strlcpy(count_str,loc0+1,LOGSTRSIZE);
+						count_str[loc1-loc0-1]='\0';
+						int count =atoi(count_str);
+						sprintf(l_existing->log_line,"%s(%d)",first_part,count);
+					} else {
+						char first_part[LOGSTRSIZE];
+						strlcpy(first_part,l_existing->log_line,LOGSTRSIZE);
+						sprintf(l_existing->log_line,"%s (%d)",first_part,2);
+					}
+				}
 			}
 		}
 	}
@@ -131,7 +169,7 @@ void load_log() {
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
 	init_list(&log_list,log_hash,NULL,1,-1,"log_list");
-	init_list(&filtered_log_list,log_hash,NULL,1,-1,"filtered_log_list");
+	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
 	//return;
 	load_list(&log_list, path, sizeof(log_line_t));
 }

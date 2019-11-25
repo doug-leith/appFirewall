@@ -43,6 +43,7 @@
 #include "pcap_sniffer.h"
 #include "dtrace.h"
 #include "send_rst.h"
+#include "catch_escapee.h"
 
 #define LOGFILE "/Library/Logs/appFirewall-Helper.log"
 
@@ -52,6 +53,7 @@
 void sigterm_handler(int signum) {
 	INFO("signal %d received.\n", signum); // shouldn't really printf() in signal handler
 	kill_dtrace();
+	INFO("appFirewall-Helper exiting.\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -99,8 +101,9 @@ int main(int argc, char *argv[]) {
 
 	
 	// now initialise libnet packet processing data structure
-	init_libnet();
-	INFO("libnet initialised\n");
+	//init_libnet();
+	start_libnet();
+	INFO("libnet started\n");
 	
 	start_listener();
 	INFO("pcap listener started\n");
@@ -108,6 +111,9 @@ int main(int argc, char *argv[]) {
 	start_dtrace(stdout_fd);
 	INFO("dtrace started\n");
 	
+	start_catcher_listener();
+	INFO("catcher listener started\n");
+
 	// once we get this far any errors are treated as non-fatal i.e.
 	// won't kill process but instead will try to repair things
 	

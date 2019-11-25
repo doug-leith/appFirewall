@@ -175,9 +175,10 @@ void *dtrace(void *ptr) {
 		// on to GUI client
 		size_t inbuf_used = 0;
 		char inbuf[LINEBUF_SIZE], line[LINEBUF_SIZE];
+		set_snd_timeout(d_sock2, SND_TIMEOUT); // to be safe, send() will eventually timeout
 		for (;;) {
 			if (read_line(pipefd[0], inbuf, &inbuf_used, line) <0) break; // problem reading dtrace output
-			INFO("line=%s",line);
+			INFO2("line=%s",line);
 			if (res<0) break; // problem reading dtrace output
 			if (send(d_sock2, line, strlen(line), 0)<=0) break;
 		}
@@ -191,7 +192,7 @@ void *dtrace(void *ptr) {
 
 void start_dtrace(int stdout_fd2) {
 	// start listening for commands to receive dtrace info
-	d_sock = bind_to_port(DTRACE_PORT);
+	d_sock = bind_to_port(DTRACE_PORT,2);
 	INFO("Now listening on localhost port %d\n", DTRACE_PORT);
 
 	stdout_fd = stdout_fd2;

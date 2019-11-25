@@ -17,7 +17,7 @@
 
 #define PCAP_PORT 3
 
-void start_sniffer(char* filter_exp);
+bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);
 void *listener(void *ptr);
 void stop_listener(void);

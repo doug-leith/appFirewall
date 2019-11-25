@@ -25,9 +25,15 @@ typedef struct conn_raw_t {
 	struct timeval ts, start;
 } conn_raw_t;
 
-void init_libnet(void);
+typedef struct libnet_data_t {
+	libnet_t *l4, *l6, *l4_hdr, *l6_hdr;  // libnet state
+	libnet_ptag_t tcp4_ptag, tcp6_ptag, ip4_ptag, ip6_ptag, tcp4_hdr_ptag, ip4_hdr_ptag,tcp6_hdr_ptag, ip6_hdr_ptag;
+} libnet_data_t;
+
+void init_libnet(libnet_data_t *ld);
+void start_libnet(void);
 void rst_accept_loop(void);
 void close_rst_sock(void);
-void snd_rst(int syn, conn_raw_t* c);
+void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld);
 
 #endif /* send_rst_h */

@@ -99,7 +99,7 @@ void set_dtrace_watcher_hook(void (*hook)(void)) {
 
 void *dtrace_listener(void *ptr) {
 
-	if ( (d_sock=connect_to_helper(DTRACE_PORT))<0 ) {pthread_exit(NULL);} //fatal error
+	if ( (d_sock=connect_to_helper(DTRACE_PORT,0))<0 ) {pthread_exit(NULL);} //fatal error
 	
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
@@ -125,7 +125,7 @@ void *dtrace_listener(void *ptr) {
 		}
 		// likely helper has shut down dtrace connection for some reason, reopen it
 		close(d_sock); // if don't close and reopen sock we get error
-		if ( (d_sock=connect_to_helper(DTRACE_PORT))<0 ){
+		if ( (d_sock=connect_to_helper(DTRACE_PORT,0))<0 ){
 			pthread_exit(NULL); //fatal error
 		}
 		continue;

@@ -79,7 +79,7 @@ int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line) {
   return i;
 }
 
-int bind_to_port(int port) {
+int bind_to_port(int port, int q) {
 	int sock;
 	//if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
@@ -115,10 +115,34 @@ int bind_to_port(int port) {
 		exit(EXIT_FAILURE);
 	}
 	chmod(local.sun_path, 0777);
-	if (listen(sock, 2) == -1) {
+	if (listen(sock, q) == -1) {
 		ERR("Problem listening to %s: %s\n", local.sun_path, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	return sock;
+}
+
+inline int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2) {
+	if (af==AF_INET) { // IPv4
+		uint32_t _addr1 = ((struct in_addr*)addr1)->s_addr;
+		uint32_t _addr2 = ((struct in_addr*)addr2)->s_addr;
+		return (_addr1==_addr2);
+	} else { // IPv6
+		return (memcmp(&addr1->s6_addr, &addr2->s6_addr, 16)==0);
+	}
+}
+
+inline void set_recv_timeout(int sockfd, int timeout) {
+	struct timeval tv;
+	tv.tv_sec = timeout;
+	tv.tv_usec = 0;
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+}
+
+inline void set_snd_timeout(int sockfd, int timeout) {
+	struct timeval tv;
+	tv.tv_sec = timeout;
+	tv.tv_usec = 0;
+	setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 }
 

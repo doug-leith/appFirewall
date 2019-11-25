@@ -54,3 +54,4 @@ int is_blocked(bl_item_t *c) {
 	}
 	return blocked;
 }
+

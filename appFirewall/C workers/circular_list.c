@@ -94,11 +94,12 @@ void del_from_htab(list_t *l, const void *item) {
 	free(temp);
 }
 
-void add_item(list_t *l, void* item, int item_size) {
-	if (l->hash == NULL) return;
-	if (in_list(l, item, 0)) {
-		INFO2("add_item() item %s exists in list %s.\n", l->hash(item),l->list_name);
-		return;
+void* add_item(list_t *l, void* item, int item_size) {
+	if (l->hash == NULL) return NULL;
+	void* ptr = in_list(l, item, 0);
+	if (ptr) {
+		DEBUG2("add_item() item %s exists in list %s.\n", l->hash(item),l->list_name);
+		return ptr;
 	}
 
 	void* it = malloc(item_size);
@@ -117,10 +118,11 @@ void add_item(list_t *l, void* item, int item_size) {
 	} else {
 		free(it);
 		WARN("add_item() %s list %s full.\n", l->hash(item),l->list_name);
-		return;
+		return NULL;
 	}
 	add_item_to_htab(l, it);
 	//dump_hashtable(l->htab);
+	return NULL;
 }
 
 int del_item(list_t *l, const void* item) {

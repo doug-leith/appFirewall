@@ -43,6 +43,7 @@
 		9180E16B2387FCC9007002CB /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 9180E16A2387FCC9007002CB /* LICENSE */; };
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
 		9180E1732388ABB7007002CB /* is_blocked.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1722388ABB7007002CB /* is_blocked.c */; };
+		9180E175238927A2007002CB /* catch_escapee.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E174238927A2007002CB /* catch_escapee.c */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91ABB26E237680B7007F8FFE /* table.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB26C237680B7007F8FFE /* table.c */; };
 		91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */; };
@@ -151,6 +152,8 @@
 		9180E16F2388A91F007002CB /* connection.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = connection.c; sourceTree = "<group>"; };
 		9180E1712388ABB7007002CB /* is_blocked.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = is_blocked.h; sourceTree = "<group>"; };
 		9180E1722388ABB7007002CB /* is_blocked.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = is_blocked.c; sourceTree = "<group>"; };
+		9180E174238927A2007002CB /* catch_escapee.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = catch_escapee.c; sourceTree = "<group>"; };
+		9180E1762389D4DB007002CB /* catch_escapee.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = catch_escapee.h; sourceTree = "<group>"; };
 		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
 		91ABB26D237680B7007F8FFE /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceViewController.swift; sourceTree = "<group>"; };
@@ -246,6 +249,8 @@
 				9139F675237BB20F00600D37 /* util.c */,
 				9139F677237BB9A800600D37 /* send_rst.h */,
 				9139F678237BB9A800600D37 /* send_rst.c */,
+				9180E1762389D4DB007002CB /* catch_escapee.h */,
+				9180E174238927A2007002CB /* catch_escapee.c */,
 			);
 			path = "com.leith.appFirewall-Helper";
 			sourceTree = "<group>";
@@ -442,6 +447,7 @@
 			files = (
 				9139F670237BB18600600D37 /* dtrace.c in Sources */,
 				9139F676237BB20F00600D37 /* util.c in Sources */,
+				9180E175238927A2007002CB /* catch_escapee.c in Sources */,
 				91607C2C2372FF7F002E50A8 /* main.c in Sources */,
 				9139F673237BB1BB00600D37 /* pcap_sniffer.c in Sources */,
 				9139F679237BB9A800600D37 /* send_rst.c in Sources */,

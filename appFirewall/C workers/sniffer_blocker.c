@@ -41,7 +41,7 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 	int pid;
 	int res=lookup_dtrace(cr, c.name, &pid);
 	if (res==0) { // quite rare, so interesting
-		INFO2("%s:%d->%s:%d NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
+		INFO2("%s:%u->%s:%u NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
 		stats.dtrace_misses++;
 		// try to get PID info from /proc
 		res=find_pid(cr,c.name);
@@ -54,7 +54,7 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 	} else {
 		stats.dtrace_hits++;
 		cache_pid(pid, c.name); // cache successful pid for pidinfo lookup
-		INFO2("%s:%d->%s:%d found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
+		INFO2("%s:%u->%s:%u found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 	}
 
 	// try to get domain name from DNS cache
@@ -76,8 +76,9 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 		DEBUG2("%s %s %d\n",c->name,c->addr_name,blocked);
 
 		// log the connection
-		char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN];
+		char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
 		inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
+		inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
 		char dns[MAXDOMAINLEN], dst_name[MAXDOMAINLEN];
 		if (strlen(c->domain)>0) {
 			sprintf(dns,"%s (%s)",c->addr_name,c->domain);
@@ -86,8 +87,8 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 			strlcpy(dns,c->addr_name,MAXDOMAINLEN);
 			strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
 		}
-		sprintf(str,"%s → %s:%d", c->name, dst_name, cr->dport);
-		sprintf(long_str,"%s %s:%d -> %s:%d", c->name, dn, cr->dport, dns, cr->sport);
+		sprintf(str,"%s → %s:%u", c->name, dst_name, cr->dport);
+		sprintf(long_str,"%s %s:%u -> %s:%u", c->name, sn, cr->sport, dns, cr->dport);
 		append_log(str, long_str, c, cr, blocked);
 
 		if (!blocked) {
@@ -104,12 +105,14 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 		}
 		
 		num_conns_blocked++;
+		//return;
 		
 		// send RST packet to try to end connection
 		// ask helper process (which has root permissions) to send
 		// RST packet via raw socket
-		DEBUG2("sending af=%d, sport=%d, dport=%d, ack=%d, seq=%d, %s -> %s\n",cr->af,cr->sport, cr->dport,cr->seq,cr->ack,dn,c->addr_name);
+		DEBUG2("sending af=%d, sport=%u, dport=%u, ack=%d, seq=%u, %s -> %s\n",cr->af,cr->sport, cr->dport,cr->seq,cr->ack,dn,c->addr_name);
 		int syn = 0;
+		set_snd_timeout(*r_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
 		if (send(*r_sock, &syn, sizeof(int),0)<0) goto err_r;
 		if (send(*r_sock, &cr->af, sizeof(int),0)<0) goto err_r;
 		if (send(*r_sock, &cr->src_addr, sizeof(struct in6_addr),0)<0) goto err_r;
@@ -133,9 +136,9 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 		return;
 		
 	err_r:
-		WARN("send pkt: %s", strerror(errno));
+		WARN("send pkt: %s\n", strerror(errno));
 		close(*r_sock); // if don't close and reopen sock we get error
-		if ( (*r_sock=connect_to_helper(RST_PORT)) <0 ) {is_running=0; pthread_exit(NULL);} //fatal error
+		if ( (*r_sock=connect_to_helper(RST_PORT,0)) <0 ) {is_running=0; pthread_exit(NULL);} //fatal error
 		return;
 }
 
@@ -206,8 +209,8 @@ void *listener(void *ptr) {
 	
 	is_running=1; // flag that thread is running
 	
-	if ( (p_sock=connect_to_helper(PCAP_PORT))<0 ) {is_running=0; pthread_exit(NULL);} //fatal error
-	if ( (r_sock=connect_to_helper(RST_PORT)) <0 ) {is_running=0; pthread_exit(NULL);} //fatal error
+	if ( (p_sock=connect_to_helper(PCAP_PORT,0))<0 ) {is_running=0; pthread_exit(NULL);} //fatal error
+	if ( (r_sock=connect_to_helper(RST_PORT,0)) <0 ) {is_running=0; pthread_exit(NULL);} //fatal error
 
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
@@ -312,8 +315,8 @@ void *listener(void *ptr) {
 					}
 					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
 					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
-					sprintf(str,"%s → UDP/QUIC %s:%d", c.name, c.domain, dport);
-					sprintf(long_str,"%s UDP/QUIC %s:%d -> %s:%d", c.name, sn, sport, dns, dport);
+					sprintf(str,"%s → UDP/QUIC %s:%u", c.name, c.domain, dport);
+					sprintf(long_str,"%s UDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
 					append_log(str, long_str, &c, &cr, 0); // can't block QUIC yet ...
 					
 					float t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
@@ -379,14 +382,19 @@ void *listener(void *ptr) {
 			pthread_mutex_lock(&wait_list_mutex);
 			add_item(&waiting_list,&cr,sizeof(conn_raw_t));
 			pthread_mutex_unlock(&wait_list_mutex);
-			// refresh pid info (takes a while, so we don't wait here)
-			//printf("signalling after adding\n");
-			signal_pid_watcher();
 		} else {
 			// got PID name, proceed with processing ...
 			// if on block list, send rst.  otherwise just log conn and move on
 			process_conn(&cr, &c, &r_sock,1);
 		}
+		// refresh pid info (may take a while, so we don't wait here).  serves a dual purpose:
+		// 1. if have just added conn to waiting list because can't find the conn in
+		// the current pidinfo list of processes and conns then this will cause the list
+		// to be updated, so that hopefully can now find the conn and take it off waiitng list
+		// 2. for a conn which we've just processed refresh of pidinfo will cause a
+		// check that conn has really died, and if not will call helper to catch the
+		// "escapee".		
+		signal_pid_watcher();
 		continue;
 		
 	err_p:
@@ -397,7 +405,7 @@ void *listener(void *ptr) {
 		}
 		// likely helper has shut down sniffing connection for some reason, reopen it
 		close(p_sock); // if don't close and reopen sock we get error
-		if ( (p_sock=connect_to_helper(PCAP_PORT))<0 ) {is_running=0; pthread_exit(NULL);} //fatal error
+		if ( (p_sock=connect_to_helper(PCAP_PORT,0))<0 ) {is_running=0; pthread_exit(NULL);} //fatal error
 		continue;
 	}
 }

@@ -29,8 +29,7 @@ typedef struct log_line_t {
 
 int get_log_size(void);
 log_line_t* get_log_row(int row);
-int find_log_item_row(log_line_t* item);
-char* log_hash(const void* it);
+log_line_t* find_log_by_conn(char* name, conn_raw_t* c, int debug);
 void get_log_addr_name(int row, char* str, int len);
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked);
 void save_log(void);
