@@ -16,7 +16,7 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 
-const static int verbose=2;          // debugging level
+const static int verbose=1;          // debugging level
 // apple logging to system.log
 #include <os/log.h>
 #define ERR_LOG(fmt, ...) do{os_log_error(OS_LOG_DEFAULT,fmt, ##__VA_ARGS__);}while(0)
@@ -27,7 +27,7 @@ const static int verbose=2;          // debugging level
 #define WARN(args ...) do{char buf[32];fprintf(stderr,"%s WARNING: ",now(buf)); fprintf(stdout, args);}while(0)
 #define INFO(args ...) if (verbose) do{char buf[32]; fprintf(stdout, "%s: ",now(buf));fprintf(stdout, args);}while(0)
 #define INFO2(args ...) if (verbose>1) do{char buf[32]; fprintf(stdout, "%s: ",now(buf));fprintf(stdout, args);}while(0)
-#define DEBUG2(args ...) if (verbose>1) fprintf(stdout, args)
+#define DEBUG2(args ...) if (verbose>2) fprintf(stdout, args)
 
 #define LINEBUF_SIZE 4096 // max line size of readn line
 #define RECV_TIMEOUT 10 // 10s for socket read timeout

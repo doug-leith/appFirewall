@@ -2,6 +2,5 @@
 
 // resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 
-// rotate /Libary/Logs/appFirewall-Helper.log when gets too big, same for ~/Libary/Application Support/app_log.txt
-
 // allow client to adjust log level in appFirewall-Helper ?
+// add README.md file

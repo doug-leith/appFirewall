@@ -46,7 +46,7 @@
 #include "catch_escapee.h"
 
 #define LOGFILE "/Library/Logs/appFirewall-Helper.log"
-
+#define ROTFILE "/etc/newsyslog.d/appFirewall-Helper.conf"
 // compile with gcc -g -lpcap -lnet pcap_sniffer.c dtrace.c util.c send_rst.c main.c
 // and debug with lldb
 
@@ -99,7 +99,15 @@ int main(int argc, char *argv[]) {
 	action.sa_handler = sigterm_handler;
 	sigaction(SIGTERM, &action, NULL);
 
-	
+	// configure log rotation
+	// see https://www.freebsd.org/cgi/man.cgi?newsyslog.conf(5)
+  char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t10000\t*\tNJ\n";
+  char rot_str[1024];
+  sprintf(rot_str,rot_fmt,LOGFILE);
+	int rotatefd = open(ROTFILE,O_WRONLY|O_CREAT,0644);
+	write(rotatefd,rot_str,strlen(rot_str));
+	close(rotatefd);
+
 	// now initialise libnet packet processing data structure
 	//init_libnet();
 	start_libnet();

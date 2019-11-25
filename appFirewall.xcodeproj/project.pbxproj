@@ -44,6 +44,7 @@
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
 		9180E1732388ABB7007002CB /* is_blocked.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1722388ABB7007002CB /* is_blocked.c */; };
 		9180E175238927A2007002CB /* catch_escapee.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E174238927A2007002CB /* catch_escapee.c */; };
+		9180E178238BC731007002CB /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 9180E177238BC731007002CB /* Credits.html */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91ABB26E237680B7007F8FFE /* table.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB26C237680B7007F8FFE /* table.c */; };
 		91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */; };
@@ -154,6 +155,7 @@
 		9180E1722388ABB7007002CB /* is_blocked.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = is_blocked.c; sourceTree = "<group>"; };
 		9180E174238927A2007002CB /* catch_escapee.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = catch_escapee.c; sourceTree = "<group>"; };
 		9180E1762389D4DB007002CB /* catch_escapee.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = catch_escapee.h; sourceTree = "<group>"; };
+		9180E177238BC731007002CB /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
 		91ABB26D237680B7007F8FFE /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceViewController.swift; sourceTree = "<group>"; };
@@ -207,6 +209,7 @@
 			isa = PBXGroup;
 			children = (
 				9180E16A2387FCC9007002CB /* LICENSE */,
+				9180E177238BC731007002CB /* Credits.html */,
 				91ABB292237734DE007F8FFE /* BlackLists */,
 				91607BE1236B691A002E50A8 /* libnet */,
 				9180E1632386653A007002CB /* C workers */,
@@ -398,6 +401,7 @@
 				9180E16B2387FCC9007002CB /* LICENSE in Resources */,
 				91607BE2236B691A002E50A8 /* libnet in Resources */,
 				91B67F2823793C1C00706027 /* TODO in Resources */,
+				9180E178238BC731007002CB /* Credits.html in Resources */,
 				91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */,
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
