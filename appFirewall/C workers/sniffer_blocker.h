@@ -1,3 +1,9 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
+
 #ifndef sniffer_blocker
 #define sniffer_blocker
 
@@ -27,11 +33,13 @@
 
 void init_sniffer_blocker(char* filter_exp);
 void sniffer_blocker_callback(u_char *args, const struct pcap_pkthdr *pkthdr, 	const 			u_char* pkt);
+bl_item_t create_blockitem_from_addr(conn_raw_t *cr);
+
+// swift
 void start_listener(void);
 void stop_listener(void);
+int_sw get_num_conns_blocked(void);
+void set_num_conns_blocked(int_sw val);
 int listener_error(void);
-int get_num_conns_blocked(void);
-void set_num_conns_blocked(int val);
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr);
 
 #endif

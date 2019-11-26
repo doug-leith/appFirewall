@@ -1,3 +1,7 @@
+//
+//  percentile.h
+//  appFirewall
+//
 // implementation is from https://github.com/statsite/statsite/tree/master/src
 /*
 BSD 3-Clause
@@ -294,7 +298,7 @@ int heap_delmin(heap* h, void** key, void** value) {
         // Store the left index
         int left_child_index;
 
-        while (left_child_index = LEFT_CHILD(current_index), left_child_index < entries) {
+        while (left_child_index = LEFT_CHILD(current_index), left_child_index < entries)  {
             // Load the left child
             left_child = GET_ENTRY(left_child_index, table);
 

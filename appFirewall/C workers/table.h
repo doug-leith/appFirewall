@@ -1,3 +1,8 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #ifndef table_h
 #define table_h
@@ -8,7 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 
-typedef unsigned long Key;
+typedef uint32_t Key;
 
 typedef struct Bucket {
   struct Bucket *link;

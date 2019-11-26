@@ -2,7 +2,6 @@
 //  helpViewController.swift
 //  appFirewall
 //
-//  Created by Doug Leith on 16/11/2019.
 //  Copyright © 2019 Doug Leith. All rights reserved.
 //
 

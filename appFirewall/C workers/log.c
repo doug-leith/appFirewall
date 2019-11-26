@@ -1,3 +1,9 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
+
 #include "log.h"
 
 // circular list
@@ -30,7 +36,7 @@ char* filtered_log_hash(const void *it) {
 	return temp;
 }
 
-int has_log_changed(void) {
+int_sw has_log_changed(void) {
 	return changed;
 }
 
@@ -54,11 +60,11 @@ log_line_t* get_log_row(int row) {
 	return (log_line_t*)get_list_item(&log_list,row);
 }
 
-void get_log_addr_name(int row, char* str, int len) {
+/*void get_log_addr_name(int row, char* str, int len) {
 	log_line_t *l = get_list_item(&log_list,row);
 	inet_ntop(l->raw.af,&l->raw.dst_addr,str,len);
 	//printf("get_log_addr_name '%s'\n",str);
-}
+}*/
 
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
 	changed = 1; // record for GUI fact that log has been updated
@@ -98,7 +104,7 @@ void clear_log() {
 	init_list(&log_list,log_hash,NULL,1,-1,"log_list");
 }
 
-void filter_log_list(int show_blocked, const char* str) {
+void filter_log_list(int_sw show_blocked, const char* str) {
 	free_list(&filtered_log_list);
 	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
 	for (int i=0; i<get_log_size(); i++) {
@@ -132,15 +138,15 @@ void filter_log_list(int show_blocked, const char* str) {
 	}
 }
 
-int get_filter_log_size(void) {
+int_sw get_filter_log_size(void) {
 	return get_list_size(&filtered_log_list);
 }
 
-log_line_t* get_filter_log_row(int row) {
+log_line_t* get_filter_log_row(int_sw row) {
 	return (log_line_t*)get_list_item(&filtered_log_list,row);
 }
 
-void get_filter_log_addr_name(int row, char* str, int len) {
+void get_filter_log_addr_name(int_sw row, char* str, int_sw len) {
 	log_line_t *l = get_list_item(&filtered_log_list,row);
 	inet_ntop(l->raw.af,&l->raw.dst_addr,str,len);
 }

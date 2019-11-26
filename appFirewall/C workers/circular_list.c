@@ -2,6 +2,8 @@
 //  circular_list.c
 //  appFirewall
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #include "circular_list.h"
 

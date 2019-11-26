@@ -2,7 +2,6 @@
 //  helper.h
 //  appFirewall
 //
-//  Created by Doug Leith on 13/11/2019.
 //  Copyright © 2019 Doug Leith. All rights reserved.
 //
 
@@ -15,11 +14,12 @@
 
 #define MAXTRIES 10
 
-void start_listener(void);
-void stop_listener(void);
-
 int connect_to_helper(int port,int quiet);
-void start_helper_listeners(void);
+void start_listener(void); // sniffer_blocker.h
+void stop_listener(void); // sniffer_blocker.h
+
+// swift interface
+void start_helper_listeners(int_sw dtrace);
 void stop_helper_listeners(void);
 
 #endif /* helper_h */

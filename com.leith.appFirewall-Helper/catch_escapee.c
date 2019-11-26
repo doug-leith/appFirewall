@@ -1,6 +1,7 @@
 //
-//  appFirewall-Helper
-//	- raw socket handler for appFirewall, needs root priviledge
+//  com.leith.appFirewall-Helper
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
 //
 
 // TCP header details: https://en.wikipedia.org/wiki/Transmission_Control_Protocol#TCP_timestamps
@@ -239,7 +240,7 @@ void *catcher_listener(void *ptr) {
 		// do some basic sanity checking
 		if (af!=AF_INET && af!=AF_INET6) continue;
 				
-		conn_raw_t c;
+		conn_raw_t c; memset(&c,0,sizeof(c));
 		res = find_fds(pid, af, dst, target_dport, &c);
 		if (res<0) {
 			INFO("couldn't find PID with those connection details: %d %s:%u\n",pid,dn,target_dport);

@@ -2,7 +2,8 @@
 //  connection.h
 //  appFirewall
 //
-
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #ifndef connection_h
 #define connection_h
@@ -32,6 +33,7 @@ typedef struct conn_t {
 	char src_addr_name[INET6_ADDRSTRLEN], dst_addr_name[INET6_ADDRSTRLEN];
 } conn_t;
 
+// bl_item_t is used by swift
 typedef struct bl_item_t {
 	char name[MAXCOMLEN]; // name of app associated with connection
 	char addr_name[INET6_ADDRSTRLEN]; // human-readable form of non-local address

@@ -2,6 +2,7 @@
 //  AppDelegate.swift
 //  appFirewall
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
 //
 
 import Cocoa
@@ -29,6 +30,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// handle click on preferences menu item by opening preferences window
 		let myWindow = NSWindow(contentViewController: prefController)
 		myWindow.styleMask.remove(.miniaturizable) // disable close button, per apple guidelines for preference panes
+		myWindow.styleMask.remove(.resizable) // fixed size
 		let vc = NSWindowController(window: myWindow)
 		vc.showWindow(self)
 	}
@@ -342,7 +344,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if let button = statusItem.button {
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 		}
-		UserDefaults.standard.set(Int(get_num_conns_blocked()), forKey: "Number of connections blocked")
 	}
 	
 
@@ -381,11 +382,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])
 		UserDefaults.standard.register(defaults: ["log_asc":false])
 		UserDefaults.standard.register(defaults: ["log_show_blocked":3])
-		
-		// and initialise active conn qos logging
-		UserDefaults.standard.set(0, forKey: "active_blockedCount")
-		UserDefaults.standard.set(0, forKey: "active_connCount")
-		
+				
 		// set default logging level
 		UserDefaults.standard.register(defaults: ["logging_level":2])
 		// can change this at command line using "defaults write" command
@@ -393,18 +390,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		set_logging_level(Int32(log_level))
 		init_stats();
 
+		// set whether to use dtrace assistance or not
+		UserDefaults.standard.register(defaults: ["dtrace":1])
+		let dtrace = UserDefaults.standard.integer(forKey: "dtrace")
+		
 		// set up handler to catch C errors
 		setup_sigterm_handler()
 		
 		// reload state
 		load_log(); load_blocklist(); load_whitelist()
 		load_dns_cache()
-		prefController.load_hostlists() // might be slow
+		prefController.load_hostlists() // might be slow?
 
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper
     DispatchQueue.global(qos: .background).async {
-			start_helper_listeners()
+			start_helper_listeners(Int32(dtrace))
 		}
 		
 		// schedule house-keeping ...

@@ -1,3 +1,8 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #include "table.h"
 #define STR_SIZE 1024
@@ -9,7 +14,7 @@ hashtable_new(int hint) {
 	static unsigned int primes[] = { 509, 509, 1021, 2053, 4093, 8191, 16381, 32771, 65521, 101111, 152501, 250051, INT_MAX };
 	for (i = 1; primes[i] < hint; i++);
 	table = calloc(1,sizeof(Hashtable) + primes[i-1]*sizeof(Bucket));
-	table->size = (uint32_t) primes[i-1];
+	table->size = primes[i-1];
 	table->buckets = (Bucket **)(table + 1);
 	for (i = 0; i < table->size; i++) table->buckets[i] = NULL;
 	return table;
@@ -48,7 +53,7 @@ void dump_hashtable(Hashtable *table){
 					//free(p->value);
 				}
 				if (p->key_string) {
-					printf("key: %lu, key_string: '%s'\n", p->key, p->key_string);
+					printf("key: %u, key_string: '%s'\n", p->key, p->key_string);
 				}
 			}
 		}
@@ -58,7 +63,7 @@ void*
 hashtable_remove(Hashtable *table, const char* key_string) {
 	Bucket **pp;
 	Key key = hash(key_string);
-	unsigned long i = key%( (unsigned long)table->size);
+	uint32_t i = key%table->size;
 	for (pp = &table->buckets[i]; *pp; pp = &(*pp)->link)
 		if ((key == (*pp)->key) && (strcmp(key_string,(*pp)->key_string)==0) ) {
 			// found a match
@@ -76,7 +81,7 @@ void*
 hashtable_get(Hashtable *table, const char* key_string) {
 	Bucket *p;
 	Key key = hash(key_string);
-	unsigned long i = key%( (unsigned long)table->size);
+	uint32_t i = key%table->size;
 	for (p = table->buckets[i]; p; p = p->link)
 		if ((key == p->key) && (strcmp(key_string,p->key_string)==0) )
 			break;
@@ -88,7 +93,7 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 	Bucket *p;
 	void *prev;
 	Key key = hash(key_string);
-	unsigned long i = key%( (unsigned long)table->size);
+	uint32_t i = key%table->size;
 	for (p = table->buckets[i]; p; p = p->link)
 		if ((key == p->key) && (strcmp(key_string,p->key_string)==0))
 			break; // already exists, overwrite value
@@ -110,7 +115,7 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 
 Key hash(const char *str) {
 		// djb2 hash of Dan Bernstein http://www.cse.yorku.ca/~oz/hash.html
-    unsigned long hash = 5381;
+    uint32_t hash = 5381;
     int c, count=0;
     while ( (c = *str) && (count<STR_SIZE) ) {
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */

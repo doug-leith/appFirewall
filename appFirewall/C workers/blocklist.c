@@ -1,3 +1,8 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #include "blocklist.h"
 
@@ -27,7 +32,7 @@ void init_block_list() {
 	init_list(&block_list, bl_hash, NULL,  0, -1, "block_list");
 }
 
-static int asc=1, col=0;
+static int_sw asc=1, col=0;
 int bl_sort_cmp(const void* it1, const void* it2){
 	bl_item_t **item1 = (bl_item_t**) it1;
 	bl_item_t **item2 = (bl_item_t**) it2;
@@ -74,11 +79,11 @@ int del_blockitem(bl_item_t *item) {
 	return 0;
 }
 
-int get_blocklist_size(void) {
+int_sw get_blocklist_size(void) {
 	return get_list_size(&block_list);
 }
 
-bl_item_t* get_blocklist_item(int row) {
+bl_item_t* get_blocklist_item(int_sw row) {
 	return get_list_item(&block_list,row);
 }
 

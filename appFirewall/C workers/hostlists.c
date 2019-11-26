@@ -2,6 +2,8 @@
 //  hostlists.c
 //  appFirewall
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 // routines for handling host blacklist files e.g. energized_blu
 
@@ -33,14 +35,23 @@ void* in_hostlist_htab(const char *domain) {
 		return NULL;
 }
 
-void load_hostsfile(const char* fname) {
+void add_hostlist(char * domain) {
+	int len = (int)strlen(domain)+1;
+	if (len > STR_SIZE) len = STR_SIZE; // just to be safe !
+	char *str = malloc(len);
+	strlcpy(str,domain,len);
+	hashtable_put(hl_htab, str, hl_htab); // last parameter is just a placeholder
+	host_list_size++;
+}
+
+int_sw load_hostsfile(const char* fname) {
 	// load domain names from hosts file and add to black list table
 	
 	//printf("load hosts file()\n");
 	FILE *  fp = fopen(fname, "r");
 	if (fp == NULL) {
 			WARN("Problem opening hosts file %s for reading: %s\n", fname, strerror(errno));
-			return;
+			return -1;
 	}
 
 	char * line = NULL;
@@ -69,15 +80,17 @@ void load_hostsfile(const char* fname) {
 			char * nl = strstr(domain,"\n"); if (nl!=NULL) *nl=0;
 			DEBUG2("%s\n", domain);
 			// and add domain name to hosts list table
-			int len = (int)strlen(domain)+1;
+			add_hostlist(domain);
+			/*int len = (int)strlen(domain)+1;
 			if (len > STR_SIZE) len = STR_SIZE; // just to be safe !
 			char *str = malloc(len);
 			strlcpy(str,domain,len);
 			hashtable_put(hl_htab, str, hl_htab); // last parameter is just a placeholder
-			host_list_size++;
+			host_list_size++;*/
 	}
 	fclose(fp);
 	INFO("loaded %d entries\n",host_list_size);
 	if (line) free(line);
+	return 0;
 }
 

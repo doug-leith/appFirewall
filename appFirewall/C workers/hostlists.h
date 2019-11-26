@@ -2,6 +2,8 @@
 //  hostlists.h
 //  appFirewall
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #ifndef hostlists_h
 #define hostlists_h
@@ -18,8 +20,11 @@
 #define HTABSIZE 250000
 
 void init_hosts_list(void);
-void load_hostsfile(const char* fname);
 void* in_hostlist_htab(const char *domain);
+void add_hostlist(char * domain);
+
+//swift
+int_sw load_hostsfile(const char* fname);
 
 #endif /* hostlists_h */
 

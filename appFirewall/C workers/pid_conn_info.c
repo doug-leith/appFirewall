@@ -1,3 +1,9 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
+
 // maintains list of active processes and their network connections
 
 // proc_info interface documentation: https://opensource.apple.com/source/xnu/xnu-3789.1.32/bsd/sys/proc_info.h.auto.html
@@ -101,7 +107,7 @@ void set_pid_watcher_hook(void (*hook)(void)) {
 	pid_watcher_hook = hook;
 }
 
-conn_t get_conn(int row) {
+conn_t get_conn(int_sw row) {
 	// for use by swift GUI
 	conn_t c;
 	memset(&c,0,sizeof(conn_t));
@@ -120,7 +126,7 @@ void free_conn(conn_t* c) {
 	if (c) free(c);
 }
 
-int get_num_conns() {
+int_sw get_num_conns() {
 	// for use by swift GUI
 	pthread_mutex_lock(&gui_pid_mutex);
 	int res = get_list_size(&gui_pid_list);
@@ -129,7 +135,7 @@ int get_num_conns() {
 	return res;
 }
 
-int get_pid_changed() {
+int_sw get_pid_changed() {
 	// for use by swift GUI
 	pthread_mutex_lock(&gui_pid_mutex);
 	int res=changed;
@@ -319,11 +325,11 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		// NB: reuse of file descriptors means that can make mistakes here e.g.
 		// if between calls to here a process closes a connection and new one is
 		// opened (to new destination) but has the same fd.
-		int res=pthread_mutex_trylock(&pid_mutex);
+		int match=0;
+		/*int res=pthread_mutex_trylock(&pid_mutex);
 		char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
 		conn_t* it = hashtable_get(old_pid_list_fdtab, key);
 		free(key);
-		int match=0;
 		if (it != NULL) { // got a match
 			memcpy(&c,it,sizeof(conn_t));
 			match = 1;
@@ -331,8 +337,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		if (res != EBUSY) {
 			// we took the lock ourselves, so let's release it
 			pthread_mutex_unlock(&pid_mutex);
-		}
-		match = 0;
+		}*/
 		if (!match) {
 			// we need to call proc_pidfdinfo() to get the connection info
 			struct socket_fdinfo socketInfo;

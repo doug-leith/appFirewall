@@ -2,7 +2,8 @@
 //  helper.c
 //  appFirewall
 //
-
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #include "helper.h"
 
@@ -81,10 +82,10 @@ int connect_to_helper(int port, int quiet) {
 	return sock;
 }
 
-void start_helper_listeners() {
+void start_helper_listeners(int_sw dtrace) {
 	// fire up thread that listens for pkts sent by helper
-	start_listener();
-	start_dtrace_listener();
+	start_listener(); // pkt sniffer
+	if (dtrace) start_dtrace_listener(); // dtrace
 }
 
 void stop_helper_listeners() {

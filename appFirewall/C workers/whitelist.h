@@ -2,6 +2,8 @@
 //  whitelist.h
 //  appFirewall
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 
 #ifndef whitelist_h
@@ -18,13 +20,15 @@ void init_white_list(void);
 bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug);
 void add_whiteitem(bl_item_t *item);
 int del_whiteitem(bl_item_t *item);
-int get_whitelist_size(void);
-bl_item_t* get_whitelist_item(int row);
+
+// swift
+void save_whitelist(void);
+void load_whitelist(void);
+void sort_white_list(int_sw asc1, int_sw col1);
+int_sw get_whitelist_size(void);
+bl_item_t* get_whitelist_item(int_sw row);
 char* get_whitelist_item_name(bl_item_t *item);
 char* get_whitelist_item_domain(bl_item_t *item);
 char* get_whitelist_item_addrname(bl_item_t *item);
-void save_whitelist(void);
-void load_whitelist(void);
-void sort_white_list(int asc1, int col1);
 
 #endif /* whitelist_h */

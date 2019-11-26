@@ -2,7 +2,8 @@
 //  BlockListViewController.swift
 //  appFirewall
 //
-
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 import Cocoa
 

@@ -2,7 +2,6 @@
 //  dns_sniffer.h
 //  appFirewall
 //
-//  Created by Doug Leith on 05/11/2019.
 //  Copyright © 2019 Doug Leith. All rights reserved.
 //
 
@@ -27,6 +26,8 @@ typedef struct dns_item_t {
 void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* pkt);
 void append_dns(int af, struct in6_addr addr, char* name);
 char* lookup_dns_name(int af, struct in6_addr addr);
+
+// swift
 void load_dns_cache(void);
 void save_dns_cache(void);
 

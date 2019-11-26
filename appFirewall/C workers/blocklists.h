@@ -2,7 +2,6 @@
 //  blocklists.h
 //  appFirewall
 //
-//  Created by Doug Leith on 14/11/2019.
 //  Copyright © 2019 Doug Leith. All rights reserved.
 //
 
@@ -17,10 +16,13 @@
 #include "util.h"
 #include "table.h"
 #include "blocklist.h"
+#include "hostlists.h"
 
 #define HTABSIZE 250000
 
-void load_blocklistfile(const char* fname);
 void* in_blocklists_htab(bl_item_t *b);
+
+//swift
+int_sw load_blocklistfile(const char* fname);
 
 #endif /* blocklists_h */

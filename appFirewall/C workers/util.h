@@ -1,3 +1,9 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
+
 #ifndef util_h
 #define util_h
 
@@ -11,6 +17,7 @@
 #include <arpa/inet.h>
 #include <sys/errno.h>
 #include <string.h>
+#include <time.h>
 #include <ctype.h>
 #include "percentile.h"
 
@@ -47,13 +54,9 @@ typedef struct {
 	int num_escapees,escapees_not_in_log,stale_escapees,escapees_hits,escapees_misses;
 } stats_t;
 
+typedef int32_t int_sw; // nail down swift interface int size
+
 extern stats_t stats;
-
-char* get_error_msg(void);
-void set_error_msg(char* msg);
-
-char* get_path(void);
-void set_path(const char* path);
 
 int readn(int fd, void* buf, int n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
@@ -68,10 +71,17 @@ void set_snd_timeout(int sockfd, int timeout);
 char *trimwhitespace(char *str);
 void redirect_stdout(void);
 
-void print_stats(void);
-void set_logging_level(int level);
-void init_stats(void);
-
 struct timespec timespec_add(struct timespec ts1, struct timespec ts2);
+
+//swift
+char* get_date(void);
+char* get_file_modify_time(const char *path);
+void print_stats(void);
+void set_logging_level(int_sw level);
+void init_stats(void);
+char* get_path(void);
+void set_path(const char* path);
+char* get_error_msg(void);
+void set_error_msg(char* msg);
 
 #endif

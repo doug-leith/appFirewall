@@ -2,6 +2,8 @@
 //  connection.c
 //  appFirewall
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #include "connection.h"
 

@@ -1,3 +1,9 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
+
 #include "sniffer_blocker.h"
 
 // libpcap tutorial: https://www.tcpdump.org/pcap.html
@@ -431,7 +437,7 @@ int listener_error() {
 	// almost certainly updated by thread atomically
 }
 
-int get_num_conns_blocked() {
+int_sw get_num_conns_blocked() {
 	return num_conns_blocked;
 }
 

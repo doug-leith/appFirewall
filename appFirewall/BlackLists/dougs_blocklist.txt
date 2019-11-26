@@ -1,3 +1,15 @@
+# The format of each line is:
+# <app name>, [-]<domain>
+# where <app name> is 16 character name reported by ps, or can be wildcard * e.g:
+# *,<domain>
+# in which case domain is blocked for all apps.
+# A - preceding a domain name adds it to the whitelist.  The domain wildcard * is allowed # e.g. the line:
+# Dropbox,*
+# blocks all domains for app Dropbox, and the line:
+# Dropbox,-client.dropbox.com
+# adds client.dropbox.com to the whitelist for Dropbox, so the net effect is that all
+# domains apart from client.dropbox.com are blocked.
+
 Dropbox,*
 Dropbox,-nsf-1.dropbox.com
 Dropbox,-api.dropboxapi.com
@@ -74,12 +86,9 @@ Spotify, pubads.g.doubleclick.net
 Spotify, spclient.wg.spotify.com
 Spotify, www.spotify.com
 
-#Spotify Helper,*
-#Spotify Helper,-spclient.wg.spotify.com
-#Spotify Helper,-audio4-fa.scdn.co
+#Spotify Helper, spclient.wg.spotify.com # don't block this
 Spotify Helper, audio4-ak-spotify-com.akamaized.net
 Spotify Helper, heads4-ak-spotify-com.akamaized.net
-Spotify Helper, spclient.wg.spotify.com
 Spotify Helper, detectportal.firefox.com
 Spotify Helper, thisis-images.scdn.co
 Spotify Helper, pagead2.googlesyndication.com
@@ -97,12 +106,14 @@ Spotify Helper, s.ytimg.com
 Spotify Helper, www.youtube.com
 Spotify Helper, seeded-session-images.scdn.co
 Spotify Helper, r4---sn-5hnekn7k.googlevideo.com
+Spotify Helper, i.scdn.co
 
 CalendarAgent, dublin.sciencegallery.com
 CalendarAgent, sciencegallery.com
 
 Acrobat Update, armmf.adobe.com
 Acrobat Updater, ardownload.adobe.com
+Acrobat Update, armmf.adobe.com
 AdobeReader, *
 
 firefox, detectportal.firefox.com
@@ -111,6 +122,7 @@ firefox, firefox.settings.services.mozilla.com
 firefox, content-signature-2.cdn.mozilla.net
 firefox, classify-client.services.mozilla.com
 firefox, browser.sentry-cdn.com
+
 
 firefox, downloads.mailchimp.com
 firefox, connect.facebook.net
@@ -123,6 +135,7 @@ firefox, quantcast.mgr.consensu.org
 firefox, syndication.twitter.com
 firefox, cdn.syndication.twimg.com
 firefox, platform.twitter.com
+firefox, pagead-googlehosted.l.google.com
 
 Google Chrome H, clientservices.googleapis.com
 Google Chrome H, accounts.google.com
@@ -134,11 +147,11 @@ ksfetch,*
 keyboardservice, configuration.apple.com
 accountsd, fonts.googleapis.com
 com.apple.geod,*
-commerce,*
+#commerce,*
 cloudd,*
-appstoreagent,*
+#appstoreagent,*
 adprivacyd,*
-akd,*
+#akd,*
 gamed,*
 mobileactivatio,*
 parsec-fbf,*
@@ -167,4 +180,10 @@ GraphClick, *
 Notes, *
 Numbers, *
 
+#domains blocked for all apps
+*, adservice.google.ie
+*, dart.l.doubleclick.net
+*, partnerad.l.doubleclick.net
+*, adeventtracker.spotify.com
+*, pagead-googlehosted.l.google.com
 

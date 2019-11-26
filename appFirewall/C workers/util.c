@@ -1,9 +1,15 @@
+//
+//  appFirewall
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #include "util.h"
 
 #define STR_SIZE 1024
 static char error_msg[STR_SIZE];
 static char data_path[STR_SIZE];
+static char date[STR_SIZE], date_temp[STR_SIZE];
 
 // stats
 stats_t stats;
@@ -11,7 +17,7 @@ stats_t stats;
 // loggin level
 int verbose = 1;
 
-void set_logging_level(int level) {
+void set_logging_level(int_sw level) {
 	verbose = level;
 }
 
@@ -259,4 +265,17 @@ inline void set_snd_timeout(int sockfd, int timeout) {
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
 	setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+}
+
+char* get_date() {
+	time_t t; time(&t);
+	strftime(date,STR_SIZE,"%d %b %H:%M:%S %Y",localtime(&t));
+	return date;
+}
+
+char* get_file_modify_time(const char *path) {
+    struct stat attr;
+    stat(path, &attr);
+    strftime(date_temp,STR_SIZE,"%d %b %H:%M:%S %Y",localtime(&attr.st_mtime));
+    return date_temp;
 }
