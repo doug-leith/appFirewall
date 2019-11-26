@@ -2,6 +2,8 @@
 //  send_rst.c
 //  com.leith.appFirewall-Helper
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #include "send_rst.h"
 

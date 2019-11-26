@@ -1,8 +1,9 @@
 //
 //  catch_escapee.h
-//  appFirewall
+//  com.leith.appFirewall-Helper
 //
-
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #ifndef catch_escapee_h
 #define catch_escapee_h

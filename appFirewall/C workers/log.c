@@ -66,6 +66,25 @@ log_line_t* get_log_row(int row) {
 	//printf("get_log_addr_name '%s'\n",str);
 }*/
 
+void log_repeat(log_line_t *l) {
+	// we've just tried to add a duplicate entry
+	// -- happens when many connection attempts are made in quick succession
+	char * loc0 = strstr(l->log_line,"(");
+	char * loc1 = strstr(l->log_line,")");
+	if ((loc0 != NULL) && (loc1!=NULL) && (loc1>loc0) ) {
+		char first_part[LOGSTRSIZE], count_str[LOGSTRSIZE];
+		strlcpy(first_part,l->log_line,LOGSTRSIZE);
+		first_part[loc0-l->log_line]='\0';
+		strlcpy(count_str,loc0+1,LOGSTRSIZE);
+		count_str[loc1-loc0-1]='\0';
+		int count =atoi(count_str)+1;
+		sprintf(l->log_line,"%s(%d)",first_part,count);
+	} else {
+		char first_part[LOGSTRSIZE];
+		strlcpy(first_part,l->log_line,LOGSTRSIZE);
+		sprintf(l->log_line,"%s (%d)",first_part,2);
+	}
+}
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
 	changed = 1; // record for GUI fact that log has been updated
 	//printf("append_log, %d\n",changed);
@@ -112,27 +131,7 @@ void filter_log_list(int_sw show_blocked, const char* str) {
 		if (l->blocked <= show_blocked) {
 			if ((strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
 				log_line_t *l_existing = add_item(&filtered_log_list,l,sizeof(log_line_t));
-				if (l_existing) {
-					// we've just tried to add a duplicate entry
-					// -- happens when many connection attempts are made in quick succession
-					// since filtered_log_list coalesces log entries with same time_str (so
-					// with timestamps within one second of one another)
-					char * loc0 = strstr(l_existing->log_line,"(");
-					char * loc1 = strstr(l_existing->log_line,")");
-					if ((loc0 != NULL) && (loc1!=NULL) && (loc1>loc0) ) {
-						char first_part[LOGSTRSIZE], count_str[LOGSTRSIZE];
-						strlcpy(first_part,l_existing->log_line,LOGSTRSIZE);
-						first_part[loc0-l_existing->log_line]='\0';
-						strlcpy(count_str,loc0+1,LOGSTRSIZE);
-						count_str[loc1-loc0-1]='\0';
-						int count =atoi(count_str);
-						sprintf(l_existing->log_line,"%s(%d)",first_part,count);
-					} else {
-						char first_part[LOGSTRSIZE];
-						strlcpy(first_part,l_existing->log_line,LOGSTRSIZE);
-						sprintf(l_existing->log_line,"%s (%d)",first_part,2);
-					}
-				}
+				if (l_existing) log_repeat(l_existing);
 			}
 		}
 	}

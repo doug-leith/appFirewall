@@ -2,7 +2,6 @@
 //  dtrace.h
 //  com.leith.appFirewall-Helper
 //
-//  Created by Doug Leith on 13/11/2019.
 //  Copyright © 2019 Doug Leith. All rights reserved.
 //
 

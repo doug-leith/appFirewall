@@ -1,6 +1,8 @@
 //
 //  appFirewall-Helper
-//	- raw socket handler for appFirewall, needs root priviledge
+//	- raw socket handler for appFirewall, needs root privilege
+//
+//  Copyright © 2019 Doug Leith. All rights reserved.
 //
 // SMJobBless() installs appFirewall-Helper to /Library/PrivilegedHelperTools/
 // The steps to get SMJobBless() to work:

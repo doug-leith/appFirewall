@@ -2,6 +2,8 @@
 //  util.h
 //  com.leith.appFirewall-Helper
 //
+//  Copyright © 2019 Doug Leith. All rights reserved.
+//
 
 #ifndef util_h
 #define util_h

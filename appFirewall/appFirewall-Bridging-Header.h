@@ -7,9 +7,6 @@
 
 //https://developer.apple.com/documentation/swift/imported_c_and_objective-c_apis/using_imported_c_functions_in_swift
 
-//#include <netinet/in.h>
-//#include <arpa/inet.h>
-//#include <time.h>
 #include "pid_conn_info.h"
 #include "sniffer_blocker.h"
 #include "blocklist.h"
