@@ -54,9 +54,6 @@ class BlockListViewController: NSViewController {
 	@objc func AllowBtnAction(sender : NSButton!) {
 		let row = sender.tag;
 		let item = get_blocklist_item(Int32(row))
-		//let pid_name = String(cString: &item.name.0)
-		//let conn_name = String(cString: &item.conn_name.0)
-		//print("block click ", row, " ",pid_name," ",conn_name)
 		del_blockitem(item)
 		tableView.reloadData() // update the GUI to show the change
 	}

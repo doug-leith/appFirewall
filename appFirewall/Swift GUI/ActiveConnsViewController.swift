@@ -138,10 +138,6 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		var tip: String = ""
 	
 		let r = mapRow(row: row)
-		//let item_ptr = get_conn(Int32(r))
-		//if (item_ptr == nil) { return nil }
-		//var item = item_ptr!.pointee
-		//var bl_item = conn_to_bl_item(item_ptr)
 		var item = get_conn(Int32(r))
 		var bl_item = conn_to_bl_item(&item)
 		let blocked = Int(blocked_status(&bl_item))
@@ -206,7 +202,6 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			let cell1 = tableView.view(atColumn:1, row:row,makeIfNecessary: true) as! NSTableCellView
 			let str1 = cell1.textField?.stringValue ?? ""
 			text += str0+" "+str1+"\n"
-			//text += getRowText(row: row)+"\n"
 		}
 		let pasteBoard = NSPasteboard.general
 		pasteBoard.clearContents()

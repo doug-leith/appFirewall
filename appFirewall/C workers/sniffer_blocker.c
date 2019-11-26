@@ -94,7 +94,7 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 			strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
 		}
 		sprintf(str,"%s → %s:%u", c->name, dst_name, cr->dport);
-		sprintf(long_str,"%s %s:%u -> %s:%u", c->name, sn, cr->sport, dns, cr->dport);
+		sprintf(long_str,"%s %s:%u -> %s:%u (blocked=%d)", c->name, sn, cr->sport, dns, cr->dport,blocked);
 		append_log(str, long_str, c, cr, blocked);
 
 		if (!blocked) {

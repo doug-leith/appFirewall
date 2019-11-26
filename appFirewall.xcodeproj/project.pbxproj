@@ -45,6 +45,8 @@
 		9180E1732388ABB7007002CB /* is_blocked.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1722388ABB7007002CB /* is_blocked.c */; };
 		9180E175238927A2007002CB /* catch_escapee.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E174238927A2007002CB /* catch_escapee.c */; };
 		9180E178238BC731007002CB /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 9180E177238BC731007002CB /* Credits.html */; };
+		9180E17C238D2882007002CB /* installHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17B238D2882007002CB /* installHelper.swift */; };
+		9180E17E238D2D07007002CB /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17D238D2D07007002CB /* Helpers.swift */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91ABB26E237680B7007F8FFE /* table.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB26C237680B7007F8FFE /* table.c */; };
 		91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */; };
@@ -156,6 +158,8 @@
 		9180E174238927A2007002CB /* catch_escapee.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = catch_escapee.c; sourceTree = "<group>"; };
 		9180E1762389D4DB007002CB /* catch_escapee.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = catch_escapee.h; sourceTree = "<group>"; };
 		9180E177238BC731007002CB /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
+		9180E17B238D2882007002CB /* installHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = installHelper.swift; sourceTree = "<group>"; };
+		9180E17D238D2D07007002CB /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
 		91ABB26D237680B7007F8FFE /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceViewController.swift; sourceTree = "<group>"; };
@@ -271,6 +275,8 @@
 				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
 				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
+				9180E17B238D2882007002CB /* installHelper.swift */,
+				9180E17D238D2D07007002CB /* Helpers.swift */,
 			);
 			path = "Swift GUI";
 			sourceTree = "<group>";
@@ -416,10 +422,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				91ABB26E237680B7007F8FFE /* table.c in Sources */,
+				9180E17C238D2882007002CB /* installHelper.swift in Sources */,
 				91607BF6237142A0002E50A8 /* log.c in Sources */,
 				9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */,
 				9139F68E2381E3FF00600D37 /* blButton.swift in Sources */,
 				91607C2F2373FD09002E50A8 /* error_alert.swift in Sources */,
+				9180E17E238D2D07007002CB /* Helpers.swift in Sources */,
 				91ABB29823773595007F8FFE /* hostlists.c in Sources */,
 				9139F68A237FE9A800600D37 /* whitelist.c in Sources */,
 				9180E1732388ABB7007002CB /* is_blocked.c in Sources */,

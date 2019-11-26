@@ -165,7 +165,8 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	if (!an) return; // response is empty, probably responding with an error
 	
 	/* Parse the Question section */
-	u_char *tmp, *label=NULL, buf[MAXDOMAINLEN];
+	#define BUFSIZE 1024 // needs to be big enough to hold pkt payload
+	u_char *tmp, *label=NULL, buf[BUFSIZE];
 	uint16_t qtype = 0;
 
 	tmp = (u_char *)payload;
@@ -173,7 +174,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	for (i=0;i<qd;i++) {
 		/* Get the first question's label and question type */
 		if (!qtype) {
-			label = dns_label_to_str(&tmp, buf, MAXDOMAINLEN, payload, end);
+			label = dns_label_to_str(&tmp, buf, BUFSIZE, payload, end);
 			tmp++;
 			qtype = ntohs(*(uint16_t *)tmp);
 			//printf("%d %s\n", qtype,label);
@@ -222,7 +223,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 		return;
 	}
 	append_dns(af,addr,(char*)label);
-	char n[256];
+	char n[INET6_ADDRSTRLEN];
 	inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
 	printf("DNS %d %s %s\n",af,label,n);
 }

@@ -183,8 +183,6 @@ extension LogViewController: NSTableViewDelegate {
 		var tip: String = ""
 		
 		// we display log in reverse order, i.e. youngest first
-		//let log_last = Int(get_log_size())-1
-		//if (row>log_last) { return nil	}
 		let r = mapRow(row: row)
 		let item_ptr = get_filter_log_row(Int32(r))
 		var item = item_ptr!.pointee
@@ -244,12 +242,6 @@ extension LogViewController: NSTableViewDelegate {
 		let indexSet = tableView.selectedRowIndexes
 		var text = ""
 		for row in indexSet {
-			/*let cell = tableView.view(atColumn:2, row:row, makeIfNecessary: true) as! blButton
-			var item = cell.bl_item!
-			let name = String(cString: &item.name.0)
-			let domain = String(cString: &item.domain.0)
-			text += name+", "+domain+"\n"
-			*/
 			let cell0 = tableView.view(atColumn:0, row:row,makeIfNecessary: true) as! NSTableCellView
 			let str0 = cell0.textField?.stringValue ?? ""
 			let cell1 = tableView.view(atColumn:1, row:row,makeIfNecessary: true) as! NSTableCellView
