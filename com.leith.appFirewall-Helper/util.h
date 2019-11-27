@@ -43,4 +43,6 @@ int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
 void set_recv_timeout(int sockfd, int timeout);
 void set_snd_timeout(int sockfd, int timeout);
 
+int check_signature(int pid);
+
 #endif /* util_h */

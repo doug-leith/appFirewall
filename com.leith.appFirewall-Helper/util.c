@@ -94,20 +94,6 @@ int bind_to_port(int port, int q) {
 		ERR("Setsockopt: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	/*
-	yes=1;
-	setsockopt(sock,IPPROTO_TCP,TCP_NODELAY ,&yes,sizeof(yes));
-	yes=1;
-	setsockopt(sock,IPPROTO_TCP,TCP_SENDMOREACKS ,&yes,sizeof(yes));
-
-	struct sockaddr_in local;
-	local.sin_family = AF_INET;
-	local.sin_port = htons(port);
-	local.sin_addr.s_addr = inet_addr("127.0.0.1");;
-	if (bind(sock, (struct sockaddr *)&local, sizeof(local)) == -1) {
-		ERR("Problem binding to localhost port %d: %s\n", port, strerror(errno));
-		exit(EXIT_FAILURE);
-	}*/
 	struct sockaddr_un local;
 	local.sun_family = AF_UNIX;
 	sprintf(local.sun_path,"/var/run/appFirewall-Helper.%d",port);

@@ -138,7 +138,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		load_log() // we reopen human-readable log file
 		log_rotate(logName: "app_log.txt")
 
-		
 		// update menubar button tooltip
 		if let button = statusItem.button {
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"

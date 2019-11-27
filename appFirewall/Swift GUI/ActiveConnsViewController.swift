@@ -17,12 +17,7 @@ class ActiveConnsViewController: NSViewController {
 		// Do any additional setup after loading the view.
 		super.viewDidLoad()
 		tableView.delegate = self
-		tableView.dataSource = self
-		
-		// schedule refresh of connections list every 1s
-		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
-		timer.tolerance = 1 // we don't mind if it runs quite late
-		
+		tableView.dataSource = self		
 		start_pid_watcher() // start pid monitoring thread, its ok to call this multiple times
 	}
 
@@ -39,9 +34,10 @@ class ActiveConnsViewController: NSViewController {
 			tableView.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"pid",ascending:asc)
 			tableView.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
 		}
-		
+		// schedule refresh of connections list every 1s
+		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
+		timer.tolerance = 1 // we don't mind if it runs quite late
 		refresh(timer:nil)
-		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished activeConns viewWillAppear()")
 	}
 		
 	override func viewDidAppear() {
@@ -68,6 +64,7 @@ class ActiveConnsViewController: NSViewController {
 		save_blocklist(); save_whitelist()
 		save_dns_cache()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
+		timer.invalidate()
 	}
 	
 	@IBAction func helpButton(_ sender: helpButton!) {
@@ -114,23 +111,7 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			return last-row
 		}
 	}
-		
-	func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
-		if (white==1) {
-			cell.textField?.textColor = NSColor.systemGreen
-			return
-		}
-		if ( !udp && (blocked==1) ) {// blocked from blocklist
-			cell.textField?.textColor = NSColor.red
-		} else if ( !udp && (blocked==2) ) { // blocked from hosts file list
-			cell.textField?.textColor = NSColor.orange
-		} else if ( !udp && (blocked==3) ) { // blocked from blocklists file list
-			cell.textField?.textColor = NSColor.brown
-		} else { // not blocked
-			cell.textField?.textColor = NSColor.systemGreen
-		}
-	}
-	
+
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		
 		var cellIdentifier: String = ""

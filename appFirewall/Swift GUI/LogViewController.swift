@@ -24,14 +24,11 @@ class LogViewController: NSViewController {
 		super.viewDidLoad()
 		tableView.delegate = self
 		tableView.dataSource = self
-
-		// schedule refresh of connections list every 1s
-		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
-		timer.tolerance = 1 // we don't mind if it runs quite late
 	}
 	
 	override func viewWillAppear() {
 		super.viewWillAppear()
+		
 		self.view.window?.setFrameUsingName("connsView") // restore to previous size
 		UserDefaults.standard.set(1, forKey: "tab_index") // record active tab
 		
@@ -51,6 +48,9 @@ class LogViewController: NSViewController {
 		
 		ConnsColumn.headerCell.title="Connections ("+String(Int(get_num_conns_blocked()))+" blocked)"
 		
+		// schedule refresh of connections list every 1s
+		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
+		timer.tolerance = 1 // we don't mind if it runs quite late
 		refresh(timer: nil) // refresh the table when it is redisplayed
 	}
 	
@@ -60,7 +60,6 @@ class LogViewController: NSViewController {
 			force = false
 		}
 		let firstVisibleRow = tableView.rows(in: tableView.visibleRect).location
-		//print("log refresh first=",firstVisibleRow," changed=",has_log_changed())
 		if (force || (has_log_changed() == 2) // force or log cleared
 			  || ((firstVisibleRow==0) && (has_log_changed() != 0)) ) {
 			clear_log_changed()
@@ -80,6 +79,7 @@ class LogViewController: NSViewController {
 		save_blocklist(); save_whitelist()
 		save_dns_cache()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
+		timer.invalidate()
 	}
 	
 	
@@ -160,22 +160,6 @@ extension LogViewController: NSTableViewDelegate {
 		}
 	}
 		
-	func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
-		if (white==1) {
-			cell.textField?.textColor = NSColor.systemGreen
-			return
-		}
-		if ( !udp && (blocked==1) ) {// blocked from blocklist
-			cell.textField?.textColor = NSColor.red
-		} else if ( !udp && (blocked==2) ) { // blocked from hosts file list
-			cell.textField?.textColor = NSColor.orange
-		} else if ( !udp && (blocked==3) ) { // blocked from blocklists file list
-			cell.textField?.textColor = NSColor.brown
-		} else { // not blocked
-			cell.textField?.textColor = NSColor.systemGreen
-		}
-	}
-	
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		
 		var cellIdentifier: String = ""

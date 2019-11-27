@@ -168,7 +168,7 @@ void process_conn_waiting_list(void) {
 			// try to get PID name for this connection ...
 			bl_item_t c_w = create_blockitem_from_addr(&cr_w);
 
-			if (strcmp(c_w.name,"<unknown>")==0) {//failed to get PID name
+			if (strcmp(c_w.name,"<unknown>")==0) {//yet again failed to get PID name
 				#define WAIT_TIMEOUT 0.02 // 20ms
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
 						> WAIT_TIMEOUT) {

@@ -303,7 +303,7 @@
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
                                 <connections>
-                                    <action selector="RefreshButton:" target="i0n-uy-Uid" id="YFH-DA-ckR"/>
+                                    <action selector="clickRefreshButton:" target="i0n-uy-Uid" id="d2q-9M-dTJ"/>
                                 </connections>
                             </button>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="iSl-pT-fVd">
@@ -327,6 +327,7 @@
                     </view>
                     <connections>
                         <outlet property="RefreshLabel" destination="iSl-pT-fVd" id="8tP-yN-J8c"/>
+                        <outlet property="refreshButton" destination="ZBs-Y7-rQ5" id="ET8-hH-eOK"/>
                         <outlet property="tableSelectedView" destination="ZFg-Cl-F3c" id="hdq-NU-1N1"/>
                         <outlet property="tableView" destination="Sh3-ci-Vnq" id="hDZ-ei-k2k"/>
                     </connections>

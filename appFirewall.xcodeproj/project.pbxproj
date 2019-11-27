@@ -36,7 +36,6 @@
 		91607C2B2372FF7F002E50A8 /* libnet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607C252372FF7E002E50A8 /* libnet.a */; };
 		91607C2C2372FF7F002E50A8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C262372FF7E002E50A8 /* main.c */; };
 		91607C2D2372FFAE002E50A8 /* com.leith.appFirewall-Helper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		91607C2F2373FD09002E50A8 /* error_alert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607C2E2373FD09002E50A8 /* error_alert.swift */; };
 		91607C312374080C002E50A8 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C302374080B002E50A8 /* util.c */; };
 		9180E1662387F407007002CB /* percentile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1652387F407007002CB /* percentile.c */; };
 		9180E1692387F4BB007002CB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1672387F4BB007002CB /* heap.c */; };
@@ -47,6 +46,7 @@
 		9180E178238BC731007002CB /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 9180E177238BC731007002CB /* Credits.html */; };
 		9180E17C238D2882007002CB /* installHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17B238D2882007002CB /* installHelper.swift */; };
 		9180E17E238D2D07007002CB /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17D238D2D07007002CB /* Helpers.swift */; };
+		9180E181238DECEB007002CB /* codesign.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.c */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91ABB26E237680B7007F8FFE /* table.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB26C237680B7007F8FFE /* table.c */; };
 		91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */; };
@@ -143,7 +143,6 @@
 		91607C282372FF7F002E50A8 /* libnet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libnet.h; sourceTree = "<group>"; };
 		91607C292372FF7F002E50A8 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		91607C2A2372FF7F002E50A8 /* libnet */ = {isa = PBXFileReference; lastKnownFileType = folder; path = libnet; sourceTree = "<group>"; };
-		91607C2E2373FD09002E50A8 /* error_alert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = error_alert.swift; sourceTree = "<group>"; };
 		91607C302374080B002E50A8 /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
 		91607C3723741D65002E50A8 /* OSLog.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OSLog.framework; path = System/Library/Frameworks/OSLog.framework; sourceTree = SDKROOT; };
 		9180E1642387F407007002CB /* percentile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = percentile.h; sourceTree = "<group>"; };
@@ -160,6 +159,7 @@
 		9180E177238BC731007002CB /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		9180E17B238D2882007002CB /* installHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = installHelper.swift; sourceTree = "<group>"; };
 		9180E17D238D2D07007002CB /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
+		9180E17F238DC38C007002CB /* codesign.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = codesign.c; sourceTree = "<group>"; };
 		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
 		91ABB26D237680B7007F8FFE /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceViewController.swift; sourceTree = "<group>"; };
@@ -254,6 +254,7 @@
 				9139F66F237BB18600600D37 /* dtrace.c */,
 				9139F674237BB20F00600D37 /* util.h */,
 				9139F675237BB20F00600D37 /* util.c */,
+				9180E17F238DC38C007002CB /* codesign.c */,
 				9139F677237BB9A800600D37 /* send_rst.h */,
 				9139F678237BB9A800600D37 /* send_rst.c */,
 				9180E1762389D4DB007002CB /* catch_escapee.h */,
@@ -265,7 +266,6 @@
 		9180E16223865418007002CB /* Swift GUI */ = {
 			isa = PBXGroup;
 			children = (
-				91607C2E2373FD09002E50A8 /* error_alert.swift */,
 				9139F68D2381E3FF00600D37 /* blButton.swift */,
 				9139F68F2382890700600D37 /* helpButton.swift */,
 				9139F68B2380936800600D37 /* helpViewController.swift */,
@@ -426,7 +426,6 @@
 				91607BF6237142A0002E50A8 /* log.c in Sources */,
 				9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */,
 				9139F68E2381E3FF00600D37 /* blButton.swift in Sources */,
-				91607C2F2373FD09002E50A8 /* error_alert.swift in Sources */,
 				9180E17E238D2D07007002CB /* Helpers.swift in Sources */,
 				91ABB29823773595007F8FFE /* hostlists.c in Sources */,
 				9139F68A237FE9A800600D37 /* whitelist.c in Sources */,
@@ -460,6 +459,7 @@
 				9139F670237BB18600600D37 /* dtrace.c in Sources */,
 				9139F676237BB20F00600D37 /* util.c in Sources */,
 				9180E175238927A2007002CB /* catch_escapee.c in Sources */,
+				9180E181238DECEB007002CB /* codesign.c in Sources */,
 				91607C2C2372FF7F002E50A8 /* main.c in Sources */,
 				9139F673237BB1BB00600D37 /* pcap_sniffer.c in Sources */,
 				9139F679237BB9A800600D37 /* send_rst.c in Sources */,
@@ -602,9 +602,11 @@
 				CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = appFirewall/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -630,9 +632,11 @@
 				CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = appFirewall/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -655,8 +659,10 @@
 			buildSettings = {
 				CLANG_WARN_FLOAT_CONVERSION = YES;
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
@@ -684,8 +690,10 @@
 			buildSettings = {
 				CLANG_WARN_FLOAT_CONVERSION = YES;
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (

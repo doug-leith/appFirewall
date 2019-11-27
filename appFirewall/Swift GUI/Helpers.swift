@@ -7,7 +7,9 @@
 //
 
 import Foundation
+import AppKit
 
+// -------------------------------------
 // C helpers
 func setup_sigterm_handler() {
 	// if a C routine fatally fails it raises a SIGCHLD signal
@@ -69,3 +71,32 @@ func log_rotate(logName: String) {
 	}
 }
 
+// -------------------------------------
+// UI Helpers
+
+func exit_popup(msg: String) {
+	print(msg)
+	let alert = NSAlert()
+	alert.messageText = "Error"
+	alert.informativeText = msg
+	alert.alertStyle = .critical
+	alert.addButton(withTitle: "OK")
+	alert.runModal()
+	exit(1)
+}
+
+func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
+	if (white==1) {
+		cell.textField?.textColor = NSColor.systemGreen
+		return
+	}
+	if ( !udp && (blocked==1) ) {// blocked from blocklist
+		cell.textField?.textColor = NSColor.red
+	} else if ( !udp && (blocked==2) ) { // blocked from hosts file list
+		cell.textField?.textColor = NSColor.orange
+	} else if ( !udp && (blocked==3) ) { // blocked from blocklists file list
+		cell.textField?.textColor = NSColor.brown
+	} else { // not blocked
+		cell.textField?.textColor = NSColor.systemGreen
+	}
+}

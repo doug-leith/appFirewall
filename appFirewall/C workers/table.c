@@ -81,7 +81,13 @@ void*
 hashtable_get(Hashtable *table, const char* key_string) {
 	Bucket *p;
 	Key key = hash(key_string);
-	uint32_t i = key%table->size;
+	if (table->size ==0) {
+		printf("ERROR: hashtable_get() called with table size = 0\n");
+		return NULL;
+	}
+	//uint32_t i = key%table->size;
+	// mod above occasionally throws arithmetic exception, no idea why
+	uint32_t i = key - (key/table->size)*table->size;
 	for (p = table->buckets[i]; p; p = p->link)
 		if ((key == p->key) && (strcmp(key_string,p->key_string)==0) )
 			break;
@@ -116,7 +122,7 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 Key hash(const char *str) {
 		// djb2 hash of Dan Bernstein http://www.cse.yorku.ca/~oz/hash.html
     uint32_t hash = 5381;
-    int c, count=0;
+    uint32_t c, count=0;
     while ( (c = *str) && (count<STR_SIZE) ) {
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 				str++;

@@ -44,7 +44,7 @@ class PreferenceViewController: NSViewController {
 		tableSelectedView.dataSource = self
 		
 		lists_lastUpdated = UserDefaults.standard.string(forKey: "lists_lastUpdated") ?? String("")
-		RefreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
+		refreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
 		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 	}
   
@@ -111,6 +111,7 @@ class PreferenceViewController: NSViewController {
 			load_hostlists()
 			changed = false
 		}
+		timer.invalidate()
 	}
 
 	@IBAction func AddButton(_ sender: Any) {
@@ -142,18 +143,19 @@ class PreferenceViewController: NSViewController {
 	}
 	
 	@objc func refresh() {
-		RefreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
+		refreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
 		let elapsedTime = Date().timeIntervalSinceReferenceDate - downloadStartTime
 		if ((downloadsInProgess == 0) || (elapsedTime>10.0)) {
 			refreshButton?.isEnabled = true
 		}
 	}
 	
-	@IBOutlet weak var refreshButton: NSButton!
-	@IBOutlet weak var RefreshLabel: NSTextField!
+	@IBOutlet weak var refreshLabel: NSTextField!
 	
-	@IBAction func RefreshButton(_ sender: NSButton) {
-		// TO DO: add better error reporting back to UI,
+	@IBOutlet weak var refreshButton: NSButton!
+	
+	@IBAction func clickRefreshButton(_ sender: NSButton) {
+	// TO DO: add better error reporting back to UI,
 		// just now fails silently (into log)
 		
 		refreshButton.isEnabled = false
