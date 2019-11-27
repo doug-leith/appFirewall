@@ -18,7 +18,7 @@ class PreferenceViewController: NSViewController {
 	[
 		["Name":"Energized Blu (Recommended)", "File": "energized_blu.txt", "URL": "https://block.energized.pro/blu/formats/hosts","Tip":"A large, quite complete list (231K entries).", "Type":"Hostlist"],
 		["Name":"Steve Black Unified", "File": "steve_black_unified.txt", "URL": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts","Tip":"A good choice that tries to keep balance between blocking effectiveness and false positives.  Includes Dan Pollock's, MVPS, AdAway lists amongst other.  However, doesn't cover Irish specific trackers such as adservice.google.ie", "Type":"Hostlist"],
-		["Name": "Goodbye Ads by Jerryn70 (Recommended)","File":"GoodbyeAds.txt",  "URL":"https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Hosts/GoodbyeAds.txt","Tip":"Blocks mobile ads and trackers, including blocks ads by Facebook.  Includes Irish specific trackers such as adservice.google.ie", "Type":"Hostlist"],
+		["Name": "Goodbye Ads by Jerryn70","File":"GoodbyeAds.txt",  "URL":"https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Hosts/GoodbyeAds.txt","Tip":"Blocks mobile ads and trackers, including blocks ads by Facebook.  Includes Irish specific trackers such as adservice.google.ie", "Type":"Hostlist"],
 		["Name": "Dan Pollock's hosts file","File": "hosts","URL":"https://someonewhocares.org/hosts/zero/hosts","Tip":"A balanced ad blocking hosts file.  Try this if other ones are blocking too much.", "Type":"Hostlist"],
 		["Name": "AdAway","File":"hosts.txt","URL":"https://adaway.org/hosts.txt","Tip":"Blocks ads and some analytics but quite limited (only 525 hosts)", "Type":"Hostlist"],
 		["Name": "hpHosts","File": "ad_servers.txt" ,"URL":"https://hosts-file.net/ad_servers.txt", "Tip":"Ad and trackers list from hpHosts, moderately sizesd (45K hosts)."],
@@ -31,17 +31,18 @@ class PreferenceViewController: NSViewController {
 	var AvailableLists : [String] = []
 	var changed : Bool = false
 	var timer : Timer!
-	var downloadsInProgess: Int = 0
+	//lazy var session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
 	var downloadStartTime :  Double = 0
-
+	var downloadsInProgress : [Int] = []
+	var downloadsErrors : [String] = []
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		// Do view setup here.
-		tableView.delegate = self
-		tableView.dataSource = self
-		tableSelectedView.delegate = self
-		tableSelectedView.dataSource = self
+		tableView.delegate = self as NSTableViewDelegate
+		tableView.dataSource = self as NSTableViewDataSource
+		tableSelectedView.delegate = self as NSTableViewDelegate
+		tableSelectedView.dataSource = self as NSTableViewDataSource
 		
 		lists_lastUpdated = UserDefaults.standard.string(forKey: "lists_lastUpdated") ?? String("")
 		refreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
@@ -145,8 +146,9 @@ class PreferenceViewController: NSViewController {
 	@objc func refresh() {
 		refreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
 		let elapsedTime = Date().timeIntervalSinceReferenceDate - downloadStartTime
-		if ((downloadsInProgess == 0) || (elapsedTime>10.0)) {
-			refreshButton?.isEnabled = true
+		if ((downloadsInProgress.count != 0) && (elapsedTime>10.0)) {
+			// one or more downloads is stuck, tell user about any errors anyway and renable button
+			reportDownloadErrors()
 		}
 	}
 	
@@ -155,56 +157,169 @@ class PreferenceViewController: NSViewController {
 	@IBOutlet weak var refreshButton: NSButton!
 	
 	@IBAction func clickRefreshButton(_ sender: NSButton) {
-	// TO DO: add better error reporting back to UI,
-		// just now fails silently (into log)
-		
+		let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
 		refreshButton.isEnabled = false
 		downloadStartTime = Date().timeIntervalSinceReferenceDate
-		for item in HostNameLists {
+		for (index, item) in HostNameLists.enumerated() {
 			let url_string = item["URL"] ?? ""
 			if (url_string.count < 5) { continue; }
 			let fname = item["File"] ?? ""
 			if (fname.count == 0){ continue; }
 			
 			let url = URL(string: url_string)
-			let s = URLSession(configuration: .default)
-			let t = s.downloadTask(with: url!)
-			{(urlOrNil, responseOrNil, errorOrNil) in
-				// this is called when download completes
-				self.downloadsInProgess -= 1
-				guard let resp = responseOrNil else { return }
-				if (errorOrNil != nil) {
-					print("Problem downloading ", url_string, ": ",errorOrNil ?? "")
-					return
+			let downloadTask = session.downloadTask(with: url!)
+			downloadTask.taskDescription = String(index)
+			downloadTask.resume()
+			print("Download started for ", url ?? "")
+			downloadsInProgress.append(index)
+			//return
+		}
+		session.finishTasksAndInvalidate()
+	}
+}
+
+extension PreferenceViewController: URLSessionDownloadDelegate {
+
+	func updateDownloadProgess(index: Int, progress: String) {
+		// let's find where list is located
+		let name = HostNameLists[index]["Name"]
+		var row: Int = -1
+		for (i, item) in EnabledLists.enumerated()  {
+			if (item == name) {
+				row = i
+				break;
+			}
+		}
+		if (row >= 0) {
+			let cell = tableSelectedView.view(atColumn:0, row:row, makeIfNecessary: true) as! NSTableCellView
+			cell.textField?.stringValue = EnabledLists[row]+" "+progress
+		} else {
+			var row:  Int = -1
+			for (i, item) in AvailableLists.enumerated()  {
+				if (item == name) {
+					row = i
+					break;
 				}
-				let statusCode = (resp as! HTTPURLResponse).statusCode
-				if (statusCode != 200) {
-					print("Problem downloading ", url_string, ": ",statusCode);
-					return
+			}
+			if (row < 0) { // shouldn't happen
+				print("updateDownloadProgess() problem finding list")
+				return
+			}
+			let cell = tableView.view(atColumn:0, row:row, makeIfNecessary: true) as! NSTableCellView
+			cell.textField?.stringValue = AvailableLists[row]+" "+String(progress)
+		}
+	}
+	
+	func getIndex(task: URLSessionTask) -> (Int,Int) {
+		let index = Int(task.taskDescription ?? "-1")!
+		if (index<0) { // shouldn't happen
+			print("Problem with download task, taskDescription:",task.taskDescription ?? "")
+		}
+		// update list of downloads in progress
+		let loc = downloadsInProgress.firstIndex(of:index)
+		if (loc == nil) { // shouldn't happen
+			print("Problem with download task, can't find in downloadsInProgress:", index, downloadsInProgress)
+		}
+		return (index, loc ?? -1)
+	}
+
+	func reportDownloadErrors() {
+		DispatchQueue.main.async {
+			if (self.downloadsErrors.count > 0)  {
+				var msgs : String = ""
+				for msg in self.downloadsErrors {
+					msgs += msg
 				}
-				guard let fileURL = urlOrNil else { return }
-				let path = String(cString:get_path())+fname
-				do {
-					try FileManager.default.removeItem(atPath: path+".0")
-				} catch {}
-				do {
-					try FileManager.default.moveItem(atPath: path, toPath: path+".0")
-				} catch {}
-				do {
-					try FileManager.default.moveItem(atPath: fileURL.path, toPath: path)
-				} catch {
-					print ("Error moving ",fileURL," to ",path,":", error)
-				}
-				self.lists_lastUpdated = String(cString:get_file_modify_time(path))
-				UserDefaults.standard.set(self.lists_lastUpdated, forKey: "lists_lastUpdated")
-				print("Successully downloaded ",url_string,", t=",self.lists_lastUpdated)
-				}
-			downloadsInProgess += 1
-			t.resume() // start the download
+				self.downloadsErrors.removeAll() // only show errors once
+				error_popup(msg: msgs)
+			}
+			self.refreshButton?.isEnabled = true
+			self.tableSelectedView.reloadData()
+			self.tableView.reloadData()
+		}
+	}
+	
+	func urlSession(_ session: URLSession,
+									downloadTask task: URLSessionDownloadTask,
+									didWriteData bytesWritten: Int64,
+									totalBytesWritten: Int64,
+									totalBytesExpectedToWrite: Int64) {
+		let (index, _) = getIndex(task: task)
+		if (index < 0) { return }
+		var progress : String
+		if (totalBytesExpectedToWrite>0) {
+		 	progress = String(Int(100.0*Float(totalBytesWritten)/Float(totalBytesExpectedToWrite)))+"%"
+		} else {
+			progress = "..."
+		}
+		DispatchQueue.main.async {
+			self.updateDownloadProgess(index: index, progress: progress)
+		}
+	}
+		
+	func urlSession(_ session: URLSession,
+									downloadTask task: URLSessionDownloadTask,
+									didFinishDownloadingTo fileURL: URL) {
+		// get which list we've downloaded
+		let (index, loc) = getIndex(task: task)
+		if (index < 0) { return }
+		if (loc >= 0 ) { downloadsInProgress.remove(at: loc) }
+
+		// catch server-side errors
+		let resp = task.response as! HTTPURLResponse
+		let statusCode = resp.statusCode
+		//print("status:", statusCode)
+		let url = String(task.originalRequest?.url?.absoluteString ?? "<unknown>")
+		if (statusCode != 200) {
+			let msg = "Problem downloading "+url+": "+HTTPURLResponse.localizedString(forStatusCode: statusCode)+"(HTTP status:"+String(statusCode)+")"
+			downloadsErrors.append(msg)
+			print(msg)
+		} else {
+			let fname = HostNameLists[index]["File"]!
+			let path = String(cString:get_path())+fname
+			do {
+				try FileManager.default.removeItem(atPath: path+".0")
+			} catch {}
+			do {
+				try FileManager.default.moveItem(atPath: path, toPath: path+".0")
+			} catch {}
+			do {
+				try FileManager.default.moveItem(atPath: fileURL.path, toPath: path)
+			} catch {
+				print ("Error moving ",fileURL," to ",path,":", error)
+			}
+			self.lists_lastUpdated = String(cString:get_file_modify_time(path))
+			print("Successully downloaded ",url,", t=",self.lists_lastUpdated)
+			UserDefaults.standard.set(self.lists_lastUpdated, forKey: "lists_lastUpdated")
+		}
+		// we batch errors into a single popup
+		if (downloadsInProgress.count == 0) {
+			reportDownloadErrors()
+		}
+	}
+	
+	func urlSession(_ session: URLSession,
+									task: URLSessionTask,
+									didCompleteWithError error: Error?) {
+									
+		if (error == nil) { return } // nothing of interest
+		
+		let (index, loc) = getIndex(task: task)
+		if (index < 0) { return }
+		if (loc >= 0 ) { downloadsInProgress.remove(at: loc) }
+
+		// client side error (e.g. couldn't connect)
+		let url = String(task.originalRequest?.url?.absoluteString ?? "<unknown>")
+		let msg = "Problem downloading "+url+": "+(error?.localizedDescription ?? "<unknown>")
+		print(msg)
+		downloadsErrors.append(msg)
+		// we batch errors into a single popup
+		if (downloadsInProgress.count == 0) {
+			reportDownloadErrors()
 		}
 	}
 }
-	
+
 extension PreferenceViewController: NSTableViewDataSource {
 	func numberOfRows(in tView: NSTableView) -> Int {
 		if (tView == tableView) {

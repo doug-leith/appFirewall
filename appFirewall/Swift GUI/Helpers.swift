@@ -85,6 +85,16 @@ func exit_popup(msg: String) {
 	exit(1)
 }
 
+func error_popup(msg: String) {
+	print(msg)
+	let alert = NSAlert()
+	alert.messageText = "Error"
+	alert.informativeText = msg
+	alert.alertStyle = .critical
+	alert.addButton(withTitle: "OK")
+	alert.runModal()
+}
+
 func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
 	if (white==1) {
 		cell.textField?.textColor = NSColor.systemGreen
