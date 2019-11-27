@@ -214,14 +214,19 @@ void *catcher_listener(void *ptr) {
 			ERR("Problem accepting new connection on localhost port %u: %s\n", CATCHER_PORT, strerror(errno));
 			continue;
 		}
-		
 		//INFO("Started new connection on port %d\n", CATCHER_PORT);
+		// skip signature check to speed things ip
+		/*if (check_signature(c_sock2, CATCHER_PORT)<0) {
+			// couldn't authenticate client
+			close(c_sock2);
+			continue;
+		}*/
+
 		// read connection parameters
-	
 		struct timeval start; gettimeofday(&start, NULL);
 		int8_t ok=0;
 
-		int res, pid, af;
+		ssize_t res; int pid, af;
 		struct in6_addr dst;
 		memset(&dst,0,sizeof(struct in6_addr));
 		uint16_t target_dport=0;

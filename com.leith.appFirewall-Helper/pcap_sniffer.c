@@ -133,12 +133,10 @@ void *listener(void *ptr) {
 			continue;
 		}
 		INFO("Started new connection on port %d\n", PCAP_PORT);
-		pid_t pid; socklen_t pid_size = sizeof(pid);
-		if (getsockopt(p_sock2, SOL_LOCAL,  LOCAL_PEERPID, &pid, &pid_size)<0) {
-			ERR("getsockopt() LOCAL_PEERPID: %s", strerror(errno));
-		} else {
-			printf("client pid=%d\n", pid);
-			check_signature(pid);
+		if (check_signature(p_sock2, PCAP_PORT)<0) {
+			// couldn't authenticate client
+			close(p_sock2);
+			continue;
 		}
 		
 		set_snd_timeout(p_sock2, SND_TIMEOUT); // to be safe, send() will eventually timeout

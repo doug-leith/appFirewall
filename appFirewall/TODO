@@ -8,20 +8,4 @@
 
 // should dtrace be off by default ?  enabled via a pref setting?
 
-// add some security to communication with helper:
-// - use SCM_CREDENTIALS to get PID of sender, check that its name is appFirewall
-// (so attacker process at least needs the right name)
-// - check signature of code associated with PID ? e.g. using:
-// codesign -d --requirements - `which ps`
-// Executable=/bin/ps
-// designated => identifier "com.apple.ps" and anchor apple
-// or can use PID e.g.
-//codesign -d --requirements - 38852
-/Executable=/Users/doug/Library/Developer/Xcode/DerivedData/appFirewall-ctcnsjnnboyumbgvyhkzqitymcvv/Build/Products/Debug/appFirewall.app/Contents/MacOS/appFirewall
-designated => identifier "com.leith.appFirewall" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: doug.leith@tcd.ie (8JB83FAF5R)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */
-// codesign source:
-// https://opensource.apple.com/source/security_systemkeychain/security_systemkeychain-55202/src/
-//https://opensource.apple.com/source/security_systemkeychain/security_systemkeychain-55202/src/cs_dump.cpp.auto.html
-// encrypt connection ?  to sniff unix socket probably need to be root anyway ?
-
 // add export/upload to server of sanitised (no firefox, chrome, safari etc) log files

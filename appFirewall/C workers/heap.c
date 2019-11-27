@@ -71,7 +71,7 @@ static void* map_in_pages(int page_count) {
     assert(page_count > 0);
 
     // Call malloc to get the pages
-    void* addr = malloc(page_count*MEM_PAGE_SIZE);
+    void* addr = malloc((size_t)(page_count*MEM_PAGE_SIZE));
 
     if (!addr)
         return NULL;
@@ -120,7 +120,7 @@ void heap_create(heap* h, int initial_size, int (*comp_func)(void*,void*)) {
         MEM_PAGE_SIZE = getpagesize();
 
         // Calculate the max entries
-        ENTRIES_PER_PAGE = MEM_PAGE_SIZE / sizeof(heap_entry);
+        ENTRIES_PER_PAGE = MEM_PAGE_SIZE / (int)sizeof(heap_entry);
     }
 
     // Check that initial size is greater than 0, else set it to ENTRIES_PER_PAGE

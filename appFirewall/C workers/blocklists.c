@@ -34,7 +34,7 @@ void init_blocklists_tabs() {
 char* bls_app_hash(const void *it) {
 	// generate table lookup key for bls_app_htab
 	bl_item_t *item = (bl_item_t*) it;
-	int len = (int)(strlen(item->name)+2);
+	size_t len = strlen(item->name)+2;
 	if (len>STR_SIZE) len=STR_SIZE; // just to be safe !
 	char* temp = malloc(len);
 	strlcpy(temp,item->name, len);

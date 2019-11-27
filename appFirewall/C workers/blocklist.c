@@ -12,7 +12,7 @@ static list_t block_list=LIST_INITIALISER;
 char* bl_hash(const void *it) {
 	// generate table lookup key string from block list item
 	bl_item_t *item = (bl_item_t*) it;
-	int len = (int)(strlen(item->name)+strlen(item->domain)+4);
+	size_t len = strlen(item->name)+strlen(item->domain)+4;
 	if (len>STR_SIZE) len=STR_SIZE; // just to be safe !
 	char* temp = malloc(len);
 	strlcpy(temp,item->name, len);
@@ -80,11 +80,11 @@ int del_blockitem(bl_item_t *item) {
 }
 
 int_sw get_blocklist_size(void) {
-	return get_list_size(&block_list);
+	return (int_sw)get_list_size(&block_list);
 }
 
 bl_item_t* get_blocklist_item(int_sw row) {
-	return get_list_item(&block_list,row);
+	return get_list_item(&block_list,(size_t)row);
 }
 
 char* get_blocklist_item_name(bl_item_t *item) {
@@ -108,7 +108,7 @@ void save_blocklist(void) {
 }
 
 void dump_blocklist() {
-	int i;
+	size_t i;
 	for (i=block_list.list_start; i<block_list.list_start+block_list.list_size;i++) {
 		bl_item_t *b = (bl_item_t*)&block_list.list[i%MAXLIST];
 		printf("%s %s\n",b->name,b->domain);

@@ -157,6 +157,11 @@ void *dtrace(void *ptr) {
 			continue;
 		}
 		INFO("Started new connection on port %d\n", DTRACE_PORT);
+		if (check_signature(d_sock2, DTRACE_PORT)<0) {
+			// couldn't authenticate client
+			close(d_sock2);
+			continue;
+		}
 		
 		// open pipe for receiving dtrace output
 		int res = pipe(pipefd);

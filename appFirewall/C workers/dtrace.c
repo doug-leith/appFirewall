@@ -72,14 +72,14 @@ int parse_dt_line(char* line, conn_t *c) {
 	strlcpy(c->src_addr_name, item,INET6_ADDRSTRLEN);
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
-	c->raw.sport = (int)strtol(item, (char **)NULL, 10);
+	c->raw.sport = (uint16_t)strtol(item, (char **)NULL, 10);
 	if (c->raw.sport<0 || c->raw.sport>65535) return -1;
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
 	strlcpy(c->dst_addr_name, item,INET6_ADDRSTRLEN);
 	
 	item = strtok_r(NULL, ",", &ptr); if (item == NULL) return -1;
-	c->raw.dport = (int)strtol(item, (char **)NULL, 10);
+	c->raw.dport = (uint16_t)strtol(item, (char **)NULL, 10);
 	if (c->raw.dport<0 || c->raw.dport>65535) return -1;
 	
 	int res=robust_inet_pton(&c->raw.af,c->src_addr_name,&c->raw.src_addr);

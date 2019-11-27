@@ -116,7 +116,7 @@ conn_t get_conn(int_sw row) {
 		pthread_mutex_unlock(&gui_pid_mutex);
 		return c;
 	}
-	memcpy(&c,get_list_item(&gui_pid_list,row),sizeof(conn_t));
+	memcpy(&c,get_list_item(&gui_pid_list,(size_t)row),sizeof(conn_t));
 	pthread_mutex_unlock(&gui_pid_mutex);
 	return c;
 }
@@ -129,7 +129,7 @@ void free_conn(conn_t* c) {
 int_sw get_num_conns() {
 	// for use by swift GUI
 	pthread_mutex_lock(&gui_pid_mutex);
-	int res = get_list_size(&gui_pid_list);
+	int_sw res = (int_sw)get_list_size(&gui_pid_list);
 	pthread_mutex_unlock(&gui_pid_mutex);
 	//dump_connlist(&gui_pid_list);
 	return res;
@@ -204,7 +204,7 @@ int find_pid(conn_raw_t *cr, char*name){
 	list_t *l = &pid_list;
 	
 	pthread_mutex_lock(&pid_mutex);
-	for (int i = 0; i< get_list_size(&last_pid_list); i++) {
+	for (size_t i = 0; i< get_list_size(&last_pid_list); i++) {
 		last_pid_item_t *it = get_list_item(&last_pid_list,i);
 		if (it->pid<=0) continue; // shouldn't happen
 		
@@ -215,14 +215,14 @@ int find_pid(conn_raw_t *cr, char*name){
 			strlcpy(name,it->name,MAXCOMLEN);
 			stats.pidinfo_cachehits++;
 			struct timeval end; gettimeofday(&end, NULL);
-			float t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
+			double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
 			cm_add_sample(&stats.cm_t_pidinfo_cache_hit,t);
 			INFO2("found using last_pid.\n");
 			return 1;
 		}
 	}
 	struct timeval end; gettimeofday(&end, NULL);
-	float t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
+	double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
 	cm_add_sample(&stats.cm_t_pidinfo_cache_miss,t);	pthread_mutex_unlock(&pid_mutex);
 	stats.pidinfo_cachemisses++;
 
@@ -299,7 +299,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		return 0;
 	}
 
-	struct proc_fdinfo *procFDInfo = (struct proc_fdinfo *)malloc(bufferSize);
+	struct proc_fdinfo *procFDInfo = (struct proc_fdinfo *)malloc((size_t)bufferSize);
 	if (!procFDInfo) {
 		ERR("Out of memory. Unable to allocate buffer with %d bytes\n", bufferSize);
 		return -1;
@@ -310,7 +310,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		WARN("Unable to get open file handles for PID %d\n", pid);
 		return 0;
 	}
-	int numberOfProcFDs = bufferSize / PROC_PIDLISTFD_SIZE;
+	size_t numberOfProcFDs = (size_t)bufferSize / PROC_PIDLISTFD_SIZE;
 	
 	for(int i = 0; i < numberOfProcFDs; i++) {
 		conn_t c; // the new connection
@@ -441,7 +441,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 					// when connection is idle so that we can get the real seq number
 					// from it. its not needed for conns sending pkts already. this will
 					// probably fail unless connection is already sending pkts
-					e->raw.seq =rand(); e->raw.ack =rand();
+					e->raw.seq = (uint32_t)rand(); e->raw.ack = (uint32_t)rand();
 					stats.escapees_not_in_log++;
 				} else {
 					// we get the seq number from syn-ack in log ...
@@ -514,7 +514,7 @@ int refresh_active_conns(int localhost) {
 
 	pid_t pids[2 * bufsize / sizeof(pid_t)];
 	bufsize =  proc_listpids(PROC_ALL_PIDS, 0, pids, (int) sizeof(pids));
-	size_t num_pids = bufsize / sizeof(pid_t);
+	size_t num_pids = (size_t)bufsize / sizeof(pid_t);
 
 	// now walk through them
 	//num_conns = 0;
@@ -588,7 +588,7 @@ void *catch_escapee(void *ptr) {
 	// remove escapee from active list, will be re-added if conn still exists
 	// next time find_fds() is called.
 	struct timeval end; gettimeofday(&end, NULL);
-	float t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
+	double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
 	char *result="FAILED to stop";
 	if (ok==1) {
 		result="STOPPED";

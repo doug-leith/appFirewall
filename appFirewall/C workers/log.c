@@ -16,7 +16,7 @@ static int changed = 0; // flag to record whether log has been updated
 char* log_hash(const void* it) {
 	log_line_t* l = (log_line_t*)it;
 	char* temp0 = conn_raw_hash(&l->raw);
-	int len = (int)(strlen(temp0)+strlen(l->bl_item.name)+2);
+	size_t len = strlen(temp0)+strlen(l->bl_item.name)+2u;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
 	sprintf(temp,"%s:%s",l->bl_item.name,temp0);
@@ -29,7 +29,7 @@ char* filtered_log_hash(const void *it) {
 	// domain that occur within same 1s time slot into a single
 	// log entry
 	log_line_t* l = (log_line_t*)it;
-	int len = (int)(strlen(l->time_str)+strlen(l->log_line)+4);
+	size_t len = strlen(l->time_str)+strlen(l->log_line)+4;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
 	sprintf(temp,"%s:%s",l->time_str,l->log_line);
@@ -45,7 +45,7 @@ void clear_log_changed(void) {
 	//printf("clear_log_changed\n");
 }
 
-int get_log_size(void) {
+size_t get_log_size(void) {
 	return get_list_size(&log_list);
 }
 
@@ -56,7 +56,7 @@ log_line_t* find_log_by_conn(char* name, conn_raw_t* item, int debug) {
 	return in_list(&log_list,&l,0);
 }
 
-log_line_t* get_log_row(int row) {
+log_line_t* get_log_row(size_t row) {
 	return (log_line_t*)get_list_item(&log_list,row);
 }
 
@@ -126,7 +126,7 @@ void clear_log() {
 void filter_log_list(int_sw show_blocked, const char* str) {
 	free_list(&filtered_log_list);
 	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
-	for (int i=0; i<get_log_size(); i++) {
+	for (size_t i=0; i<get_log_size(); i++) {
 		log_line_t *l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
 			if ((strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
@@ -138,16 +138,16 @@ void filter_log_list(int_sw show_blocked, const char* str) {
 }
 
 int_sw get_filter_log_size(void) {
-	return get_list_size(&filtered_log_list);
+	return (int_sw)get_list_size(&filtered_log_list);
 }
 
 log_line_t* get_filter_log_row(int_sw row) {
-	return (log_line_t*)get_list_item(&filtered_log_list,row);
+	return (log_line_t*)get_list_item(&filtered_log_list,(size_t)row);
 }
 
 void get_filter_log_addr_name(int_sw row, char* str, int_sw len) {
-	log_line_t *l = get_list_item(&filtered_log_list,row);
-	inet_ntop(l->raw.af,&l->raw.dst_addr,str,len);
+	log_line_t *l = get_list_item(&filtered_log_list,(size_t)row);
+	inet_ntop(l->raw.af,&l->raw.dst_addr,str,(socklen_t)len);
 }
 
 void save_log(void) {

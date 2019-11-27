@@ -58,7 +58,7 @@ typedef int32_t int_sw; // nail down swift interface int size
 
 extern stats_t stats;
 
-int readn(int fd, void* buf, int n);
+ssize_t readn(int fd, void* buf, ssize_t n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
 int is_ipv4_localhost(struct in6_addr* addr);

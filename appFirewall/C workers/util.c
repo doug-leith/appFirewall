@@ -79,12 +79,12 @@ void set_path(const char* path) {
 	strlcpy(data_path,path,STR_SIZE);
 }
 
-int readn(int fd, void* buf, int n) {
+ssize_t readn(int fd, void* buf, ssize_t n) {
  // read n bytes from socket fd
-	int res=0, posn=0;;
+	ssize_t res=0, posn=0;;
 	while (posn<n) {
 		//printf("posn=%d,n=%d\n",posn,n);
-		res = (int)recv(fd, buf+posn, n-res, 0);
+		res = recv(fd, buf+posn, (size_t)(n-res), 0);
 		if (res <= 0) {
 			//printf("res=%d\n",res);
 			return res;
@@ -98,7 +98,7 @@ int readn(int fd, void* buf, int n) {
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line) {
   //read from socket until hit next newline. fine for both TCP and UDP sockets.
   int i=0;
-  size_t read_posn=0;
+  ssize_t read_posn=0;
   while (i < LINEBUF_SIZE) {
     if (read_posn == *inbuf_used) {
       // read from socket
@@ -116,7 +116,7 @@ int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line) {
         }
         return -1;
       }
-      *inbuf_used += rv;
+      *inbuf_used += (size_t)rv;
     }
     line[i++] = inbuf[read_posn++]; // advance read position within buffer
     if (line[i-1]=='\n') break; // have hit a newline, stop
@@ -127,8 +127,8 @@ int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line) {
   }
   line[i]='\0'; // terminate line as string, makes for easier printing when debugging
   // shift buffer contents so next line starts at posn 0
-  memmove(inbuf,inbuf+read_posn,*inbuf_used-read_posn);
-  *inbuf_used -= read_posn;
+  memmove(inbuf,inbuf+(size_t)read_posn,*inbuf_used-(size_t)read_posn);
+  *inbuf_used -= (size_t)read_posn;
 
   return i;
 }

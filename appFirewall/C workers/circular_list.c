@@ -16,7 +16,7 @@ int list_cmp(char* (*hash)(const void* item),const void* item1, const void* item
 	return res;
 }
 
-void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*hash)(const void* item),const void* item1, const void* item2), int circular, int size, char* name) {
+void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*hash)(const void* item),const void* item1, const void* item2), int circular, ssize_t size, char* name) {
 	l->hash = hash;
 	if (cmp) {
 		l->cmp = cmp;
@@ -26,7 +26,7 @@ void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*ha
 	l->circular = circular;
 	l->list_size=0; l->list_start=0;
 	if ((size>0) && (size < MAXLIST)) {
-		l->maxsize=size;
+		l->maxsize=(size_t)size;
 	} else {
 		l->maxsize=MAXLIST;
 	}
@@ -36,7 +36,7 @@ void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*ha
 }
 
 void free_list(list_t *l) {
-	for (int i=l->list_start; i<l->list_start+l->list_size;i++) {
+	for (size_t i=l->list_start; i<l->list_start+l->list_size;i++) {
 		if (l->list[i%l->maxsize]) {
 			free(l->list[i%l->maxsize]);
 			l->list[i%l->maxsize]=NULL;
@@ -46,10 +46,10 @@ void free_list(list_t *l) {
 	l->list_size=0; l->list_start=0;
 }
 
-void deep_copy_list(list_t *l1, list_t *l2, int item_size) {
+void deep_copy_list(list_t *l1, list_t *l2, size_t item_size) {
 	*l1 = *l2;
 	l1->htab = hashtable_new(l1->maxsize);
-	for (int i=l2->list_start; i<l2->list_start+l2->list_size;i++) {
+	for (size_t i=l2->list_start; i<l2->list_start+l2->list_size;i++) {
 		void* item = malloc(item_size);
 		memcpy(item, l2->list[i%l2->maxsize], item_size);
 		l1->list[i%l1->maxsize]=item;
@@ -70,15 +70,15 @@ void* in_list(list_t *l, const void *item, int debug) {
 	return res;
 }
 
-int find_item_row(list_t *l, const void* item) {
+ssize_t find_item_row(list_t *l, const void* item) {
 	if (l->hash == NULL) return -1;
-	int posn;
+	size_t posn;
 	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
 		if ((l->cmp(l->hash,l->list[posn%l->maxsize],item))) {
 				break; //found a match
 		}
 	}
-	return posn;
+	return (ssize_t)posn;
 }
 
 void add_item_to_htab(list_t *l, void *item) {
@@ -96,7 +96,7 @@ void del_from_htab(list_t *l, const void *item) {
 	free(temp);
 }
 
-void* add_item(list_t *l, void* item, int item_size) {
+void* add_item(list_t *l, void* item, size_t item_size) {
 	if (l->hash == NULL) return NULL;
 	void* ptr = in_list(l, item, 0);
 	if (ptr) {
@@ -107,13 +107,13 @@ void* add_item(list_t *l, void* item, int item_size) {
 	void* it = malloc(item_size);
 	memcpy(it,item,item_size); // we take a copy
 	if (l->list_size < l->maxsize) {
-		int end = (l->list_start+l->list_size)%l->maxsize;
+		size_t end = (l->list_start+l->list_size)%l->maxsize;
 		l->list[end] = it;
 		l->list_size++;
 	} else if (l->circular){
 		del_from_htab(l, l->list[l->list_start%l->maxsize]);
 		l->list_start++; l->list_size--;
-		int end = (l->list_start+l->list_size)%l->maxsize;
+		size_t end = (l->list_start+l->list_size)%l->maxsize;
 		l->list[end] = it;
 		INFO2("add_item() %s circular list %s full.\n",l->hash(item),l->list_name);
 		l->list_size++;
@@ -129,7 +129,7 @@ void* add_item(list_t *l, void* item, int item_size) {
 
 int del_item(list_t *l, const void* item) {
 	if (l->hash == NULL) return -1;
-	int i,posn;
+	size_t i,posn;
 	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
 		if ((l->cmp(l->hash,l->list[posn%l->maxsize],item))) {
 				break; //found a match
@@ -149,11 +149,11 @@ int del_item(list_t *l, const void* item) {
 	return 0;
 }
 
-int get_list_size(list_t *l) {
+size_t get_list_size(list_t *l) {
 	return l->list_size;
 }
 
-void* get_list_item(list_t *l, int row) {
+void* get_list_item(list_t *l, size_t row) {
 	return l->list[(l->list_start+row)%l->maxsize];
 }
 
@@ -163,7 +163,7 @@ void sort_list(list_t *l, int (*sort_cmp)(const void *, const void *)) {
 	qsort(l->list,l->list_size,sizeof(void*),sort_cmp);
 }
 
-void save_list(list_t *l, char* path, int item_size) {
+void save_list(list_t *l, char* path, size_t item_size) {
 	//printf("saving block_list\n");
 	#define STR_SIZE 1024
 	FILE *fp = fopen(path,"w");
@@ -172,8 +172,8 @@ void save_list(list_t *l, char* path, int item_size) {
 		WARN("Problem opening %s for writing: %s\n", path, strerror(errno));
 		return;
 	}
-	int i;
-	int res = (int)fwrite(&l->list_size,sizeof(int),1,fp);
+	size_t i;
+	size_t res = fwrite(&l->list_size,sizeof(int),1,fp);
 	if (res<1) {
 		WARN("Problem saving size to %s: %s\n",path,strerror(errno));
 		return;
@@ -188,7 +188,7 @@ void save_list(list_t *l, char* path, int item_size) {
 	fclose(fp);
 }
 
-void load_list(list_t *l, char* path, int item_size) {
+void load_list(list_t *l, char* path, size_t item_size) {
 	
 	// initialise hash table
 	if (l->htab!=NULL) hashtable_free(l->htab);
@@ -209,16 +209,16 @@ void load_list(list_t *l, char* path, int item_size) {
 		return;
 	}
 	if (l->list_size<0) {
-		WARN("Problem loading %s: list_size %d <0\n",path,l->list_size);
+		WARN("Problem loading %s: list_size %zu <0\n",path,l->list_size);
 		l->list_size=0;
 		return;
 	}
 	if (l->list_size>l->maxsize) {
-		WARN("Problem loading %s: list_size %d too large\n",path,l->list_size);
+		WARN("Problem loading %s: list_size %zu too large\n",path,l->list_size);
 		l->list_size=0;
 		return;
 	}
-	int i;
+	size_t i;
 	for(i = 0; i < l->list_size; i++){
 		l->list[i] = malloc(item_size);
 		res=(int)fread(l->list[i],item_size,1,fp);
@@ -232,7 +232,7 @@ void load_list(list_t *l, char* path, int item_size) {
 		add_item_to_htab(l,l->list[i]);
 	}
 	if (i<l->list_size) {
-		WARN("Read too few records from %s: expected %d, got %d\n",path,l->list_size,i);
+		WARN("Read too few records from %s: expected %zu, got %zu\n",path,l->list_size,i);
 		l->list_size = 0;
 	}
 	fclose(fp);

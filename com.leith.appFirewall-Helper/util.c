@@ -26,7 +26,7 @@ char* now(char* buf) {
 	}
 }
 
-int readn(int fd, void* buf, int n) {
+ssize_t readn(int fd, void* buf, ssize_t n) {
  // read n bytes from socket fd
 	int res=0, posn=0;;
 	while (posn<n) {

@@ -223,7 +223,7 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 
 void rst_accept_loop() {
 	// now wait in accept() loop to handle connections from GUI to send RST pkts
-	int res;
+	size_t res;
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 	for(;;) {
@@ -232,8 +232,12 @@ void rst_accept_loop() {
 			ERR("Problem accepting new connection on localhost port %d: %s\n", RST_PORT, strerror(errno));
 			continue;
 		}
-		
 		INFO("Started new connection on port %d\n", RST_PORT);
+		if (check_signature(s2, RST_PORT)<0) {
+			// couldn't authenticate client
+			close(s2);
+			continue;
+		}
 		
 		// when UI starts up it creates a connection and keeps it open
 		// until it shuts down, so we accept and then keep listening

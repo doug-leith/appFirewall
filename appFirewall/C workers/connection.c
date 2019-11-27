@@ -26,7 +26,7 @@ char* conn_hash(const void *it) {
 
 #include "circular_list.h"
 void dump_connlist(list_t *l) {
-	int i;
+	size_t i;
 	for (i=0; i<get_list_size(l);i++) {
 		conn_t *b = get_list_item(l,i);
 		INFO2("%s(%d): %s:%u -> %s(%s):%u udp=%d\n", b->name, b->pid, b->src_addr_name, b->raw.sport, b->domain, b->dst_addr_name, b->raw.dport, b->raw.udp);

@@ -189,10 +189,10 @@ int cm_flush(cm_quantile *cm) {
  * @return The value on success or 0.
  */
 double cm_query(cm_quantile *cm, double quantile) {
-    uint64_t rank = ceil(quantile * cm->num_values);
-	uint64_t min_rank=0;
+    uint64_t rank = (uint64_t)ceil(quantile * cm->num_values);
+		uint64_t min_rank=0;
     uint64_t max_rank;
-	uint64_t threshold = ceil(cm_threshold(cm, rank) / 2.);
+		uint64_t threshold = (uint64_t)ceil(cm_threshold(cm, rank) / 2.);
 
     cm_sample *prev = cm->samples;
     cm_sample *current = cm->samples;
@@ -243,7 +243,7 @@ static void cm_reset_insert_cursor(cm_quantile *cm) {
 
 // Computes the number of items to process in one iteration
 static int cm_cursor_increment(cm_quantile *cm) {
-    return ceil(cm->num_samples * cm->eps);
+    return (int)ceil(cm->num_samples * cm->eps);
 }
 
 /* Inserts a new sample before the position sample */
@@ -389,9 +389,9 @@ static uint64_t cm_threshold(cm_quantile *cm, uint64_t rank) {
     for (int i=0; i < cm->num_quantiles; i++) {
         quant = cm->quantiles[i];
         if (rank >= quant * cm->num_values) {
-            quant_min = 2 * cm->eps * rank / quant;
+            quant_min = (uint64_t) (2 * cm->eps * rank / quant);
         } else {
-            quant_min = 2 * cm->eps * (cm->num_values - rank) / (1 - quant);
+            quant_min = (uint64_t) (2 * cm->eps * (cm->num_values - rank) / (1 - quant));
         }
         if (quant_min < min_val) min_val = quant_min;
     }

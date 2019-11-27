@@ -36,13 +36,13 @@ const static int verbose=1;          // debugging level
 #define SND_TIMEOUT 10 // 10s for socket send timeout
 
 char* now(char* buf);
-int readn(int fd, void* buf, int n);
+ssize_t readn(int fd, void* buf, ssize_t n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);
 int bind_to_port(int port, int q);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
 void set_recv_timeout(int sockfd, int timeout);
 void set_snd_timeout(int sockfd, int timeout);
 
-int check_signature(int pid);
+int check_signature(int pid, int port);
 
 #endif /* util_h */

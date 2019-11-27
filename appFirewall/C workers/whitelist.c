@@ -40,11 +40,11 @@ int del_whiteitem(bl_item_t *item) {
 }
 
 int_sw get_whitelist_size(void) {
-	return get_list_size(&white_list);
+	return (int_sw)get_list_size(&white_list);
 }
 
 bl_item_t* get_whitelist_item(int_sw row) {
-	return get_list_item(&white_list,row);
+	return get_list_item(&white_list,(size_t)row);
 }
 
 char* get_whitelist_item_name(bl_item_t *item) {

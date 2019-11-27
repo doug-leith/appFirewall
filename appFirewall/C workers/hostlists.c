@@ -36,7 +36,7 @@ void* in_hostlist_htab(const char *domain) {
 }
 
 void add_hostlist(char * domain) {
-	int len = (int)strlen(domain)+1;
+	size_t len = strlen(domain)+1;
 	if (len > STR_SIZE) len = STR_SIZE; // just to be safe !
 	char *str = malloc(len);
 	strlcpy(str,domain,len);

@@ -8,9 +8,9 @@
 #define STR_SIZE 1024
 
 Hashtable*
-hashtable_new(int hint) {
+hashtable_new(size_t hint) {
 	Hashtable *table;
-	int i;
+	size_t i;
 	static unsigned int primes[] = { 509, 509, 1021, 2053, 4093, 8191, 16381, 32771, 65521, 101111, 152501, 250051, INT_MAX };
 	for (i = 1; primes[i] < hint; i++);
 	table = calloc(1,sizeof(Hashtable) + primes[i-1]*sizeof(Bucket));
@@ -106,7 +106,7 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 	if (p == NULL) {
 		p = calloc(1, sizeof(Bucket));
 		p->key = key;
-		int len = (int)strlen(key_string)+1;
+		size_t len = strlen(key_string)+1;
 		if (len>STR_SIZE) len = STR_SIZE; // just being careful
 		p->key_string = malloc(len);
 		strlcpy(p->key_string,key_string,len);
@@ -122,9 +122,9 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 Key hash(const char *str) {
 		// djb2 hash of Dan Bernstein http://www.cse.yorku.ca/~oz/hash.html
     uint32_t hash = 5381;
-    uint32_t c, count=0;
+    int c, count=0;
     while ( (c = *str) && (count<STR_SIZE) ) {
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+        hash = ((hash << 5) + hash) + (uint32_t)c; /* hash * 33 + c */
 				str++;
 		}
     return hash;

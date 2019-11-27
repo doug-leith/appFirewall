@@ -28,7 +28,7 @@ typedef struct {
 } Hashtable;
 
 
-Hashtable* hashtable_new(int hint);
+Hashtable* hashtable_new(size_t hint);
 void hashtable_free(Hashtable *table);
 void* hashtable_remove(Hashtable *table, const char* key_string);
 void* hashtable_get(Hashtable *table, const char* key_string);

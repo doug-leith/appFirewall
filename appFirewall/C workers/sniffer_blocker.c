@@ -102,7 +102,7 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 			struct timeval end; gettimeofday(&end, NULL);
 			INFO2("(not blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
 			if (logstats) {
-				float t=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
+				double t=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
 				cm_add_sample(&stats.cm_t_sniff,t);
 				t=(end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
 				cm_add_sample(&stats.cm_t_notblocked,t);
@@ -134,7 +134,7 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 		struct timeval end; gettimeofday(&end, NULL);
 		INFO2(" (blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
 		if (logstats) {
-			float t = (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
+			double t = (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
 			cm_add_sample(&stats.cm_t_sniff,t);
 			t = (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
 			cm_add_sample(&stats.cm_t_blocked,t);
@@ -155,10 +155,10 @@ void process_conn_waiting_list(void) {
 		pthread_mutex_lock(&wait_list_mutex);
 
 		if (get_list_size(&waiting_list) !=0 ) {
-			INFO2("waiting list size = %d, hits=%d, misses=%d\n",get_list_size(&waiting_list),stats.waitinglist_hits,stats.waitinglist_misses);
+			INFO2("waiting list size = %zu, hits=%d, misses=%d\n",get_list_size(&waiting_list),stats.waitinglist_hits,stats.waitinglist_misses);
 		}
 		struct timeval end; gettimeofday(&end, NULL);
-		int i = 0;
+		size_t i = 0;
 		while (i<get_list_size(&waiting_list) ) {
 			conn_raw_t cr_w;
 			memcpy(&cr_w,get_list_item(&waiting_list,i),sizeof(conn_raw_t));
@@ -176,7 +176,7 @@ void process_conn_waiting_list(void) {
 					process_conn(&cr_w, &c_w, &r_sock,0); // process
 					stats.waitinglist_misses++;
 					struct timeval end; gettimeofday(&end, NULL);
-					float t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
+					double t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
 					cm_add_sample(&stats.cm_t_waitinglist_miss,t);
 					del=1; // flag that need to remove this conn from waiting list
 				} else {
@@ -189,7 +189,7 @@ void process_conn_waiting_list(void) {
 				process_conn(&cr_w, &c_w, &r_sock,0); // process
 				stats.waitinglist_hits++;
 				struct timeval end; gettimeofday(&end, NULL);
-				float t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
+				double t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
 				cm_add_sample(&stats.cm_t_waitinglist_hit,t);
 				del = 1; // flag that need to remove this conn from waiting list
 			}
@@ -211,7 +211,7 @@ void *listener(void *ptr) {
 	struct pcap_pkthdr pkthdr;
 	#define SNAPLEN 512 // needs to be big enough to capture dns payload
 	u_char pkt[SNAPLEN];
-	int res;
+	ssize_t res;
 	
 	is_running=1; // flag that thread is running
 	
@@ -238,7 +238,7 @@ void *listener(void *ptr) {
 			pkthdr.caplen=SNAPLEN; // we truncate packet and hope for the best !
 		}
 		DEBUG2("waiting to read pkt ...\n");
-		if ( (res=readn(p_sock, pkt, pkthdr.caplen) )<=0) goto err_p;
+		if ( (res=readn(p_sock, pkt, (ssize_t)pkthdr.caplen) )<=0) goto err_p;
 		
 		// we got a pkt, let's process it ...
 		const int pcap_off = 14; // ethernet link layer offset
@@ -275,11 +275,11 @@ void *listener(void *ptr) {
 		
 		if (proto == IPPROTO_UDP) {
 			struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
-			int sport=ntohs(udp->uh_sport);
-			int dport=ntohs(udp->uh_dport);
+			uint16_t sport=ntohs(udp->uh_sport);
+			uint16_t dport=ntohs(udp->uh_dport);
 			if (sport == 53 || dport == 53) {
 				// pass to DNS sniffer
-				float t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
+				double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 				INFO2("t (sniffed dns) %f\n", t);
 				dns_sniffer(&pkthdr,nexth);
 				cm_add_sample(&stats.cm_t_dns,t);
@@ -325,7 +325,7 @@ void *listener(void *ptr) {
 					sprintf(long_str,"%s UDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
 					append_log(str, long_str, &c, &cr, 0); // can't block QUIC yet ...
 					
-					float t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
+					double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 					INFO2("t (sniffed) %f ", t);
 					cm_add_sample(&stats.cm_t_sniff,t);
 					struct timeval endu; gettimeofday(&endu, NULL);
