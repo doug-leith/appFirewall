@@ -113,6 +113,7 @@
 		9139F68D2381E3FF00600D37 /* blButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = blButton.swift; sourceTree = "<group>"; };
 		9139F68F2382890700600D37 /* helpButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpButton.swift; sourceTree = "<group>"; };
 		9157B04A238FB09E0027457A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		9157B04E238FB47C0027457A /* libnet-1.2 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "libnet-1.2"; path = "/Users/doug/Desktop/appFirewall/libnet-1.2"; sourceTree = "<absolute>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91607BB2236AB280002E50A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveConnsViewController.swift; sourceTree = "<group>"; };
@@ -219,6 +220,7 @@
 				9180E177238BC731007002CB /* Credits.html */,
 				91ABB292237734DE007F8FFE /* BlackLists */,
 				91607BE1236B691A002E50A8 /* libnet */,
+				9157B04E238FB47C0027457A /* libnet-1.2 */,
 				9180E1632386653A007002CB /* C workers */,
 				91B67F2723793C1C00706027 /* TODO */,
 				9180E16223865418007002CB /* Swift GUI */,

@@ -1,3 +1,5 @@
+# License
+
 BSD 3-Clause
 Copyright (c) 2019, Doug Leith
 All rights reserved.
