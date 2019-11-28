@@ -77,8 +77,8 @@ class blButton: NSButton {
 		var bl_item = self.bl_item!
 		
 		let name = String(cString: &bl_item.name.0)
-		if ((name.count==0) || name.contains("<unknown>") ) {
-				print("Tried to block item with process name <unknown> or ''")
+		if ((name.count==0) || name.contains(NOTFOUND) ) {
+				print("Tried to block item with process name ",NOTFOUND," or ''")
 				return // PID name is missing, we can't add this to block list
 		}
 			

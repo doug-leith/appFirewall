@@ -58,7 +58,7 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 		if (res==0) {
 			// we'll now add this conn to waiting list and try again once
 			// /proc has updated or new dtrace info arrives
-			strcpy(c.name,"<unknown>");
+			strcpy(c.name,NOTFOUND);
 		}
 	} else {
 		if (syn)
@@ -174,7 +174,7 @@ void process_conn_waiting_list(void) {
 			// try to get PID name for this connection ...
 			bl_item_t c_w = create_blockitem_from_addr(&cr_w, 0);
 
-			if (strcmp(c_w.name,"<unknown>")==0) {//yet again failed to get PID name
+			if (strcmp(c_w.name,NOTFOUND)==0) {//yet again failed to get PID name
 				#define WAIT_TIMEOUT 0.02 // 20ms
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
 						> WAIT_TIMEOUT) {
@@ -393,11 +393,11 @@ void *listener(void *ptr) {
 			// we use syn's to prime the procinfo cache.  if connection is not in cache
 			// we trigger a refresh here.  the hope is that by the time the synack arrives
 			// the connection will be in the cache and we'll avoid waiting.
-			if (strcmp(c.name,"<unknown>")==0) signal_pid_watcher();
+			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher();
 			continue; // nothing more to do for a syn.
 		}
 		
-		if (strcmp(c.name,"<unknown>")==0) {
+		if (strcmp(c.name,NOTFOUND)==0) {
 			// failed to look up PID name, put into waiting list to try again
 			pthread_mutex_lock(&wait_list_mutex);
 			add_item(&waiting_list,&cr,sizeof(conn_raw_t));

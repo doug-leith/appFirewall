@@ -149,18 +149,70 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	func applicationWillFinishLaunching(_ aNotification: Notification) {
 		
-		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"starting applicationWillFinishLaunching()")
 		// create storage dir if it doesn't already exist
 		make_data_dir()
 		
-		// redirect C logging from stdout to logfile (in storage dir, so
-		// important to call make_data_dir() first
+		// redirect C logging from stdout to logfile.  do this early but
+		// important to call make_data_dir() first so that logfile has somewhere to live
 		redirect_stdout()
-		
+
+		// set default logging level, again do this early
+		UserDefaults.standard.register(defaults: ["logging_level":2])
+		// can change this at command line using "defaults write" command
+		let log_level = UserDefaults.standard.integer(forKey: "logging_level")
+		set_logging_level(Int32(log_level))
+		init_stats(); // must be done before any C threads are fired up
+
 		if (is_app_already_running()) {
 			exit_popup(msg:"appFirewall is already running!")
-			//exit(1)
 		}
+
+		UserDefaults.standard.register(defaults: ["signal":-1])
+		UserDefaults.standard.register(defaults: ["logcrashes":1])
+		let sig = UserDefaults.standard.integer(forKey: "signal")
+		let logcrashes = UserDefaults.standard.integer(forKey: "logcrashes")
+		if ((sig>0) && (logcrashes>0)) {
+			// we had a crash !
+			let backtrace = UserDefaults.standard.object(forKey: "backtrace") as! [String]
+			let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as! String
+			print("had a crash with signal ",sig," for code release ", version)
+			backtrace.forEach{print($0)}
+			print("continuing")
+			// send report to www.leith.ie/logcrash.php.  post "backtrace=<>&version=<>"
+			let url = URL(string: "https://leith.ie/logcrash.php")!
+			var request = URLRequest(url: url); request.httpMethod = "POST"
+			var str: String = ""
+			for s in backtrace {
+				str = str + s + "\n"
+			}
+			let uploadData=("signal="+String(sig)+"&backtrace="+str+"&version="+version).data(using: .ascii)
+			let session = URLSession(configuration: .default)
+			let task = session.uploadTask(with: request, from: uploadData)
+					{ data, response, error in
+					if let error = error {
+							print ("error: \(error)")
+							return
+					}
+					guard let response = response as? HTTPURLResponse,
+							(200...299).contains(response.statusCode) else {
+							print ("server error")
+							return
+					}
+					if let mimeType = response.mimeType,
+							mimeType == "application/json",
+							let data = data,
+							let dataString = String(data: data, encoding: .utf8) {
+							print ("got data: \(dataString)")
+					}
+			}
+			task.resume()
+			session.finishTasksAndInvalidate()
+			// and clear, so we don't come back here
+			UserDefaults.standard.set(-1, forKey: "signal")
+		}
+
+		// set up handler to catch errors.
+		setup_sig_handlers()
 
 		// install appFirewall-Helper, if not already installed
 		start_helper()
@@ -180,19 +232,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		UserDefaults.standard.register(defaults: ["log_asc":false])
 		UserDefaults.standard.register(defaults: ["log_show_blocked":3])
 				
-		// set default logging level
-		UserDefaults.standard.register(defaults: ["logging_level":2])
-		// can change this at command line using "defaults write" command
-		let log_level = UserDefaults.standard.integer(forKey: "logging_level")
-		set_logging_level(Int32(log_level))
-		init_stats();
-
 		// set whether to use dtrace assistance or not
 		UserDefaults.standard.register(defaults: ["dtrace":1])
 		let dtrace = UserDefaults.standard.integer(forKey: "dtrace")
-		
-		// set up handler to catch C errors
-		setup_sigterm_handler()
 		
 		// reload state
 		load_log(); load_blocklist(); load_whitelist()
@@ -210,10 +252,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		timer_stats = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
-
-		//print(String(Double(DispatchTime.now().uptimeNanoseconds)/1.0e9),"finished applicationWillFinishLaunching()")
-		//let t = NSApplication.shared.mainWindow?.contentViewController as? NSTabViewController
-		//t?.tabView.selectedTabViewItem?.viewController?.viewWillAppear()
 	}
 
 	func applicationWillTerminate(_ aNotification: Notification) {

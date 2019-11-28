@@ -29,21 +29,21 @@ extern int verbose;          // debugging level
 #define INFO(fmt, ...)  do{if (verbose) os_log(OS_LOG_DEFAULT,fmt, ##__VA_ARGS__);}while(0)
 */
 
-#define APPLOGFILE "app_log.txt"
-
 #define ERR(args ...) do{fprintf(stdout,"ERROR: "); fprintf(stderr, args);}while(0)
 #define WARN(args ...) do{fprintf(stdout,"WARNING: "); fprintf(stderr, args);}while(0)
 #define INFO(args ...) if (verbose) fprintf(stdout, args)
 #define INFO2(args ...) if (verbose>1) fprintf(stdout, args)
 #define DEBUG2(args ...) if (verbose>2) fprintf(stdout, args)
 
-// raise SIGCHLD event in C to display popup to user before exiting on error.
-#define EXITFAIL(args ...) do{char str[1024]; sprintf(str,args); set_error_msg(str);raise(SIGCHLD);}while(0)
+// raise SIGUSR1 event in C to display popup to user before exiting on error.
+#define EXITFAIL(args ...) do{char str[1024]; sprintf(str,args); set_error_msg(str);raise(SIGUSR1);}while(0)
 
 #define LINEBUF_SIZE 4096 // max line size of readn line
 #define STR_SIZE 1024
 #define RECV_TIMEOUT 10 // 10s for socket read timeout
 #define SND_TIMEOUT 20 // 20s for socket send timeout, nice and long
+#define NOTFOUND "<not found>" // label for connections for which process not found
+#define APPLOGFILE "app_log.txt"
 
 typedef struct {
 	int pidinfo_hits, pidinfo_misses, pidinfo_syn_hits, pidinfo_syn_misses;

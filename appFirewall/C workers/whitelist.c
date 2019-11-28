@@ -20,8 +20,8 @@ bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug) {
 }
 
 void add_whiteitem(bl_item_t *item) {
-	if (strcmp(item->name,"<unknown>")==0) {
-		WARN("add_whiteitem() item has process name <unknown>.\n");
+	if (strcmp(item->name,NOTFOUND)==0) {
+		WARN("add_whiteitem() item has process name %s.\n", NOTFOUND);
 		return;
 	}
 	if (strlen(item->domain)==0) {

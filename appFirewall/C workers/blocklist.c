@@ -62,8 +62,8 @@ void del_blockitem_from_htab(const bl_item_t *item) {
 }
 
 void add_blockitem(bl_item_t *item) {
-	if (strcmp(item->name,"<unknown>")==0) {
-		WARN("add_blockitem() item has process name <unknown>.\n");
+	if (strcmp(item->name,NOTFOUND)==0) {
+		WARN("add_blockitem() item has process name %s.\n", NOTFOUND);
 		return;
 	}
 	if (strlen(item->domain)==0) {

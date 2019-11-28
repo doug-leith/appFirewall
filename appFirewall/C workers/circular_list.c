@@ -163,14 +163,14 @@ void sort_list(list_t *l, int (*sort_cmp)(const void *, const void *)) {
 	qsort(l->list,l->list_size,sizeof(void*),sort_cmp);
 }
 
+#define FILE_VERSION 1
 void save_list(list_t *l, char* path, size_t item_size) {
 	FILE *fp = fopen(path,"w");
 	if (fp==NULL) {
 		WARN("Problem opening %s for writing: %s\n", path, strerror(errno));
 		return;
 	}
-	#define VERSION 1
-	uint8_t ver = VERSION;
+	uint8_t ver = FILE_VERSION;
 	size_t res = fwrite(&ver,1,1,fp);
 	if (res<1) {
 		WARN("Problem saving version to %s: %s\n",path,strerror(errno));
@@ -212,7 +212,10 @@ void load_list(list_t *l, char* path, size_t item_size) {
 		WARN("Problem loading %s: %s", path, strerror(errno));
 		return;
 	}
-	if (ver != 1) return; // basic sanity check on file
+	if (ver != FILE_VERSION) {
+	WARN("Problem loading %s: version mismatch, expected %d got %d", path, FILE_VERSION, ver);
+		return;
+	}
 	res=fread(&l->list_size,sizeof(l->list_size),1,fp);
 	if (res<1) {
 		WARN("Problem loading %s: %s", path, strerror(errno));

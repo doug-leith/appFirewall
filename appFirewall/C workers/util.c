@@ -14,7 +14,7 @@ static char date[STR_SIZE], date_temp[STR_SIZE];
 // stats
 stats_t stats;
 
-// loggin level
+// logging level
 int verbose = 1;
 
 void set_logging_level(int_sw level) {
@@ -35,8 +35,8 @@ void init_stats() {
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_udp);
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_escapees_hits);
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_escapees_misses);
-	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_escapee_thread_count);}
-
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_escapee_thread_count);
+}
 
 void print_stats() {
 	INFO("dtrace hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d syn_hits %d/syn_misses %d, waitinglist hits %d/misses %d, #escapees fresh %d/stale %d/old %d hits %d/misses %d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
