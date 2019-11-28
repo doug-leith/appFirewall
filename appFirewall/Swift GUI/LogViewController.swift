@@ -168,6 +168,7 @@ extension LogViewController: NSTableViewDelegate {
 		
 		// we display log in reverse order, i.e. youngest first
 		let r = mapRow(row: row)
+		if (r<0) { return nil }
 		let item_ptr = get_filter_log_row(Int32(r))
 		var item = item_ptr!.pointee
 		let time_str = String(cString: &item.time_str.0)

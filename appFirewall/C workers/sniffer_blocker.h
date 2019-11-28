@@ -33,7 +33,7 @@
 
 void init_sniffer_blocker(char* filter_exp);
 void sniffer_blocker_callback(u_char *args, const struct pcap_pkthdr *pkthdr, 	const 			u_char* pkt);
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr);
+bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn);
 
 // swift
 void start_listener(void);

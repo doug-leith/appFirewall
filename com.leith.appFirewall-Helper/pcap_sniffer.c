@@ -11,6 +11,7 @@
 static pcap_t *pd;  // pcap listener
 static time_t stats_time; // time when last asked pcap for stats
 static int p_sock, p_sock2=-1;
+static int pid = -1;
 static pthread_t listener_thread; // handle to listener thread
 
 void close_sniffer_sock() {
@@ -99,6 +100,14 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 	// send pkt to GUI
 	DEBUG2("sniffed pkt, sending to GUI ... %d bytes\n",pkthdr->caplen);
+	
+	// before sending data, we recheck client when PID changes
+	int current_pid = get_sock_pid(p_sock2, PCAP_PORT);
+	if (current_pid != pid) {
+		if (check_signature(p_sock2, PCAP_PORT)<0) goto err;
+	}
+	pid = current_pid;
+	
 	if (send(p_sock2, pkthdr, sizeof(struct pcap_pkthdr),0)<0) goto err;
 	if (send(p_sock2, pkt, pkthdr->caplen,0)<0) goto err;
 
@@ -133,11 +142,12 @@ void *listener(void *ptr) {
 			continue;
 		}
 		INFO("Started new connection on port %d\n", PCAP_PORT);
-		if (check_signature(p_sock2, PCAP_PORT)<0) {
+		if (check_signature(p_sock2, PCAP_PORT)<=0) {
 			// couldn't authenticate client
 			close(p_sock2);
 			continue;
 		}
+		pid = get_sock_pid(p_sock2, PCAP_PORT);
 		
 		set_snd_timeout(p_sock2, SND_TIMEOUT); // to be safe, send() will eventually timeout
 
@@ -161,10 +171,16 @@ void start_listener() {
 	//start_sniffer("(udp and port 53) or (tcp and (tcp[tcpflags]&tcp-syn!=0) || (ip6[6] == 6 && ip6[53]&tcp-syn!=0)) or (udp and port 443)");
 	
 	// just syn-acks
-	start_sniffer(&pd, "\
+	/*start_sniffer(&pd, "\
 	(udp and port 53) \
 	or (tcp and (tcp[tcpflags]&tcp-syn!=0) and (tcp[tcpflags]&tcp-ack!=0)) \
 	or (ip6[6] == 6 and (ip6[53]&tcp-syn!=0) and (tcp[tcpflags]&tcp-ack!=0)) \
+	or (udp and port 443)");*/
+	// syns and syn-acks
+	start_sniffer(&pd, "\
+	(udp and port 53) \
+	or (tcp and (tcp[tcpflags]&tcp-syn!=0)) \
+	or (ip6[6] == 6 and (ip6[53]&tcp-syn!=0)) \
 	or (udp and port 443)");
 
 	INFO("pcap initialised\n");

@@ -207,7 +207,7 @@ void *catcher_listener(void *ptr) {
 	memset(&a,0,sizeof(catcher_callback_args_t));
 	wakeup=0;
 	pthread_create(&catcher_thread, NULL, catcher, &a);
-
+	int prev_pid = -1;
 	for(;;) {
 		INFO("Waiting to accept connection on localhost port %u ...\n", CATCHER_PORT);
 		if ((c_sock2 = accept(c_sock, (struct sockaddr *)&remote, &len)) <= 0) {
@@ -215,18 +215,20 @@ void *catcher_listener(void *ptr) {
 			continue;
 		}
 		//INFO("Started new connection on port %d\n", CATCHER_PORT);
-		// skip signature check to speed things ip
-		/*if (check_signature(c_sock2, CATCHER_PORT)<0) {
-			// couldn't authenticate client
-			close(c_sock2);
-			continue;
-		}*/
+		// signature check is slow (about 100ms) so we only do it when PID of connecting client
+		// changes
+		int current_pid = get_sock_pid(c_sock2, CATCHER_PORT);
+		if (current_pid != prev_pid) {
+			INFO("Prev PID=%d npt equal to new PID=%d, authenticating ...\n",prev_pid,current_pid);
+			if (check_signature(c_sock2, CATCHER_PORT)<0) goto err;
+		}
+		prev_pid = current_pid;
 
 		// read connection parameters
 		struct timeval start; gettimeofday(&start, NULL);
 		int8_t ok=0;
 
-		ssize_t res; int pid, af;
+		ssize_t res; int af, pid;
 		struct in6_addr dst;
 		memset(&dst,0,sizeof(struct in6_addr));
 		uint16_t target_dport=0;
@@ -320,7 +322,7 @@ void *catcher_listener(void *ptr) {
 		close(c_sock2);
 		continue;
 	err:
-		INFO("Connection on port %u for %d %s:%u ended: %s\n",pid, CATCHER_PORT,dn,target_dport, strerror(errno));
+		INFO("Connection on port %u for %d %s ended: %s\n", prev_pid, CATCHER_PORT, dn, strerror(errno));
 		pcap_breakloop(pd_esc);
 		close(c_sock2);
 	}

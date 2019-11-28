@@ -223,7 +223,7 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 
 void rst_accept_loop() {
 	// now wait in accept() loop to handle connections from GUI to send RST pkts
-	size_t res;
+	size_t res=0;
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 	for(;;) {
@@ -238,6 +238,7 @@ void rst_accept_loop() {
 			close(s2);
 			continue;
 		}
+		int pid = get_sock_pid(s2, RST_PORT);
 		
 		// when UI starts up it creates a connection and keeps it open
 		// until it shuts down, so we accept and then keep listening
@@ -246,6 +247,12 @@ void rst_accept_loop() {
 			// read RST packet parameters
 			conn_raw_t c;
 			
+			// before reading data, we recheck client when PID changes
+			int current_pid = get_sock_pid(s2, RST_PORT);
+			if (current_pid != pid) {
+				if (check_signature(s2, RST_PORT)<0) break;
+			}
+			pid = current_pid;
 			int syn;
 			if ( (res=readn(s2, &syn, sizeof(int)) )<=0) break;
 			//set_recv_timeout(s2, RECV_TIMEOUT); // to be safe, readn() will eventually timeout

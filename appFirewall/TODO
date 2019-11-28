@@ -5,8 +5,9 @@
 // allow client to adjust log level in appFirewall-Helper ?
 
 // add README.md file
+// different resolutions for icon
 
-// should dtrace be off by default ?  enabled via a pref setting?
+// should dtrace be off by default ?  enabled via a pref setting? use of syn to lookup PIDinfo -- might allow dtrace to be avoided ?
 
 // add export/upload to server of sanitised (no firefox, chrome, safari etc) log files
 

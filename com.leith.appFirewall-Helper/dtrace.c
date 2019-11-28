@@ -162,6 +162,7 @@ void *dtrace(void *ptr) {
 			close(d_sock2);
 			continue;
 		}
+		int pid = get_sock_pid(d_sock2, PCAP_PORT);
 		
 		// open pipe for receiving dtrace output
 		int res = pipe(pipefd);
@@ -185,6 +186,17 @@ void *dtrace(void *ptr) {
 			if (read_line(pipefd[0], inbuf, &inbuf_used, line) <0) break; // problem reading dtrace output
 			INFO2("line=%s",line);
 			if (res<0) break; // problem reading dtrace output
+			
+			// before sending data, we recheck client when PID changes
+			int current_pid = get_sock_pid(d_sock2, DTRACE_PORT);
+			if (current_pid != pid) {
+				if (check_signature(d_sock2, DTRACE_PORT)<0) {
+					close(d_sock2);
+					break;
+				}
+			}
+			pid = current_pid;
+			
 			if (send(d_sock2, line, strlen(line), 0)<=0) break;
 		}
 		INFO("Connection on port %d ended: %s\n", DTRACE_PORT, strerror(errno));

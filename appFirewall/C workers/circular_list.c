@@ -164,21 +164,24 @@ void sort_list(list_t *l, int (*sort_cmp)(const void *, const void *)) {
 }
 
 void save_list(list_t *l, char* path, size_t item_size) {
-	//printf("saving block_list\n");
-	#define STR_SIZE 1024
 	FILE *fp = fopen(path,"w");
-
 	if (fp==NULL) {
 		WARN("Problem opening %s for writing: %s\n", path, strerror(errno));
 		return;
 	}
-	size_t i;
-	size_t res = fwrite(&l->list_size,sizeof(int),1,fp);
+	#define VERSION 1
+	uint8_t ver = VERSION;
+	size_t res = fwrite(&ver,1,1,fp);
+	if (res<1) {
+		WARN("Problem saving version to %s: %s\n",path,strerror(errno));
+		return;
+	}
+	res = fwrite(&l->list_size,sizeof(l->list_size),1,fp);
 	if (res<1) {
 		WARN("Problem saving size to %s: %s\n",path,strerror(errno));
 		return;
 	}
-	for(i = l->list_start; i < l->list_start+l->list_size; i++){
+	for(size_t i = l->list_start; i < l->list_start+l->list_size; i++){
 		int res=(int)fwrite(l->list[i%l->maxsize],item_size,1,fp);
 		if (res<1) {
 			WARN("Problem saving %s: %s\n", path, strerror(errno));
@@ -203,7 +206,14 @@ void load_list(list_t *l, char* path, size_t item_size) {
 		WARN("Problem opening %s for reading: %s\n", path, strerror(errno));
 		return;
 	}
-	int res=(int)fread(&l->list_size,sizeof(int),1,fp);
+	uint8_t ver;
+	size_t res = fread(&ver,1,1,fp);
+	if (res<1) {
+		WARN("Problem loading %s: %s", path, strerror(errno));
+		return;
+	}
+	if (ver != 1) return; // basic sanity check on file
+	res=fread(&l->list_size,sizeof(l->list_size),1,fp);
 	if (res<1) {
 		WARN("Problem loading %s: %s", path, strerror(errno));
 		return;
@@ -221,7 +231,7 @@ void load_list(list_t *l, char* path, size_t item_size) {
 	size_t i;
 	for(i = 0; i < l->list_size; i++){
 		l->list[i] = malloc(item_size);
-		res=(int)fread(l->list[i],item_size,1,fp);
+		res=fread(l->list[i],item_size,1,fp);
 		if (res<1) {
 			WARN("Problem loading %s: %s", path, strerror(errno));
 			free(l->list[i]);

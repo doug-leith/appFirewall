@@ -10,15 +10,26 @@
 #include <Security/Security.h>
 #include "util.h"
 
-int check_signature(int sock, int port){
+#define identifier "com.leith.appFirewall"
+#define cert_cn "Apple Development: doug.leith@tcd.ie (8JB83FAF5R)"
+#define ASCII 1536 //CFString ascii encoding
 
+int get_sock_pid(int sock, int port) {
 	pid_t pid; socklen_t pid_size = sizeof(pid);
 	if (getsockopt(sock, SOL_LOCAL,  LOCAL_PEERPID, &pid, &pid_size)<0) {
-		ERR("getsockopt() LOCAL_PEERPID for port %d: %s", port,strerror(errno));
+		ERR("getsockopt() LOCAL_PEERPID for port %d: %s\n", port,strerror(errno));
 		return -1;
 	}
-	printf("client pid=%d for port %d\n", pid, port);
+	return pid;
+}
+
+int check_signature(int sock, int port){
+	// check signature of client connected to socket is valid (signed ok and by right person).
+	// quite slow, takes about 100ms
 	
+	pid_t pid = get_sock_pid(sock, port); if (pid<0) return -1;
+	INFO("client pid=%d for port %d\n", pid, port);
+		
 	// get reference to code using PID
 	SecCodeRef codeRef;
 	CFNumberRef pid_ = CFNumberCreate(NULL,kCFNumberIntType,&pid);
@@ -28,18 +39,25 @@ int check_signature(int sock, int port){
 	CFRelease(attr); CFRelease(pid_);
 	if (status != errSecSuccess) {
 		CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
-		printf("problem getting code ref for PID %d on port %d: %s\n",pid,port, CFStringGetCStringPtr(err_str,1536));
+		ERR("problem getting code ref for PID %d on port %d: %s\n",pid,port, CFStringGetCStringPtr(err_str,1536));
 		CFRelease(err_str);
 		return -1;
 	}
-
+	
+	// check code signature is valid and meets our requirements
+	char str[1024];
+	sprintf(str,"identifier %s and anchor apple generic and certificate leaf[subject.CN] = \"%s\"", identifier, cert_cn);
+	CFStringRef req_str = CFStringCreateWithCString(NULL,str,ASCII);
+	SecRequirementRef req;
+	SecRequirementCreateWithString(req_str, kSecCSDefaultFlags, &req);
 	// check signature against embedded requirements
-	status = SecStaticCodeCheckValidity(codeRef, kSecCSCheckAllArchitectures, NULL);
+	status = SecStaticCodeCheckValidity(codeRef, kSecCSCheckAllArchitectures, req);
+	CFRelease(req); CFRelease(req_str);
+	
+	CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
+	INFO("signing status on port %d: %s\n",port,CFStringGetCStringPtr(err_str,ASCII));
+	CFRelease(err_str);
 	if (status != errSecSuccess) {
-		CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
-		printf("signing error on port %d: %s\n",port,CFStringGetCStringPtr(err_str,1536));
-		CFRelease(err_str);
-		
 		// get some extra debug info
 		SecCSFlags flags = kSecCSInternalInformation
 		| kSecCSSigningInformation
@@ -48,23 +66,24 @@ int check_signature(int sock, int port){
 		CFDictionaryRef api; // not mutable, no need to release
 		SecCodeCopySigningInformation(codeRef, flags, &api);
 		CFStringRef id = CFDictionaryGetValue(api, kSecCodeInfoIdentifier);
-		printf("signature identifier on port %d: %s\n",port,CFStringGetCStringPtr(id,1536));
+		INFO("signature identifier on port %d: %s\n",port,CFStringGetCStringPtr(id,ASCII));
 		
 		SecRequirementRef req;
 		SecCodeCopyDesignatedRequirement(codeRef, kSecCSDefaultFlags, &req);
 		CFStringRef req_str;
 		SecRequirementCopyString(req, kSecCSDefaultFlags, &req_str);
-		printf("requirements on port %d: %s\n",port,CFStringGetCStringPtr(req_str,1536));
+		INFO("requirements on port %d: %s\n",port,CFStringGetCStringPtr(req_str,ASCII));
 		CFRelease(req_str); CFRelease(req);
 		CFRelease(codeRef);
 		#ifdef DEBUG
 		// appFirewall will fail sign check when compiled for testing/debugging, but its ok
-		return 0;
+		INFO("DEBUG enabled, passed anyway\n");
+		return pid;
 		#else
 		return -1;
 		#endif
 	}
-	printf("passed signature check on port %d\n",port);
+	INFO("passed signature check on port %d\n",port);
 	CFRelease(codeRef);
-	return 0;
+	return pid;
 }

@@ -169,7 +169,7 @@ void cache_pid(int pid, char* name) {
 	pthread_mutex_unlock(&pid_mutex);
 }
 
-int find_pid(conn_raw_t *cr, char*name){
+int find_pid(conn_raw_t *cr, char*name, int syn){
 	// find name of process associated with a network connection tuple
 	// (assumed to be an outgoing tuple, so src is local addr and dst
 	// is remote).
@@ -185,11 +185,17 @@ int find_pid(conn_raw_t *cr, char*name){
 		strlcpy(name,res->name,MAXCOMLEN);
 		pthread_mutex_unlock(&pid_mutex);
 		INFO2("found\n");
-		stats.pidinfo_hits++;
+		if (syn)
+			stats.pidinfo_syn_hits++;
+		else
+			stats.pidinfo_hits++;
 		cache_pid(res->pid, name);
 		return 1;
 	}
-	stats.pidinfo_misses++;
+	if (syn)
+		stats.pidinfo_syn_misses++;
+	else
+		stats.pidinfo_misses++;
 
 	pthread_mutex_unlock(&pid_mutex);
 	// we cache last few PIDs and then try to
@@ -213,7 +219,10 @@ int find_pid(conn_raw_t *cr, char*name){
 		} else if (in_list(l,&c,0)) { // list lookup only uses raw
 			pthread_mutex_unlock(&pid_mutex);
 			strlcpy(name,it->name,MAXCOMLEN);
-			stats.pidinfo_cachehits++;
+			if (syn)
+				stats.pidinfo_syn_cachehits++;
+			else
+				stats.pidinfo_cachehits++;
 			struct timeval end; gettimeofday(&end, NULL);
 			double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
 			cm_add_sample(&stats.cm_t_pidinfo_cache_hit,t);
@@ -224,7 +233,10 @@ int find_pid(conn_raw_t *cr, char*name){
 	struct timeval end; gettimeofday(&end, NULL);
 	double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
 	cm_add_sample(&stats.cm_t_pidinfo_cache_miss,t);	pthread_mutex_unlock(&pid_mutex);
-	stats.pidinfo_cachemisses++;
+	if (syn)
+		stats.pidinfo_syn_cachemisses++;
+	else
+		stats.pidinfo_cachemisses++;
 
 	// failed. we'll now trigger refresh of pid_info by watcher thread.
 	// nb: there's a possibility that will miss connection if it dies before

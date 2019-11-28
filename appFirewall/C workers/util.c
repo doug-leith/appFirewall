@@ -39,8 +39,10 @@ void init_stats() {
 
 
 void print_stats() {
-	INFO("dtrace hits %d/misses %d, pidinfo hits %d/misses %d, pidinfo_cache hits %d/misses %d, waitinglist hits %d/misses %d, #escapees fresh %d/stale %d/old %d hits %d/misses %d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
-	stats.dtrace_hits, stats.dtrace_misses,stats.pidinfo_hits, stats.pidinfo_misses,stats.pidinfo_cachehits, stats.pidinfo_cachemisses,
+	INFO("dtrace hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d syn_hits %d/syn_misses %d, waitinglist hits %d/misses %d, #escapees fresh %d/stale %d/old %d hits %d/misses %d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
+	stats.dtrace_hits, stats.dtrace_misses, stats.dtrace_syn_hits, stats.dtrace_syn_misses,
+	stats.pidinfo_hits, stats.pidinfo_misses, stats.pidinfo_syn_hits, stats.pidinfo_syn_misses,
+	stats.pidinfo_cachehits, stats.pidinfo_cachemisses, stats.pidinfo_syn_cachehits, stats.pidinfo_syn_cachemisses,
 	stats.waitinglist_hits,stats.waitinglist_misses,
 	stats.num_escapees, stats.stale_escapees, stats.escapees_not_in_log,
 	stats.escapees_hits,stats.escapees_misses,

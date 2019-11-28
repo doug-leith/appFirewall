@@ -44,5 +44,5 @@ void set_recv_timeout(int sockfd, int timeout);
 void set_snd_timeout(int sockfd, int timeout);
 
 int check_signature(int pid, int port);
-
+int get_sock_pid(int sock, int port);
 #endif /* util_h */

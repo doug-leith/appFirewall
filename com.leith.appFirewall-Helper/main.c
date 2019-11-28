@@ -31,11 +31,6 @@
 //source for tcp protocol block:
 //https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/netinet/tcp_var.h.auto.html
 
-
-// TO DO:
-// - Encrypt TCP connection ?
-// - Add some authentication ?
-
 #include <stdio.h>
 #include <sys/un.h>
 #include <sys/types.h>
@@ -103,7 +98,7 @@ int main(int argc, char *argv[]) {
 
 	// configure log rotation
 	// see https://www.freebsd.org/cgi/man.cgi?newsyslog.conf(5)
-  char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t10000\t*\tNJ\n";
+  char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t10000\t*\tNZ\n";
   char rot_str[1024];
   sprintf(rot_str,rot_fmt,LOGFILE);
 	int rotatefd = open(ROTFILE,O_WRONLY|O_CREAT,0644);

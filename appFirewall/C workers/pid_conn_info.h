@@ -25,7 +25,7 @@
 #include "log.h"
 
 int get_pid_name(int pid, char* name);
-int find_pid(conn_raw_t *c, char*name);
+int find_pid(conn_raw_t *c, char*name, int syn);
 void cache_pid(int pid, char* name);
 
 void init_pid_lists(void);

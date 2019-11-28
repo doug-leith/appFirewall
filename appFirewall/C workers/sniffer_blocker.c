@@ -31,7 +31,7 @@ int udp_cache_size=0, udp_cache_start=0;
 //--------------------------------------------------------
 // private functions
 
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
+bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	// create a new blocklist item from raw connection info (assumed to be
 	// outgoing connection, so src is local and dst is remote)
 	// populates all of blocklist item, including PID name and domain name
@@ -48,9 +48,12 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 	int res=lookup_dtrace(cr, c.name, &pid);
 	if (res==0) { // quite rare, so interesting
 		INFO2("%s:%u->%s:%u NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
-		stats.dtrace_misses++;
+		if (syn)
+			stats.dtrace_syn_misses++;
+		else
+			stats.dtrace_misses++;
 		// try to get PID info from /proc
-		res=find_pid(cr,c.name);
+		res=find_pid(cr,c.name,syn);
 		//clock_t end1 = clock();
 		if (res==0) {
 			// we'll now add this conn to waiting list and try again once
@@ -58,7 +61,10 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr) {
 			strcpy(c.name,"<unknown>");
 		}
 	} else {
-		stats.dtrace_hits++;
+		if (syn)
+			stats.dtrace_syn_hits++;
+		else
+			stats.dtrace_hits++;
 		cache_pid(pid, c.name); // cache successful pid for pidinfo lookup
 		INFO2("%s:%u->%s:%u found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 	}
@@ -166,7 +172,7 @@ void process_conn_waiting_list(void) {
 			int del=0;
 			
 			// try to get PID name for this connection ...
-			bl_item_t c_w = create_blockitem_from_addr(&cr_w);
+			bl_item_t c_w = create_blockitem_from_addr(&cr_w, 0);
 
 			if (strcmp(c_w.name,"<unknown>")==0) {//yet again failed to get PID name
 				#define WAIT_TIMEOUT 0.02 // 20ms
@@ -313,7 +319,7 @@ void *listener(void *ptr) {
 					udp_cache_size++;
 					
 					// carry out PID and DNS lookup
-					bl_item_t c = create_blockitem_from_addr(&cr);
+					bl_item_t c = create_blockitem_from_addr(&cr,0);
 					// log connection
 					char dns[MAXDOMAINLEN]={0};
 					if (strlen(c.domain)) {
@@ -363,7 +369,7 @@ void *listener(void *ptr) {
 		// received from remote, which usually takes a few ms at least due to propagation
 		// delay.  so we have a bigger time window for sending RST.  note that on LANs this
 		// window collapses since the propagation delay is tiny, and RST can easily fail.
-		if (syn) continue; // should never happen with new pcap filter
+		//if (syn) continue; // should never happen with new pcap filter
 	
 		conn_raw_t cr;
 		cr.af=af; cr.udp=0;
@@ -381,7 +387,15 @@ void *listener(void *ptr) {
 			cr.seq=ntohl(tcp->th_ack); cr.ack=ntohl(tcp->th_seq);
 		}
 		// try to get PID name and domain for this connection ...
-		bl_item_t c = create_blockitem_from_addr(&cr);
+		bl_item_t c = create_blockitem_from_addr(&cr, syn);
+		
+		if (syn) {
+			// we use syn's to prime the procinfo cache.  if connection is not in cache
+			// we trigger a refresh here.  the hope is that by the time the synack arrives
+			// the connection will be in the cache and we'll avoid waiting.
+			if (strcmp(c.name,"<unknown>")==0) signal_pid_watcher();
+			continue; // nothing more to do for a syn.
+		}
 		
 		if (strcmp(c.name,"<unknown>")==0) {
 			// failed to look up PID name, put into waiting list to try again
