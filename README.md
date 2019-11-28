@@ -14,12 +14,12 @@ If you refresh the hostname files (with lists of blacklisted domains) then the w
 
 If the app crashes (hopefully not !) then it will send a short backtrace to http://leith.ie to help with debugging.  There is no personal information in this backtrace, an example is the following:
 
-0   appFirewall                         0x000000010dc3ae1e appFirewall   73246<br>
-1   libsystem_platform.dylib            0x00007fff769b5b5d _sigtramp   29<br>
-2   ???                                 0x000000011d3f8b76 0x0   4785671030<br>
-3   libsystem_c.dylib                   0x00007fff76822d8a raise   26<br>
-4   appFirewall                         0x000000010dc4fab5 appFirewall   158389<br>
-5   appFirewall                         0x000000010dc5001b appFirewall   159771<br>
+    0   appFirewall                         0x000000010dc3ae1e appFirewall   73246<br>
+    1   libsystem_platform.dylib            0x00007fff769b5b5d _sigtramp   29<br>
+    2   ???                                 0x000000011d3f8b76 0x0   4785671030<br>
+    3   libsystem_c.dylib                   0x00007fff76822d8a raise   26<br>
+    4   appFirewall                         0x000000010dc4fab5 appFirewall   158389<br>
+    5   appFirewall                         0x000000010dc5001b appFirewall   159771<br>
 
 (its a list of entry points in the app so that I can see where it crashed, nothing more).  The http://leith.ie web server does not log IP address or other connection details.
 
