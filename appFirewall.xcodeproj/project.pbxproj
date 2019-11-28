@@ -40,7 +40,7 @@
 		91607C312374080C002E50A8 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C302374080B002E50A8 /* util.c */; };
 		9180E1662387F407007002CB /* percentile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1652387F407007002CB /* percentile.c */; };
 		9180E1692387F4BB007002CB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1672387F4BB007002CB /* heap.c */; };
-		9180E16B2387FCC9007002CB /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 9180E16A2387FCC9007002CB /* LICENSE */; };
+		9180E16B2387FCC9007002CB /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 9180E16A2387FCC9007002CB /* LICENSE.md */; };
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
 		9180E1732388ABB7007002CB /* is_blocked.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1722388ABB7007002CB /* is_blocked.c */; };
 		9180E175238927A2007002CB /* catch_escapee.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E174238927A2007002CB /* catch_escapee.c */; };
@@ -151,7 +151,7 @@
 		9180E1652387F407007002CB /* percentile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = percentile.c; sourceTree = "<group>"; };
 		9180E1672387F4BB007002CB /* heap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = heap.c; sourceTree = "<group>"; };
 		9180E1682387F4BB007002CB /* heap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = heap.h; sourceTree = "<group>"; };
-		9180E16A2387FCC9007002CB /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		9180E16A2387FCC9007002CB /* LICENSE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 		9180E16C2388A007007002CB /* connection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = connection.h; sourceTree = "<group>"; };
 		9180E16F2388A91F007002CB /* connection.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = connection.c; sourceTree = "<group>"; };
 		9180E1712388ABB7007002CB /* is_blocked.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = is_blocked.h; sourceTree = "<group>"; };
@@ -196,6 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				9157B04A238FB09E0027457A /* README.md */,
+				9180E16A2387FCC9007002CB /* LICENSE.md */,
 				91607BB1236AB280002E50A8 /* appFirewall */,
 				91607C1F2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
 				91607BB0236AB280002E50A8 /* Products */,
@@ -215,7 +216,6 @@
 		91607BB1236AB280002E50A8 /* appFirewall */ = {
 			isa = PBXGroup;
 			children = (
-				9180E16A2387FCC9007002CB /* LICENSE */,
 				9180E177238BC731007002CB /* Credits.html */,
 				91ABB292237734DE007F8FFE /* BlackLists */,
 				91607BE1236B691A002E50A8 /* libnet */,
@@ -407,7 +407,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9180E16B2387FCC9007002CB /* LICENSE in Resources */,
+				9180E16B2387FCC9007002CB /* LICENSE.md in Resources */,
 				91607BE2236B691A002E50A8 /* libnet in Resources */,
 				91B67F2823793C1C00706027 /* TODO in Resources */,
 				9180E178238BC731007002CB /* Credits.html in Resources */,
