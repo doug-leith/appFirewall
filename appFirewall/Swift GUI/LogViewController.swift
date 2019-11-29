@@ -66,8 +66,10 @@ class LogViewController: NSViewController {
 			filter_log_list(Int32(show_blocked),searchField.stringValue)
 			tableView.reloadData()
 		} else if (has_log_changed() == 1){
-			// update scrollbars but leave rest of view alone
-			tableView.noteNumberOfRowsChanged()
+			// update scrollbars but leave rest of view alone.
+			// shouldn't be used with view-based tables, see
+			// https://developer.apple.com/documentation/appkit/nstableview/1534147-notenumberofrowschanged
+			//tableView.noteNumberOfRowsChanged()
 		}
 		ConnsColumn.headerCell.title="Connections ("+String(Int(get_num_conns_blocked()))+" blocked)"
 	}

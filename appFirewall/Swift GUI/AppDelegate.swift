@@ -93,6 +93,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			}
 		}
 	
+	
+	@IBAction func checkForUpdates(_ sender: NSMenuItem) {
+	let url = URL(string: "https://leith.ie/appFirewall_version.html")
+		let session = URLSession(configuration: .default)
+	 	let task = session.dataTask(with: url!)
+			 { data, response, error in
+			 if let error = error {
+					 print ("error when checking for updates: \(error)")
+					 return
+			 }
+			 if let resp = response as? HTTPURLResponse {
+			 	if !(200...299).contains(resp.statusCode) {
+					print ("server error when checking for updates: ",resp.statusCode)
+				}
+			}
+			 if let data = data,
+					let dataString = String(data: data, encoding: .ascii) {
+					//print ("got data: ",dataString)
+					let lines = dataString.components(separatedBy:"\n")
+					let latest_version = lines[0].trimmingCharacters(in: .whitespacesAndNewlines)
+						let msg = lines[1].trimmingCharacters(in: .whitespacesAndNewlines)
+					let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as! String
+					print("checking for updates.  our version=",version,", latest_version=",latest_version,", msg=",msg)
+					var result = "Up to date (current version "+version+" matches latest version "+latest_version+")"
+					var extra = ""
+					if (version != latest_version) {
+						result = "An update to version "+latest_version+" is available."
+						extra = "Download at <a href='https://github.com/doug-leith/appFirewall'>https://github.com/doug-leith/appFirewall</a>"
+					}
+					if (msg != "<none>") {
+						extra = extra + "\n" + msg
+					}
+					DispatchQueue.main.async {
+						update_popup(msg:result, extra:extra)
+					}
+				}
+	 }
+	 task.resume()
+	 session.finishTasksAndInvalidate()
+	}
+	
 	// handle click on menubar item
 	@objc func openapp(_ sender: Any?) {
 		// reopen active connections window
@@ -190,19 +231,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			let task = session.uploadTask(with: request, from: uploadData)
 					{ data, response, error in
 					if let error = error {
-							print ("error: \(error)")
+							print ("error when sending backtrace: \(error)")
 							return
 					}
-					guard let response = response as? HTTPURLResponse,
-							(200...299).contains(response.statusCode) else {
-							print ("server error")
-							return
-					}
-					if let mimeType = response.mimeType,
-							mimeType == "application/json",
-							let data = data,
-							let dataString = String(data: data, encoding: .utf8) {
-							print ("got data: \(dataString)")
+					if let resp = response as? HTTPURLResponse {
+						if !(200...299).contains(resp.statusCode) {
+							print ("server error when sending backtrace: ",resp.statusCode)
+						}
 					}
 			}
 			task.resume()

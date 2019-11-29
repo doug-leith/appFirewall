@@ -56,6 +56,7 @@
 		91ABB293237734DE007F8FFE /* BlackLists in Resources */ = {isa = PBXBuildFile; fileRef = 91ABB292237734DE007F8FFE /* BlackLists */; };
 		91ABB2952377350A007F8FFE /* BlackLists in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91ABB292237734DE007F8FFE /* BlackLists */; };
 		91ABB29823773595007F8FFE /* hostlists.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB29723773595007F8FFE /* hostlists.c */; };
+		91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B590952390F7BC000F418D /* HyperlinkTextView.swift */; };
 		91B67F2823793C1C00706027 /* TODO in Resources */ = {isa = PBXBuildFile; fileRef = 91B67F2723793C1C00706027 /* TODO */; };
 /* End PBXBuildFile section */
 
@@ -173,6 +174,7 @@
 		91ABB292237734DE007F8FFE /* BlackLists */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BlackLists; sourceTree = "<group>"; };
 		91ABB29623773595007F8FFE /* hostlists.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hostlists.h; sourceTree = "<group>"; };
 		91ABB29723773595007F8FFE /* hostlists.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = hostlists.c; sourceTree = "<group>"; };
+		91B590952390F7BC000F418D /* HyperlinkTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperlinkTextView.swift; sourceTree = "<group>"; };
 		91B67F2723793C1C00706027 /* TODO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -288,6 +290,7 @@
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
 				9180E17B238D2882007002CB /* installHelper.swift */,
 				9180E17D238D2D07007002CB /* Helpers.swift */,
+				91B590952390F7BC000F418D /* HyperlinkTextView.swift */,
 			);
 			path = "Swift GUI";
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */,
 				91ABB26E237680B7007F8FFE /* table.c in Sources */,
 				9180E17C238D2882007002CB /* installHelper.swift in Sources */,
 				91607BF6237142A0002E50A8 /* log.c in Sources */,

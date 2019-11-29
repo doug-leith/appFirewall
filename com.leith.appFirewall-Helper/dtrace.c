@@ -37,47 +37,41 @@ https://gist.github.com/amitu/2134968 // for apple, v useful !
 
 // Apple TCP control block: https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/netinet/tcp_var.h.auto.html
 
-// Note that dtrace script below can generate occasional errors e.g.
-// error on enabled probe ID 5 (ID 971: syscall::connect_nocancel:return): invalid alignment (0x3356113e0009b1e) in action #1 at DIF offset 328
-// this is a memory error and likely means that process has been killed between time
-// connect call started and when it ended e.g. if laptop went to sleep and then
-// awoke.  so hopefully no big deal since we don't care about killing such connections
-// as they're already dying.
-//
-// note also there is a tradeoff in choosing switchrate parameter.  choosing it
-// high e.g. 1000Hz means dtrace reports results quickly but (i) may drop results
+// note there is a tradeoff in choosing switchrate parameter.  choosing it
+// high e.g. 1000Hz means dtrace reports quickly but (i) may drop results
 // if they arrive too fast and (ii) uses a ton of cpu since dtrace app polls at
 // this freq.  choosing it a bit lower e.g 250Hz may delay reporting of results
-// but causes fewer drops and saves on cpu (runs at about 10%, rather than 20% when
-// switchrate=500Hz)
+// but causes fewer drops and saves on cpu (runs at about 10%, rather than 20%
+// when switchrate=500Hz)
+// nb: important to use local vars (this->) here as multiple threads in kernel
 char* dtrace_script="\
 -x quiet -x switchrate=200hz -n \
 '\
 syscall::connect*:entry{ \
-connect_fd = arg0; \
+this->connect_fd = arg0; \
 } \
 syscall::connect*:return{\
-sock = ((struct socket *) (curproc->p_fd->fd_ofiles[connect_fd]->f_fglob->fg_data)); \
-af2=sock->so_proto->pr_domain->dom_family; \
-pcb = (struct inpcb *) sock->so_pcb; \
+this->sock = ((struct socket *) (curproc->p_fd->fd_ofiles[this->connect_fd]->f_fglob->fg_data)); \
+this->af2=this->sock->so_proto->pr_domain->dom_family; \
+this->pcb = (struct inpcb *) this->sock->so_pcb; \
 } \
-syscall::connect*:return/af2==2/{ \
-localPort = ntohs((uint16_t) pcb->inp_lport); \
-remotePort = ntohs((uint16_t) pcb->inp_fport); \
-l_addr= &pcb->inp_dependladdr.inp46_local.ia46_addr4.s_addr; \
-r_addr = &pcb->inp_dependfaddr.inp46_foreign.ia46_addr4.s_addr; \
-localAddr = inet_ntoa((uint32_t*) l_addr); \
-remoteAddr = inet_ntoa((uint32_t*) r_addr); \
-printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d,%s,%s\\n\", execname, pid, af2, localAddr, localPort, remoteAddr, remotePort,probefunc,probename); \
+syscall::connect*:return/this->af2==2/{ \
+this->localPort = ntohs((uint16_t) this->pcb->inp_lport); \
+this->remotePort = ntohs((uint16_t) this->pcb->inp_fport); \
+this->l_addr= &this->pcb->inp_dependladdr.inp46_local.ia46_addr4.s_addr; \
+this->r_addr = &this->pcb->inp_dependfaddr.inp46_foreign.ia46_addr4.s_addr; \
+this->localAddr = inet_ntoa((uint32_t*) this->l_addr); \
+this->remoteAddr = inet_ntoa((uint32_t*) this->r_addr); \
+printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d,%s,%s\\n\", execname, pid, this->af2, this->localAddr, this->localPort, this->remoteAddr, this->remotePort,probefunc,probename); \
 } \
-syscall::connect*:return/af2==30/{ \
-localPort = ntohs((uint16_t) pcb->inp_lport); \
-remotePort = ntohs((uint16_t) pcb->inp_fport); \
-l6_addr= &pcb->inp_dependladdr.inp6_local; \
-r6_addr = &pcb->inp_dependfaddr.inp6_foreign; \
-localAddr = inet_ntoa6(l6_addr); \
-remoteAddr = inet_ntoa6(r6_addr); \
-printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d,%s,%s\\n\", execname, pid, af2, localAddr, localPort, remoteAddr, remotePort,probefunc,probename); \
+syscall::connect*:return/this->af2==30/{ \
+this->localPort = ntohs((uint16_t) this->pcb->inp_lport); \
+this->remotePort = ntohs((uint16_t) this->pcb->inp_fport); \
+this->l6_addr= &this->pcb->inp_dependladdr.inp6_local; \
+this->r6_addr = &this->pcb->inp_dependfaddr.inp6_foreign; \
+this->localAddr = inet_ntoa6(this->l6_addr); \
+this->remoteAddr = inet_ntoa6(this->r6_addr); \
+printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d,%s,%s\\n\", execname, pid, this->af2, this->localAddr, this->localPort, this->remoteAddr, this->remotePort,probefunc,probename); \
 } \
 ' ";
 

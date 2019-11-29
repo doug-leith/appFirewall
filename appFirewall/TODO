@@ -1,13 +1,11 @@
 TO DO
 
 short term:
-- allow client to adjust log level in appFirewall-Helper ?
 - should dtrace be off by default ?  enabled via a pref setting? use of syn to lookup PIDinfo -- might allow dtrace to be avoided ?
 - try use of network extensions - avoid tcp RSTs on new connections ?  need developer id first though
 - add screenshots to readme ?
-- download of updates - add menu item to check for updates, if there are give message with a link ?  also allow server to post an info message to user whenb doing this
+- change dtrace to use libdtrace and fetch from buffers on syn (or syn-ack)
 
 longer term:
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - add export/upload to server of sanitised (no firefox, chrome, safari etc) log files
-
