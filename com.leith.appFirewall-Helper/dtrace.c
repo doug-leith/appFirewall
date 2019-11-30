@@ -8,9 +8,16 @@
 
 // globals
 static pthread_t dtrace_thread; // handle to dtrace thread
-static int dtrace_pid=-1; // pid of forked process running dtrace cmd, used to kill it
-static int d_sock=-1;
-static int stdout_fd;
+static pthread_cond_t dtrace_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t dtrace_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int wakeup = 0;
+static int dtrace_init_firsttime=1;
+
+static int d_sock=-1, d_sock2=-1;
+static int pid=-1;
+static dtrace_hdl_t *g_dtp;
+static dtrace_proginfo_t info;
+static dtrace_prog_t *prog;
 
 /*
 source for struct inpcb:
@@ -41,16 +48,8 @@ https://docs.oracle.com/en/operating-systems/oracle-linux/6/adminsg/ol_examples_
 https://gist.github.com/amitu/2134968 // for apple, v useful !
 */
 
-// note there is a tradeoff in choosing switchrate parameter.  choosing it
-// high e.g. 1000Hz means dtrace reports quickly but (i) may drop results
-// if they arrive too fast and (ii) uses a ton of cpu since dtrace app polls at
-// this freq.  choosing it a bit lower e.g 250Hz may delay reporting of results
-// but causes fewer drops and saves on cpu (runs at about 10%, rather than 20%
-// when switchrate=500Hz)
-// nb: important to use local vars (this->) here as multiple threads in kernel
-char* dtrace_script="\
--x quiet -x switchrate=200hz -n \
-'\
+// nb: important to use local vars (this->) here as multiple threads in kerne
+char* dtrace_script2="\
 this struct fileproc* fdptr; \
 syscall::connect*:entry{ \
 this->connect_fd = arg0; \
@@ -89,76 +88,112 @@ this->localAddr = inet_ntoa6(this->l6_addr); \
 this->remoteAddr = inet_ntoa6(this->r6_addr); \
 printf(\"<appFirewall>,%s,%d,%d,%s,%d,%s,%d,%s,%s\\n\", execname, pid, this->af2, this->localAddr, this->localPort, this->remoteAddr, this->remotePort,probefunc,probename); \
 } \
-' ";
+";
 
-int exec(char* cmd, int *pipefd, int d_sock2) {
+static int
+chewrec(const dtrace_probedata_t *data, const dtrace_recdesc_t *rec, void *arg)
+{
+	//printf("chewrec\n");
+	dtrace_actkind_t act;
+	uintptr_t addr;
 
-	pid_t pid = fork();
-
-	if (pid < 0)
-		return pid; // erro
-	else if (pid == 0) { // child
-		// this is a bit messy.  we've already redirected stdout
-		// to the logfile but have kept a copy of its file descriptor
-		// in stdout_fd.  now that we're in forked child we (i) re-attach
-		// stdout back to stdout_fd, then (ii) redirect stdout to
-		// the pipe fd.  seems that both steps are necessary as dtrace
-		// is writing to stdout FILE* using printf and we need to
-		// make that change.
-		dup2(stdout_fd,STDOUT_FILENO); // redirect stdout
-		dup2(pipefd[1],STDOUT_FILENO); // redirect stdout to file
-		//dup2(fd,STDERR_FILENO); // leave stderr alone though
-		close(pipefd[1]); close(pipefd[0]);
-		setbuf(stdout, NULL); // disable buffering on stdout
-		// close sockets not needed in child, just to be tidy
-		close(d_sock);
-		close(d_sock2);
-		close_sniffer_sock();
-		close_rst_sock();
-
-		int tries=0;
-		for (;;) {
-			execl("/bin/sh", "sh", "-c", cmd, NULL);
-			// shouldn't happen. only returns here on an error
-			ERR("dtrace tries %d: %s\n", tries, strerror(errno));
-			tries++;
-			if (tries>3) break;
-		}
-		exit(1);
+	if (rec == NULL) {
+		return (DTRACE_CONSUME_NEXT);
 	}
-	return pid;
 
+	act = rec->dtrd_action;
+	addr = (uintptr_t)data->dtpda_data;
+
+	if (act == DTRACEACT_EXIT) {
+		return (DTRACE_CONSUME_NEXT);
+	}
+
+	return (DTRACE_CONSUME_THIS);
 }
 
-void kill_dtrace() {
-	// and wait for it to finish cleanly
-	if (dtrace_pid>0) {
-		kill(dtrace_pid,SIGTERM);
-		int status;
-		int res=waitpid(dtrace_pid, &status, 0);
-		INFO("dtrace stopped. res=%d exit:%d/signal:%d/stopped:%d\n",res, WIFEXITED(status),WIFSIGNALED(status),WIFSTOPPED(status));
-		dtrace_pid = -1;
-	} else {
-		WARN("kill_trace() pid=%d\n",dtrace_pid);
+static int
+chew(const dtrace_probedata_t *data, void *arg){
+	//printf("chew\n");
+	return (DTRACE_CONSUME_THIS);
+}
+
+int dtrace_buffered(const dtrace_bufdata_t *bufdata, void *arg){
+	// get dtrace output and pass on to client
+	//printf("dtrace_buffered\n");
+	
+	// before sending data, we recheck client when PID changes
+	int current_pid = get_sock_pid(d_sock2, DTRACE_PORT);
+	if (current_pid != pid) {
+		if (check_signature(d_sock2, DTRACE_PORT)<0) {
+			return (DTRACE_HANDLE_ABORT);
+		}
 	}
+	pid = current_pid;
+	//printf("dtrace_buffered passed\n");
+	
+	const char* line = bufdata->dtbda_buffered;
+	ssize_t res=-1;
+	if (d_sock2 < 0) { // shouldn't happen
+		printf("dtrace_buffered(0 dsock2 %d\n", d_sock2);
+	} else if ((res=send(d_sock2, line, strlen(line), 0))<strlen(line)) {
+		// likely client closed their end of connection
+		WARN("dtrace_buffered() dtrace send problem: %s\n",strerror(errno));
+		return (DTRACE_HANDLE_ABORT);
+	}
+	INFO("dt(res=%zd/%zd), %s",res,strlen(line),line);
+	return (DTRACE_HANDLE_OK);
+}
+
+int init_dtrace() {
+	int err;
+	if ((g_dtp = dtrace_open(DTRACE_VERSION, 0, &err)) == NULL) {
+		ERR("failed to initialize dtrace: %s\n", dtrace_errmsg(NULL, err));
+		return -1;
+	}
+	int flag = DTRACE_C_PSPEC;
+	if (dtrace_init_firsttime) {
+		flag |= DTRACE_C_DIFV; // dump out dtrace code to help with debugging
+		dtrace_init_firsttime=0;
+	}
+	if ((prog = dtrace_program_strcompile(g_dtp, dtrace_script2, DTRACE_PROBESPEC_NAME, flag, 0, NULL)) == NULL) {
+		ERR("dtrace: invalid probe specifier %s\n",dtrace_script2);
+		return -1;
+	}
+	if (dtrace_program_exec(g_dtp, prog, &info) == -1) {
+		ERR("dtrace: failed to enable probes %s\n","");
+		return -1;
+	}
+	if (dtrace_handle_buffered(g_dtp, dtrace_buffered, NULL) == -1) {
+		fprintf(stderr, "dtrace: unable to add buffered output: %s\n", dtrace_errmsg(NULL, err));
+		return -1;
+	}
+	dtrace_setopt(g_dtp, "bufsize", "4m");
+	dtrace_setopt(g_dtp, "aggsize", "4m");
+	dtrace_setopt(g_dtp, "temporal", "yes");
+	dtrace_setopt(g_dtp, "stacksymbols", "enabled");
+	dtrace_setopt(g_dtp, "quiet", 0);
+	dtrace_setopt(g_dtp, "switchrate", "200hz");
+	if (dtrace_go(g_dtp) != 0) {
+			ERR("dtrace: could not enable tracing %s\n","");
+			return -1;
+	}
+	return 0;
+}
+
+void signal_dtrace() {
+	// called when sniff a SYN
+	pthread_mutex_lock(&dtrace_mutex);
+	wakeup = 1;
+	pthread_cond_signal(&dtrace_cond);
+	pthread_mutex_unlock(&dtrace_mutex);
 }
 
 void *dtrace(void *ptr) {
 	// wait in accept() loop to handle connections from GUI to receive dtrace info
 
-	int pipefd[2];
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
-	int d_sock2;
 	
-	// assemble dtrace command
-	char* cmd = "/usr/sbin/dtrace ";
-	int slen = (int)(strlen(dtrace_script) + strlen(cmd));
-	char *dtrace_cmd = malloc(slen+2);
-	INFO("Starting dtrace ...\n");
-	strlcpy(dtrace_cmd,cmd,slen);
-	strlcat(dtrace_cmd,dtrace_script,slen);
-
 	// now start the accept() loop
 	for(;;) {
 		INFO("Waiting to accept connection on localhost port %d ...\n", DTRACE_PORT);
@@ -172,47 +207,52 @@ void *dtrace(void *ptr) {
 			close(d_sock2);
 			continue;
 		}
-		int pid = get_sock_pid(d_sock2, PCAP_PORT);
+		pid = get_sock_pid(d_sock2, PCAP_PORT);
 		
 		// open pipe for receiving dtrace output
-		int res = pipe(pipefd);
-		//pipefd[0] refers to the read end of the pipe. pipefd[1] refers to the write end of the pipe. Data written to the write end of the pipe is buffered by the kernel until it is read from the read end of the pipe
-		
 		INFO("Starting dtrace ...\n");
-		// start a new process to execute dtrace
-		dtrace_pid = exec(dtrace_cmd,pipefd,d_sock2);
-		if (dtrace_pid <= 0) {
-			ERR("Problem starting dtrace, pid=%d: %s\n", dtrace_pid,strerror(errno));
-			close(d_sock2);
+		if (init_dtrace()<0) {
+			dtrace_stop(g_dtp); dtrace_close(g_dtp);
 			continue;
 		}
-		close(pipefd[1]); // we don't use write end of pipe
-		// fp receives dtrace output. we now sit here, read it and pass it
-		// on to GUI client
-		size_t inbuf_used = 0;
-		char inbuf[LINEBUF_SIZE], line[LINEBUF_SIZE];
+
+		//we now sit here and pass dtrace output back to GUI client
 		set_snd_timeout(d_sock2, SND_TIMEOUT); // to be safe, send() will eventually timeout
-		for (;;) {
-			if (read_line(pipefd[0], inbuf, &inbuf_used, line) <0) break; // problem reading dtrace output
-			INFO2("line=%s",line);
-			if (res<0) break; // problem reading dtrace output
-			
-			// before sending data, we recheck client when PID changes
-			int current_pid = get_sock_pid(d_sock2, DTRACE_PORT);
-			if (current_pid != pid) {
-				if (check_signature(d_sock2, DTRACE_PORT)<0) {
-					close(d_sock2);
-					break;
+		struct timespec t;
+		for(;;) {
+			// release mutex and wait
+			clock_gettime(CLOCK_REALTIME, &t);
+			t.tv_sec += 1;
+			pthread_mutex_lock(&dtrace_mutex);
+			int res = 0;
+			while ((wakeup==0) && (res != ETIMEDOUT)) {
+				dtrace_sleep(g_dtp);
+				res = pthread_cond_timedwait(&dtrace_cond, &dtrace_mutex, &t);
+				//res = pthread_cond_wait(&dtrace_cond, &dtrace_mutex);
+				if ((res!=0) && (res!=ETIMEDOUT)) {
+					WARN("dtrace cond error: %s", strerror(errno));
 				}
 			}
-			pid = current_pid;
+			//printf("wake up\n");
+			wakeup = 0;
+			pthread_mutex_unlock(&dtrace_mutex);
 			
-			if (send(d_sock2, line, strlen(line), 0)<=0) break;
+			res = dtrace_work(g_dtp, NULL, chew, chewrec, NULL);
+			if (res == DTRACE_WORKSTATUS_OKAY) {
+				continue;
+			}
+			if (res == DTRACE_WORKSTATUS_DONE) break;
+			int err;
+			if ((err=dtrace_errno(g_dtp)) != EINTR) {
+				WARN("dtrace problem, stopping %s\n",dtrace_errmsg(NULL, err));
+				break;
+			}
 		}
+		
 		INFO("Connection on port %d ended: %s\n", DTRACE_PORT, strerror(errno));
-		close(d_sock2); close(pipefd[0]);
+		close(d_sock2); d_sock2=-1;
 		// stop dtrace
-		kill_dtrace();
+		dtrace_stop(g_dtp); dtrace_close(g_dtp);
 	}
 	return NULL;
 }
@@ -222,6 +262,5 @@ void start_dtrace(int stdout_fd2) {
 	d_sock = bind_to_port(DTRACE_PORT,2);
 	INFO("Now listening on localhost port %d\n", DTRACE_PORT);
 
-	stdout_fd = stdout_fd2;
 	pthread_create(&dtrace_thread, NULL, dtrace, NULL);
 }

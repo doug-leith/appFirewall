@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include <pthread.h>
+#include <dtrace.h>
 #include "util.h"
 #include "pcap_sniffer.h"
 #include "send_rst.h"
@@ -22,6 +23,6 @@
 void start_dtrace(int stdout);
 void *dtrace(void *ptr);
 int exec(char* cmd, int *pipefd, int d_sock2);
-void kill_dtrace(void);
+void signal_dtrace(void);
 
 #endif /* dtrace_h */

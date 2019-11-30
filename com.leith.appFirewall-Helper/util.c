@@ -134,3 +134,30 @@ inline void set_snd_timeout(int sockfd, int timeout) {
 	setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
 }
 
+//#define NSEC_PER_SEC 1000000000
+struct timespec timespec_normalise(struct timespec ts) {
+	while(ts.tv_nsec >= NSEC_PER_SEC) {
+		++(ts.tv_sec);
+		ts.tv_nsec -= NSEC_PER_SEC;
+	}
+	while(ts.tv_nsec <= -NSEC_PER_SEC) {
+		--(ts.tv_sec);
+		ts.tv_nsec += NSEC_PER_SEC;
+	}
+	if(ts.tv_nsec < 0 && ts.tv_sec > 0) {
+		--(ts.tv_sec);
+		ts.tv_nsec = NSEC_PER_SEC - (-1 * ts.tv_nsec);
+	} else if(ts.tv_nsec > 0 && ts.tv_sec < 0) {
+		++(ts.tv_sec);
+		ts.tv_nsec = -NSEC_PER_SEC - (-1 * ts.tv_nsec);
+	}
+	return ts;
+}
+
+struct timespec timespec_add(struct timespec ts1, struct timespec ts2) {
+	ts1 = timespec_normalise(ts1);
+	ts2 = timespec_normalise(ts2);
+	ts1.tv_sec  += ts2.tv_sec;
+	ts1.tv_nsec += ts2.tv_nsec;
+	return timespec_normalise(ts1);
+}

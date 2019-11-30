@@ -42,6 +42,7 @@ int bind_to_port(int port, int q);
 int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2);
 void set_recv_timeout(int sockfd, int timeout);
 void set_snd_timeout(int sockfd, int timeout);
+struct timespec timespec_add(struct timespec ts1, struct timespec ts2);
 
 int check_signature(int pid, int port);
 int get_sock_pid(int sock, int port);

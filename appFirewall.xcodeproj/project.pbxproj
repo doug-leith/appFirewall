@@ -57,6 +57,7 @@
 		91ABB2952377350A007F8FFE /* BlackLists in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91ABB292237734DE007F8FFE /* BlackLists */; };
 		91ABB29823773595007F8FFE /* hostlists.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB29723773595007F8FFE /* hostlists.c */; };
 		91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B590952390F7BC000F418D /* HyperlinkTextView.swift */; };
+		91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B5909923925620000F418D /* libdtrace.tbd */; };
 		91B67F2823793C1C00706027 /* TODO in Resources */ = {isa = PBXBuildFile; fileRef = 91B67F2723793C1C00706027 /* TODO */; };
 /* End PBXBuildFile section */
 
@@ -175,6 +176,7 @@
 		91ABB29623773595007F8FFE /* hostlists.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hostlists.h; sourceTree = "<group>"; };
 		91ABB29723773595007F8FFE /* hostlists.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = hostlists.c; sourceTree = "<group>"; };
 		91B590952390F7BC000F418D /* HyperlinkTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperlinkTextView.swift; sourceTree = "<group>"; };
+		91B5909923925620000F418D /* libdtrace.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libdtrace.tbd; path = usr/lib/libdtrace.tbd; sourceTree = SDKROOT; };
 		91B67F2723793C1C00706027 /* TODO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -191,6 +193,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */,
 				91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */,
 				91607C2B2372FF7F002E50A8 /* libnet.a in Frameworks */,
 			);
@@ -244,6 +247,7 @@
 		91607BCB236AD6BA002E50A8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				91B5909923925620000F418D /* libdtrace.tbd */,
 				91607C3723741D65002E50A8 /* OSLog.framework */,
 				91607C0B2372AC51002E50A8 /* libnet.a */,
 				91607BCE236AD717002E50A8 /* libpcap.A.tbd */,

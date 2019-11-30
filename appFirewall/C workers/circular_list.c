@@ -111,7 +111,16 @@ void* add_item(list_t *l, void* item, size_t item_size) {
 		l->list[end] = it;
 		l->list_size++;
 	} else if (l->circular){
+		if (l->list_size > l->maxsize) { // shouldn't happen
+			ERR("list size %zu > maxsize %zu for list %s\n",l->list_size,l->maxsize,l->list_name);
+			while (l->list_size > l->maxsize) {
+				del_from_htab(l, l->list[l->list_start%l->maxsize]);
+				free(l->list[l->list_start%l->maxsize]);
+				l->list_start++; l->list_size--;
+			}
+		}
 		del_from_htab(l, l->list[l->list_start%l->maxsize]);
+		free(l->list[l->list_start%l->maxsize]);
 		l->list_start++; l->list_size--;
 		size_t end = (l->list_start+l->list_size)%l->maxsize;
 		l->list[end] = it;
@@ -221,12 +230,12 @@ void load_list(list_t *l, char* path, size_t item_size) {
 		WARN("Problem loading %s: %s", path, strerror(errno));
 		return;
 	}
-	if (l->list_size<0) {
+	if (l->list_size < 0) {
 		WARN("Problem loading %s: list_size %zu <0\n",path,l->list_size);
 		l->list_size=0;
 		return;
 	}
-	if (l->list_size>l->maxsize) {
+	if (l->list_size > l->maxsize) {
 		WARN("Problem loading %s: list_size %zu too large\n",path,l->list_size);
 		l->list_size=0;
 		return;

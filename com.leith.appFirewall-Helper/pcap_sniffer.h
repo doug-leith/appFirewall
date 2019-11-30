@@ -13,6 +13,7 @@
 #include <pcap.h>
 #include <pthread.h>
 #include "util.h"
+#include "dtrace.h"
 
 #define PCAP_PORT 3
 

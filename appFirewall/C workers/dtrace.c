@@ -121,9 +121,9 @@ void *dtrace_listener(void *ptr) {
 			
 	err:
 		if (errno==0) {
-			WARN("dtrace connection closed.");
+			WARN("dtrace connection closed.\n");
 		} else {
-			WARN("dtrace: %s", strerror(errno));
+			WARN("dtrace: %s\n", strerror(errno));
 		}
 		// likely helper has shut down dtrace connection for some reason, reopen it
 		close(d_sock); // if don't close and reopen sock we get error
