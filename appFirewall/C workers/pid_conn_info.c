@@ -225,14 +225,14 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 				stats.pidinfo_cachehits++;
 			struct timeval end; gettimeofday(&end, NULL);
 			double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
-			cm_add_sample(&stats.cm_t_pidinfo_cache_hit,t);
+			cm_add_sample_lock(&stats.cm_t_pidinfo_cache_hit,t);
 			INFO2("found using last_pid.\n");
 			return 1;
 		}
 	}
 	struct timeval end; gettimeofday(&end, NULL);
 	double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
-	cm_add_sample(&stats.cm_t_pidinfo_cache_miss,t);	pthread_mutex_unlock(&pid_mutex);
+	cm_add_sample_lock(&stats.cm_t_pidinfo_cache_miss,t);	pthread_mutex_unlock(&pid_mutex);
 	if (syn)
 		stats.pidinfo_syn_cachemisses++;
 	else
@@ -472,7 +472,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 				// and ask helper to catch this "escapee" connection
 				pthread_t escapee_thread;
 				pthread_create(&escapee_thread,NULL,catch_escapee,e);
-				cm_add_sample(&stats.cm_escapee_thread_count,escapee_thread_count);
+				cm_add_sample_lock(&stats.cm_escapee_thread_count,escapee_thread_count);
 				// escapee_thread will now remove from escapee_list and free (e)
 			} else {
 				pthread_mutex_unlock(&escapee_mutex);
@@ -605,12 +605,12 @@ void *catch_escapee(void *ptr) {
 	if (ok==1) {
 		result="STOPPED";
 		stats.escapees_hits++;
-		cm_add_sample(&stats.cm_t_escapees_hits,t);
+		cm_add_sample_lock(&stats.cm_t_escapees_hits,t);
 	} else if (ok==-1) {
 		result="NOT FOUND";
 	} else {
 		stats.escapees_misses++;
-		cm_add_sample(&stats.cm_t_escapees_misses,t);
+		cm_add_sample_lock(&stats.cm_t_escapees_misses,t);
 	}
 	INFO("escapee %s(%d) fd=%d %s:%u -> %s(%s):%u ack=%u,udp=%d: %s. t=%fs\n", e->name, e->pid, e->fd,e->src_addr_name, e->raw.sport, e->domain, e->dst_addr_name, e->raw.dport, e->raw.ack,e->raw.udp,result,t);
 	del_item(&escapee_list,e);

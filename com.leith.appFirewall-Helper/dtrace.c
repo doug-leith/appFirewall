@@ -23,6 +23,12 @@ source for struct in_addr_4in6:
 	};
 source for tcp protocol block:
 	https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/netinet/tcp_var.h.auto.html
+source for p_fd:
+	https://opensource.apple.com/source/xnu/xnu-3789.1.32/bsd/kern/kern_descrip.c.auto.html
+source for struct proc:
+	https://github.com/apple/darwin-xnu/blob/master/bsd/sys/proc_internal.h
+source for struct filedesc
+https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/filedesc.h.auto.html
 */
 
 /* dtrace docs:
@@ -35,8 +41,6 @@ https://docs.oracle.com/en/operating-systems/oracle-linux/6/adminsg/ol_examples_
 https://gist.github.com/amitu/2134968 // for apple, v useful !
 */
 
-// Apple TCP control block: https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/netinet/tcp_var.h.auto.html
-
 // note there is a tradeoff in choosing switchrate parameter.  choosing it
 // high e.g. 1000Hz means dtrace reports quickly but (i) may drop results
 // if they arrive too fast and (ii) uses a ton of cpu since dtrace app polls at
@@ -47,13 +51,25 @@ https://gist.github.com/amitu/2134968 // for apple, v useful !
 char* dtrace_script="\
 -x quiet -x switchrate=200hz -n \
 '\
+this struct fileproc* fdptr; \
 syscall::connect*:entry{ \
 this->connect_fd = arg0; \
 } \
 syscall::connect*:return{\
-this->sock = ((struct socket *) (curproc->p_fd->fd_ofiles[this->connect_fd]->f_fglob->fg_data)); \
+this->last = curproc->p_fd->fd_nfiles; \
+this->af2 = 0; \
+this->fdptr = NULL; \
+} \
+syscall::connect*:return/this->connect_fd < this->last/{\
+this->fdptr = curproc->p_fd->fd_ofiles[this->connect_fd]; \
+} \
+syscall::connect*:return/this->fdptr/{\
+this->sock = ((struct socket *) (this->fdptr->f_fglob->fg_data)); \
 this->af2=this->sock->so_proto->pr_domain->dom_family; \
 this->pcb = (struct inpcb *) this->sock->so_pcb; \
+} \
+syscall::connect*:return/!this->fdptr/{\
+printf(\"bad file descriptor %d/%d for %s %d\\n\", this->connect_fd, this->last, execname, pid) \
 } \
 syscall::connect*:return/this->af2==2/{ \
 this->localPort = ntohs((uint16_t) this->pcb->inp_lport); \

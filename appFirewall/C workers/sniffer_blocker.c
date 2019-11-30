@@ -109,9 +109,9 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 			INFO2("(not blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
 			if (logstats) {
 				double t=(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
-				cm_add_sample(&stats.cm_t_sniff,t);
+				cm_add_sample_lock(&stats.cm_t_sniff,t);
 				t=(end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
-				cm_add_sample(&stats.cm_t_notblocked,t);
+				cm_add_sample_lock(&stats.cm_t_notblocked,t);
 			}
 			return; // nothing more needs done
 		}
@@ -141,9 +141,9 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 		INFO2(" (blocked) %f\n", (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0);
 		if (logstats) {
 			double t = (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
-			cm_add_sample(&stats.cm_t_sniff,t);
+			cm_add_sample_lock(&stats.cm_t_sniff,t);
 			t = (end.tv_sec - cr->ts.tv_sec) +(end.tv_usec - cr->ts.tv_usec)/1000000.0;
-			cm_add_sample(&stats.cm_t_blocked,t);
+			cm_add_sample_lock(&stats.cm_t_blocked,t);
 		}
 		return;
 		
@@ -183,7 +183,7 @@ void process_conn_waiting_list(void) {
 					stats.waitinglist_misses++;
 					struct timeval end; gettimeofday(&end, NULL);
 					double t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
-					cm_add_sample(&stats.cm_t_waitinglist_miss,t);
+					cm_add_sample_lock(&stats.cm_t_waitinglist_miss,t);
 					del=1; // flag that need to remove this conn from waiting list
 				} else {
 					// an outstanding conn, refresh pid info again
@@ -196,7 +196,7 @@ void process_conn_waiting_list(void) {
 				stats.waitinglist_hits++;
 				struct timeval end; gettimeofday(&end, NULL);
 				double t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
-				cm_add_sample(&stats.cm_t_waitinglist_hit,t);
+				cm_add_sample_lock(&stats.cm_t_waitinglist_hit,t);
 				del = 1; // flag that need to remove this conn from waiting list
 			}
 			
@@ -288,7 +288,7 @@ void *listener(void *ptr) {
 				double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 				INFO2("t (sniffed dns) %f\n", t);
 				dns_sniffer(&pkthdr,nexth);
-				cm_add_sample(&stats.cm_t_dns,t);
+				cm_add_sample_lock(&stats.cm_t_dns,t);
 				continue;
 			} else if (dport == 443) {
 				// likely to be quic.  can't block it yet, but can log the
@@ -333,11 +333,11 @@ void *listener(void *ptr) {
 					
 					double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 					INFO2("t (sniffed) %f ", t);
-					cm_add_sample(&stats.cm_t_sniff,t);
+					cm_add_sample_lock(&stats.cm_t_sniff,t);
 					struct timeval endu; gettimeofday(&endu, NULL);
 					t =(endu.tv_sec - ts.tv_sec) +(endu.tv_usec - ts.tv_usec)/1000000.0;
 					INFO2(" (UDP not blocked) %f\n",t );
-					cm_add_sample(&stats.cm_t_udp,t);
+					cm_add_sample_lock(&stats.cm_t_udp,t);
 				}
 			}
 			continue;

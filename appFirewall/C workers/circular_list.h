@@ -12,7 +12,7 @@
 #include "table.h"
 #include "util.h"
 
-#define MAXLIST 1024
+#define MAXLIST 2048
 typedef struct list_t {
 	void* list[MAXLIST];
 	size_t list_start, list_size, maxsize;

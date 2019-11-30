@@ -38,6 +38,15 @@ void init_stats() {
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_escapee_thread_count);
 }
 
+static pthread_mutex_t cm_mutex = PTHREAD_MUTEX_INITIALIZER;
+int cm_add_sample_lock(cm_quantile *cm, double sample) {
+	// take lock
+	pthread_mutex_lock(&cm_mutex);
+	int res = cm_add_sample(cm,sample);
+	pthread_mutex_unlock(&cm_mutex);
+	return res;
+}
+
 void print_stats() {
 	INFO("dtrace hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d syn_hits %d/syn_misses %d, waitinglist hits %d/misses %d, #escapees fresh %d/stale %d/old %d hits %d/misses %d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
 	stats.dtrace_hits, stats.dtrace_misses, stats.dtrace_syn_hits, stats.dtrace_syn_misses,

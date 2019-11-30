@@ -19,6 +19,7 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include "pthread.h"
 #include "percentile.h"
 
 extern int verbose;          // debugging level
@@ -79,6 +80,7 @@ char* get_file_modify_time(const char *path);
 void print_stats(void);
 void set_logging_level(int_sw level);
 void init_stats(void);
+int cm_add_sample_lock(cm_quantile *cm, double sample);
 char* get_path(void);
 void set_path(const char* path);
 char* get_error_msg(void);
