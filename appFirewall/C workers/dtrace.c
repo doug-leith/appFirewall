@@ -12,22 +12,7 @@ static int d_sock;
 static pthread_t thread; // handle to listener thread
 static list_t dtrace_cache;
 static void (*dtrace_watcher_hook)(void) = NULL;
-
-/*char* dt_hash(const void *cc) {
-	// generate table lookup key string from block list item PID name
-	// and dest address
-	conn_t *c = (conn_t*)cc;
-	int len = (2*INET6_ADDRSTRLEN+64);
-	char* temp = malloc(len);
-	sprintf(temp,"%s:%d-%s:%d",c->src_addr_name,c->raw.sport,c->dst_addr_name,c->raw.dport);
-	return temp;
-}*/
-
-/*int dt_cmp(const void *cc1, const void *cc2) {
-	conn_t *c1 = (conn_t*)cc1;
-	conn_t *c2 = (conn_t*)cc2;
-	return (memcmp(c1,c2,sizeof(conn_t))==0);
-}*/
+static pthread_mutex_t dtrace_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int lookup_dtrace(conn_raw_t *cr, char* name, int* pid) {
 	// get PID name corresponding to connection cr
@@ -36,17 +21,22 @@ int lookup_dtrace(conn_raw_t *cr, char* name, int* pid) {
 	inet_ntop(c.raw.af,&c.raw.src_addr,c.src_addr_name,INET6_ADDRSTRLEN);
 	inet_ntop(c.raw.af,&c.raw.dst_addr,c.dst_addr_name,INET6_ADDRSTRLEN);
 
+	pthread_mutex_lock(&dtrace_mutex);
 	conn_t *res = in_list(&dtrace_cache, &c, 0);
 	if (res != NULL) {
 		strlcpy(name,res->name,MAXCOMLEN);
 		*pid = res->pid;
+		pthread_mutex_unlock(&dtrace_mutex);
 		return 1;
 	}
+	pthread_mutex_unlock(&dtrace_mutex);
 	return 0;
 }
 
 void append_dtrace(conn_t *c) {
+	pthread_mutex_lock(&dtrace_mutex);
 	add_item(&dtrace_cache,c,sizeof(conn_t));
+	pthread_mutex_unlock(&dtrace_mutex);
 }
 
 int parse_dt_line(char* line, conn_t *c) {

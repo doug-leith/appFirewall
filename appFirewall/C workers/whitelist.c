@@ -10,13 +10,26 @@
 
 // globals
 static list_t white_list=LIST_INITIALISER;
+static pthread_mutex_t white_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void init_white_list() {
+	// caller must hold lock
+	// -- only called by load_white_list()
 	init_list(&white_list, bl_hash, NULL,  0, -1, "white_list");
 }
 
+static bl_item_t res;
 bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug) {
-	return in_list(&white_list, item, 0);
+	pthread_mutex_lock(&white_mutex);
+	bl_item_t *res_ptr = in_list(&white_list, item, 0);
+	if (res_ptr != NULL) {
+		memcpy(&res,res_ptr,sizeof(bl_item_t));
+		pthread_mutex_unlock(&white_mutex);
+		return &res;
+	} else {
+		pthread_mutex_unlock(&white_mutex);
+		return NULL;
+	}
 }
 
 void add_whiteitem(bl_item_t *item) {
@@ -29,33 +42,42 @@ void add_whiteitem(bl_item_t *item) {
 		return;
 	}
 	//printf("add_whiteitem %s\n",white_list.hash(item));
+	pthread_mutex_lock(&white_mutex);
 	add_item(&white_list, item, sizeof(bl_item_t));
+	pthread_mutex_unlock(&white_mutex);
 	sort_white_list(0, -1);
 }
 
 int del_whiteitem(bl_item_t *item) {
 	//printf("del_whiteitem %s\n",white_list.hash(item));
+	pthread_mutex_lock(&white_mutex);
 	del_item(&white_list,item);
+	pthread_mutex_unlock(&white_mutex);
 	return 0;
 }
 
 int_sw get_whitelist_size(void) {
+	// only called by GUI
 	return (int_sw)get_list_size(&white_list);
 }
 
 bl_item_t* get_whitelist_item(int_sw row) {
+	// only called by GUI
 	return get_list_item(&white_list,(size_t)row);
 }
 
 char* get_whitelist_item_name(bl_item_t *item) {
+	// only called by GUI
 	return item->name;
 }
 
 char* get_whitelist_item_domain(bl_item_t *item) {
+	// only called by GUI
 	return item->domain;
 }
 
 char* get_whitelist_item_addrname(bl_item_t *item) {
+	// only called by GUI
 	return item->addr_name;
 }
 
@@ -63,7 +85,9 @@ static int asc=1, col=0;
 void sort_white_list(int asc1, int col1) {
 	if ((asc1 == -1) || (asc1==1)) asc = asc1;
 	if ((col1==0) || (col1==1)) col=col1;
+	pthread_mutex_lock(&white_mutex);
 	sort_list(&white_list, bl_sort_cmp);
+	pthread_mutex_unlock(&white_mutex);
 }
 
 void save_whitelist(void) {
@@ -71,18 +95,24 @@ void save_whitelist(void) {
 	#define STR_SIZE 1024
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,WHITELISTFILE,STR_SIZE);
+	
+	pthread_mutex_lock(&white_mutex);
 	save_list(&white_list, path, sizeof(bl_item_t));
+	pthread_mutex_unlock(&white_mutex);
 }
 
 void load_whitelist(void) {
-	init_white_list();
 	//return;
+	printf("load white list\n");
 	// open and read file
 	#define STR_SIZE 1024
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,WHITELISTFILE,STR_SIZE);
+	
+	pthread_mutex_lock(&white_mutex);
+	init_white_list();
 	load_list(&white_list, path, sizeof(bl_item_t));
+	pthread_mutex_unlock(&white_mutex);
 	sort_white_list(0, -1);
-
 }

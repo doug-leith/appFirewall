@@ -8,6 +8,9 @@
 
 // circular list of reverse DNS lookups based on sniffed DNS reply packets
 static list_t dns_cache = LIST_INITIALISER;
+// need lock because called both by main sniffer_blocker thread and by waiting
+// list thread
+static pthread_mutex_t dns_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // DNS header struct
 struct dnshdr {
@@ -28,21 +31,20 @@ char* dns_hash(const void* it) {
 	return temp;
 }
 
-/*int dns_cmp(const void* it1, const void* it2) {
-	dns_item_t *item1 = (dns_item_t*)it1;
-	dns_item_t *item2 = (dns_item_t*)it2;
-	return are_addr_same(item1->af, &item1->addr, &item2->addr);
-}*/
-
+static dns_item_t res;
 char* lookup_dns_name(int af, struct in6_addr addr) {
 	dns_item_t d;
 	d.af=af;
 	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
-	dns_item_t* res = in_list(&dns_cache,&d,0);
-	if (res != NULL) {
-		//printf("found '%s' for %s/'%s'\n",res->name, dns_hash(&d), dns_hash(res));
-		return res->name;
+	pthread_mutex_lock(&dns_mutex);
+	dns_item_t* res_ptr = in_list(&dns_cache,&d,0);
+	if (res_ptr != NULL) {
+		//printf("found '%s' for %s/'%s'\n",res.name, dns_hash(&d), dns_hash(&res));
+		memcpy(&res,res_ptr,sizeof(dns_item_t));
+		pthread_mutex_unlock(&dns_mutex);
+		return res.name;
 	} else {
+		pthread_mutex_unlock(&dns_mutex);
 		//printf("not found %s\n",dns_hash(&d));
 		return NULL;
 	}
@@ -54,21 +56,26 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
 	strlcpy(d.name,name,MAXDOMAINLEN);
 	//printf("adding %s/'%s'\n",d.name,dns_hash(&d));
+	pthread_mutex_lock(&dns_mutex);
 	add_item(&dns_cache,&d,sizeof(dns_item_t));
+	pthread_mutex_unlock(&dns_mutex);
 }
 
 void save_dns_cache(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
+	pthread_mutex_lock(&dns_mutex);
 	save_list(&dns_cache,path,sizeof(dns_item_t));
+	pthread_mutex_unlock(&dns_mutex);
 }
 
 void load_dns_cache(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
+	pthread_mutex_lock(&dns_mutex);
 	init_list(&dns_cache,dns_hash,NULL,1,-1,"dns_cache");
-	//return;
 	load_list(&dns_cache,path,sizeof(dns_item_t));
+	pthread_mutex_unlock(&dns_mutex);
 }
 
 //-------------------------------------------------------
@@ -222,8 +229,8 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	} else {
 		return;
 	}
-	append_dns(af,addr,(char*)label);
+	append_dns(af,addr,(char*)label); 
 	char n[INET6_ADDRSTRLEN];
 	inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
-	printf("DNS %d %s %s\n",af,label,n);
+	INFO2("DNS %d %s %s\n",af,label,n);
 }

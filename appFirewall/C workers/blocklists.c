@@ -18,9 +18,12 @@
 static Hashtable *bls_htab=NULL; // black list based on (app name,domain) pairs
 static Hashtable *bls_app_htab=NULL; // black list based on app name only
 static Hashtable *wls_app_htab=NULL; // whitelist based on (app name,domain) pairs
+static pthread_mutex_t bls_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void init_blocklists_tabs() {
 	// initialise hash table
+	// must hold lock when call
+	// - only called by load() below
 	if (bls_htab!=NULL) hashtable_free(bls_htab);
 	bls_htab = hashtable_new(HTABSIZE);
 
@@ -42,27 +45,40 @@ char* bls_app_hash(const void *it) {
 }
 
 void* in_blocklists_htab(bl_item_t *b) {
+	// return values are just NULL or non-NULL, actual values
+	// don't matter
+	pthread_mutex_lock(&bls_mutex);
 	if (wls_app_htab!=NULL) {
 		char *temp = bl_hash((void*)b);
-		void* res=hashtable_get(wls_app_htab, temp);
+		void* res_ptr=hashtable_get(wls_app_htab, temp);
 		free(temp);
 		// on whitelist, pass
-		if (res != NULL) return NULL;
+		if (res_ptr != NULL) {
+			pthread_mutex_unlock(&bls_mutex);
+			return NULL;
+		}
 	}
 	if (bls_app_htab!=NULL) {
 		char *temp = bls_app_hash((void*)b);
-		void* res=hashtable_get(bls_app_htab, temp);
+		void* res_ptr=hashtable_get(bls_app_htab, temp);
 		free(temp);
 		// on blacklist, block
-		if (res != NULL) return res;
+		if (res_ptr != NULL) {
+			pthread_mutex_unlock(&bls_mutex);
+			return res_ptr;
+		}
 	}
 	if (bls_htab!=NULL) {
 		char *temp = bl_hash((void*)b);
-		void* res=hashtable_get(bls_htab, temp);
+		void* res_ptr=hashtable_get(bls_htab, temp);
 		free(temp);
 		// on blacklist, block
-		if (res != NULL) return res;
+		if (res_ptr != NULL) {
+			pthread_mutex_unlock(&bls_mutex);
+			return res_ptr;
+		}
 	}
+	pthread_mutex_unlock(&bls_mutex);
 	// not on any list, pass
 	return NULL;
 }
@@ -71,8 +87,6 @@ int_sw load_blocklistfile(const char* fname) {
 	// load (app,domain) pairs from a file and adds to block list table
 	// (so not shown in GUI, which only displays block list itself)
 	
-	init_blocklists_tabs();
-	
 	//printf("load block list file()\n");
 	FILE *  fp = fopen(fname, "r");
 	if (fp == NULL) {
@@ -80,6 +94,9 @@ int_sw load_blocklistfile(const char* fname) {
 			return -1;
 	}
 
+	pthread_mutex_lock(&bls_mutex);
+	init_blocklists_tabs();
+	pthread_mutex_unlock(&bls_mutex);
 	char * line = NULL;
 	size_t len = 0; int count=0;
 	int allapps=0; bl_item_t b;
@@ -120,7 +137,9 @@ int_sw load_blocklistfile(const char* fname) {
 			if (!allapps) {
 				// add to app blacklist
 				char *str = bls_app_hash(&b);
+				pthread_mutex_lock(&bls_mutex);
 				hashtable_put(bls_app_htab, str, bls_htab); // last parameter is just a placeholder
+				pthread_mutex_unlock(&bls_mutex);
 				free(str);
 				count++;
 				//printf("app blacklist: %s\n",b.name);
@@ -149,7 +168,9 @@ int_sw load_blocklistfile(const char* fname) {
 		if (!allapps){
 			// and add to blocklists table
 			char *str = bl_hash(&b);
+			pthread_mutex_lock(&bls_mutex);
 			hashtable_put(htab, str, bls_htab); // last parameter is just a placeholder
+			pthread_mutex_unlock(&bls_mutex);
 			free(str);
 			count++;
 			//printf("list: %s,%s %d\n",b.name,domain,second[0]=='-');

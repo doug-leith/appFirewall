@@ -11,6 +11,7 @@
 
 static int host_list_size=0;
 static Hashtable *hl_htab=NULL; // hash table of pointers into black list for fast lookup
+static pthread_mutex_t hl_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void init_hosts_list() {
 	// initialise hash table
@@ -21,17 +22,25 @@ void init_hosts_list() {
 }
 
 void* in_hostlist_htab(const char *domain) {
+	// return values are just NULL or non-NULL, actual values
+	// don't matter
+	pthread_mutex_lock(&hl_mutex);
 	if (hl_htab!=NULL) {
 		if (!strncmp(domain," (",2)) { // swift adds spaces and () around string, sigh
 			char temp[MAXDOMAINLEN];
 			strlcpy(temp,domain+2,MAXDOMAINLEN);
 			temp[strlen(temp)-1]=0;
 			//printf("in_hostlist_htab swift %s/%s\n", domain, temp);
-			return hashtable_get(hl_htab, temp);
+			void* res = hashtable_get(hl_htab, temp);
+			pthread_mutex_unlock(&hl_mutex);
+			return res;
 		}
 		//printf("in_hostlist_htab %s\n", domain[0], domain[1], domain[2], domain);
-		return hashtable_get(hl_htab, domain);
+		void* res = hashtable_get(hl_htab, domain);
+		pthread_mutex_unlock(&hl_mutex);
+		return res;
 	} else
+		pthread_mutex_unlock(&hl_mutex);
 		return NULL;
 }
 
@@ -40,8 +49,10 @@ void add_hostlist(char * domain) {
 	if (len > STR_SIZE) len = STR_SIZE; // just to be safe !
 	char *str = malloc(len);
 	strlcpy(str,domain,len);
+	pthread_mutex_lock(&hl_mutex);
 	hashtable_put(hl_htab, str, hl_htab); // last parameter is just a placeholder
 	host_list_size++;
+	pthread_mutex_unlock(&hl_mutex);
 }
 
 int_sw load_hostsfile(const char* fname) {
@@ -81,12 +92,6 @@ int_sw load_hostsfile(const char* fname) {
 			DEBUG2("%s\n", domain);
 			// and add domain name to hosts list table
 			add_hostlist(domain);
-			/*int len = (int)strlen(domain)+1;
-			if (len > STR_SIZE) len = STR_SIZE; // just to be safe !
-			char *str = malloc(len);
-			strlcpy(str,domain,len);
-			hashtable_put(hl_htab, str, hl_htab); // last parameter is just a placeholder
-			host_list_size++;*/
 	}
 	fclose(fp);
 	INFO("loaded %d entries\n",host_list_size);

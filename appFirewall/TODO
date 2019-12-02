@@ -3,7 +3,6 @@ TO DO
 short term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  need developer id first though
 - add screenshots to readme ?
-- for escapees, go back and update log
 - check operation with SIPS enabled, will fall back to not using dtrace
 - UI remove dock item, but need to create menu when open window from status bar
 
@@ -12,4 +11,6 @@ longer term:
 - add export/upload to server of sanitised (no firefox, chrome, safari etc) log files
 
 
-ERROR: list size 2049 > maxsize 2048 for list log_list
+error-popup - option to reinstall helper, when appropriate
+sniffer guessing - add confidence.
+for escapees, go back and update log

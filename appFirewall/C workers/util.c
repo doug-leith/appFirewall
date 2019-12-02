@@ -48,6 +48,9 @@ int cm_add_sample_lock(cm_quantile *cm, double sample) {
 }
 
 void print_stats() {
+	// should probably take a lock here so that updates to stats by threads
+	// don't interfere with printout, but its no big deal if printout is
+	// occasionally messed up so we don't bother.
 	INFO("dtrace hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d syn_hits %d/syn_misses %d, waitinglist hits %d/misses %d, #escapees fresh %d/stale %d/old %d hits %d/misses %d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
 	stats.dtrace_hits, stats.dtrace_misses, stats.dtrace_syn_hits, stats.dtrace_syn_misses,
 	stats.pidinfo_hits, stats.pidinfo_misses, stats.pidinfo_syn_hits, stats.pidinfo_syn_misses,
