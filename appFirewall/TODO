@@ -3,9 +3,13 @@ TO DO
 short term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  need developer id first though
 - add screenshots to readme ?
-- when get a pid miss, can we guess using the dns lookup ?
+- for escapees, go back and update log
+- check operation with SIPS enabled, will fall back to not using dtrace
+- UI remove dock item, but need to create menu when open window from status bar
 
 longer term:
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - add export/upload to server of sanitised (no firefox, chrome, safari etc) log files
 
+
+ERROR: list size 2049 > maxsize 2048 for list log_list

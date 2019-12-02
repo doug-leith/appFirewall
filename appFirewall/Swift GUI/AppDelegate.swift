@@ -278,6 +278,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("SIP enabled: ",sipEnabled)
 		var dtrace = UserDefaults.standard.integer(forKey: "dtrace")
 		if (sipEnabled) { dtrace = 0 } // dtrace doesn't work with SIP
+		dtrace = 0
 		if (dtrace > 0) {
 			print("Dtrace enabled")
 		} else {
@@ -285,7 +286,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		}
 		// reload state
 		load_log(); load_blocklist(); load_whitelist()
-		load_dns_cache()
+		load_dns_cache(); load_dns_conn_list()
 		prefController.load_hostlists() // might be slow?
 
 		// start listeners

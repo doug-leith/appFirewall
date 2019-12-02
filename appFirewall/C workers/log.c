@@ -8,6 +8,7 @@
 
 // circular list
 static list_t log_list=LIST_INITIALISER;
+static pthread_mutex_t log_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static list_t filtered_log_list=LIST_INITIALISER;
 static FILE *fp_txt = NULL; // pointer to human readable log file
@@ -38,18 +39,26 @@ char* filtered_log_hash(const void *it) {
 }
 
 int_sw has_log_changed(void) {
-	return changed;
+	pthread_mutex_lock(&log_list_mutex);
+	int_sw res = changed;
+	pthread_mutex_unlock(&log_list_mutex);
+	return res;
 }
 
 void clear_log_changed(void) {
+	pthread_mutex_lock(&log_list_mutex);
 	changed = 0;
+	pthread_mutex_unlock(&log_list_mutex);
 }
 
 size_t get_log_size(void) {
-	return get_list_size(&log_list);
+	// should hold lock when calling this
+	size_t res = get_list_size(&log_list);
+ 	return res;
 }
 
 log_line_t* find_log_by_conn(char* name, conn_raw_t* item, int debug) {
+	// we only append to log, no need to take lock here
 	log_line_t l;
 	memcpy(&l.raw,item,sizeof(conn_raw_t));
 	strlcpy(l.bl_item.name,name,MAXCOMLEN);
@@ -57,6 +66,7 @@ log_line_t* find_log_by_conn(char* name, conn_raw_t* item, int debug) {
 }
 
 log_line_t* get_log_row(size_t row) {
+	// only append to log, no need to take lock
 	return (log_line_t*)get_list_item(&log_list,row);
 }
 
@@ -81,7 +91,6 @@ void log_repeat(log_line_t *l) {
 }
 
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
-	changed = 1; // record for GUI fact that log has been updated
 	//printf("append_log, %d\n",changed);
 	log_line_t *l = malloc(sizeof(log_line_t)+2);
 	strlcpy(l->log_line,str,LOGSTRSIZE);
@@ -95,8 +104,13 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	memcpy(&l->raw,raw,sizeof(conn_raw_t));
 	l->blocked = blocked;
 	
+	// might be called from main sniffer_blocker thread or from waiting list
+	// thread, so take lock
+	pthread_mutex_lock(&log_list_mutex);
+	changed = 1; // record for GUI fact that log has been updated
 	add_item(&log_list, l, sizeof(log_line_t));
-	
+	pthread_mutex_unlock(&log_list_mutex);
+
 	// and update human-readable log file
 	if (fp_txt) {
 		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
@@ -113,15 +127,19 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 }
 
 void clear_log() {
+	pthread_mutex_lock(&log_list_mutex);
 	changed = 2; // record fact that log has been updated
 	free_list(&log_list);
 	init_list(&log_list,log_hash,NULL,1,-1,"log_list");
+	pthread_mutex_unlock(&log_list_mutex);
 }
 
 void filter_log_list(int_sw show_blocked, const char* str) {
 	free_list(&filtered_log_list);
 	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
-	for (size_t i=0; i<get_log_size(); i++) {
+	// hold lock for full loop so that no partial updates are displayed to user
+	pthread_mutex_lock(&log_list_mutex);
+	for (size_t i=0; i< get_log_size(); i++) {
 		log_line_t *l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
 			if ((strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
@@ -130,6 +148,7 @@ void filter_log_list(int_sw show_blocked, const char* str) {
 			}
 		}
 	}
+	pthread_mutex_unlock(&log_list_mutex);
 }
 
 int_sw get_filter_log_size(void) {
@@ -155,7 +174,9 @@ void save_log(void) {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
+	pthread_mutex_lock(&log_list_mutex);
 	save_list(&log_list, path, sizeof(log_line_t));
+	pthread_mutex_unlock(&log_list_mutex);
 }
 
 void open_logtxt() {

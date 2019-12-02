@@ -606,6 +606,9 @@ void *catch_escapee(void *ptr) {
 		result="STOPPED";
 		stats.escapees_hits++;
 		cm_add_sample_lock(&stats.cm_t_escapees_hits,t);
+		// TO DO.  look up log to try to find escapee.  if process name was
+		// unknown/unsure we can now update it, and also update the blocked
+		// status
 	} else if (ok==-1) {
 		result="NOT FOUND";
 	} else {

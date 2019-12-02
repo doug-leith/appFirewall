@@ -41,5 +41,7 @@ void stop_listener(void);
 int_sw get_num_conns_blocked(void);
 void set_num_conns_blocked(int_sw val);
 int listener_error(void);
+void save_dns_conn_list(void);
+void load_dns_conn_list(void);
 
 #endif

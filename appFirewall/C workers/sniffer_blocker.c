@@ -28,8 +28,121 @@ typedef struct udp_conn_t {
 udp_conn_t udp_cache[MAXUDP];
 int udp_cache_size=0, udp_cache_start=0;
 
+// dns process cache. a list of lists ...
+#define DNS_CONNLISTFILE "dns_connlist.dat"
+#define MAXDNS 21 // best to be an odd number since we use majority vote
+typedef struct dns_conn_t {
+	// domain of interest
+	char domain[MAXDOMAINLEN];
+	// circular list of processes that have used the domain
+	char name[MAXDNS][MAXCOMLEN];
+	size_t list_start, list_size;
+} dns_conn_t;
+static list_t dns_conn_list = LIST_INITIALISER;
+
 //--------------------------------------------------------
 // private functions
+
+char* dns_conn_hash(const void* it) {
+	dns_conn_t *item = (dns_conn_t*)it;
+	char* temp = malloc(MAXDOMAINLEN);
+	strlcpy(temp, item->domain, MAXDOMAINLEN);
+	return temp;
+}
+
+void add_dns_conn(char* domain, char* name) {
+	dns_conn_t item_new;
+	strlcpy(item_new.domain, domain, MAXDOMAINLEN);
+	strlcpy(item_new.name[0], name, MAXCOMLEN);
+	item_new.list_start = 0; item_new.list_size = 1;
+	dns_conn_t* it = in_list(&dns_conn_list, &item_new, 0);
+	if (it == NULL) {
+		// a new domain, add initial entry to list
+		add_item(&dns_conn_list,&item_new, sizeof(dns_conn_t));
+		return;
+	}
+	strlcpy(it->name[(it->list_start+it->list_size)%MAXDNS],name,MAXCOMLEN);
+	it->list_size++;
+}
+
+void dump_dns_conn_list() {
+	list_t *l = &dns_conn_list;
+	printf("dns_conn_list start/size: %zu/%zu\n", l->list_start, l->list_size);
+	for (size_t i=0; i<get_list_size(l); i++) {
+		dns_conn_t *b = get_list_item(l,i);
+		printf("%s (%zu/%zu): ",b->domain, b->list_start, b->list_size);
+		for (size_t j = 0; j< b->list_size; j++) {
+			printf("%s ", b->name[(b->list_start+j)%MAXDNS]);
+		}
+		printf("\n");
+	}
+}
+
+char* guess_name(char* domain) {
+	dns_conn_t item_new;
+	strlcpy(item_new.domain, domain, MAXDOMAINLEN);
+	dns_conn_t* it = in_list(&dns_conn_list, &item_new, 0);
+	if (it == NULL) {
+		// not entry for domain in dns_conn list
+		return NULL;
+	}
+	// get a count for each process name that has connected to domain ...
+	char *name[MAXDNS] = {0};
+	size_t count[MAXDNS] = {0};
+	size_t num=0;
+	for (size_t i=0; i<it->list_size; i++) {
+		size_t index = (it->list_start+i)%MAXDNS;
+		int found = 0; size_t j;
+		for (j = 0; j< num; j++) {
+			if (strcmp(name[j],it->name[index])==0) {
+				found = 1; break;
+			}
+		}
+		if (found) {
+			count[j]++;
+		} else {
+			name[num] = it->name[index];
+			num++;
+		}
+	}
+	// not pick the one which has connected most
+	size_t max=0, max_posn=0;
+	for (size_t i=0; i<num; i++) {
+		if (count[i] > max) {
+			max = count[i]; max_posn = i;
+		}
+	}
+	// debugging
+	printf("guessed %s for %s\n", name[max_posn], domain);
+	//dump_dns_conn_list();
+	for (size_t i=0; i<it->list_size; i++) {
+		printf("%s ",it->name[(i+it->list_start)%MAXDNS]);
+	}
+	printf("\n");
+	for (size_t i=0; i<num; i++) {
+		printf("%s:%zu ", name[i], count[i]);
+	}
+	printf("\n");
+	return name[max_posn];
+}
+
+void save_dns_conn_list() {
+	#define STR_SIZE 1024
+	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
+	save_list(&dns_conn_list, path, sizeof(dns_conn_t));
+	//dump_dns_conn_list();
+}
+
+void load_dns_conn_list() {
+	#define STR_SIZE 1024
+	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
+	init_list(&dns_conn_list, dns_conn_hash, NULL,1,-1, "dns_conn_list");
+	load_list(&dns_conn_list, path, sizeof(dns_conn_t));
+	//dump_dns_conn_list();
+}
+
 
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	// create a new blocklist item from raw connection info (assumed to be
@@ -74,6 +187,10 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	if (dns!=NULL) {
 		//printf("dns found for %s\n",dns);
 		strlcpy(c.domain,dns,MAXDOMAINLEN);
+		// append this process name to list of processes
+		// that have connected to this domain.  we can then use this
+		// to guess the process name for later <not found> connections
+		if (strcmp(c.name,NOTFOUND)!=0) add_dns_conn(c.domain, c.name);
 	} else {
 		//printf("dns not found for %s\n",c.addr_name);
 		strlcpy(c.domain,c.addr_name,MAXDOMAINLEN);
@@ -179,12 +296,26 @@ void process_conn_waiting_list(void) {
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
 						> WAIT_TIMEOUT) {
 					INFO2("wait timeout for %s %s\n",c_w.name,c_w.addr_name);
-					process_conn(&cr_w, &c_w, &r_sock,0); // process
+					
+					// look up domain name and use most frequent process
+					char* name = guess_name(c_w.domain);
+					if (name != NULL) {
+						strlcpy(c_w.name, name, MAXCOMLEN);
+						strlcat(c_w.name,"?", MAXCOMLEN); // add ? to name
+					}
+					
+					// process
+					// nb: "?" in name means it won't match any blocklist items,
+					// which seems reasonable since we're unsure.
+					process_conn(&cr_w, &c_w, &r_sock,0);
+					
+					// record stats
 					stats.waitinglist_misses++;
 					struct timeval end; gettimeofday(&end, NULL);
 					double t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
 					cm_add_sample_lock(&stats.cm_t_waitinglist_miss,t);
-					del=1; // flag that need to remove this conn from waiting list
+					// flag that need to remove this conn from waiting list
+					del=1;
 				} else {
 					// an outstanding conn, refresh pid info again
 					signal_pid_watcher();
@@ -228,6 +359,7 @@ void *listener(void *ptr) {
 	signal(SIGPIPE, SIG_IGN);
 
 	init_list(&waiting_list,conn_raw_hash,NULL,1,-1,"waiting_list");
+	init_list(&dns_conn_list, dns_conn_hash, NULL,1,-1,"dns_conn_list");
 	
 	// set up handler for waiting list (connections for which we didn't manage to
 	// get the process name immediately)
@@ -323,6 +455,8 @@ void *listener(void *ptr) {
 					if (strcmp(c.name,NOTFOUND)==0) {
 						// we seem to often miss process for a UDP pkt, for now
 						// we guess its Chrome.
+						// nb: "?" in name means it won't match any blocklist items,
+						// which seems reasonable since we're unsure.
 						strlcpy(c.name,"Google Chrome?",MAXCOMLEN);
 					}
 					// log connection
@@ -362,20 +496,7 @@ void *listener(void *ptr) {
 			WARN("sniffed tcp pkt is not syn/syn-ack\n");
 			continue;
 		}
-		
-		// changed pcap filter in helper to only sniff syn-acks:
-		// - to speed up response to syn-acks by avoiding time spent processing syns
-		// - since sending RST after SYN seems less effective than on a SYN-ACK since
-		// (i) remote seems to ignore it, (ii) although can reset local connection
-		// we must send RST before SYN-ACK arrives from remote (since this changes RST
-		// validation checks by local) and so have to be v *fast*
-		// whereas RST on SYN-ACK is respected by both local and remote and even if
-		// local sends data or an ack before RST is sent its still valid until data/ack is
-		// received from remote, which usually takes a few ms at least due to propagation
-		// delay.  so we have a bigger time window for sending RST.  note that on LANs this
-		// window collapses since the propagation delay is tiny, and RST can easily fail.
-		//if (syn) continue; // should never happen with new pcap filter
-	
+			
 		conn_raw_t cr;
 		cr.af=af; cr.udp=0;
 		cr.ts = ts; cr.start = start;
@@ -395,15 +516,16 @@ void *listener(void *ptr) {
 		bl_item_t c = create_blockitem_from_addr(&cr, syn);
 		
 		if (syn) {
-			// we use syn's to prime the procinfo cache.  if connection is not in cache
-			// we trigger a refresh here.  the hope is that by the time the synack arrives
-			// the connection will be in the cache and we'll avoid waiting.
+			// we use syn's to prime the procinfo cache.  if connection is not in
+			// cache we trigger a refresh here.  the hope is that by the time the
+			// synack arrives the connection will be in the cache and we'll avoid waiting.
 			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher();
 			continue; // nothing more to do for a syn.
 		}
 		
 		if (strcmp(c.name,NOTFOUND)==0) {
-			// failed to look up PID name, put into waiting list to try again
+			// failed to look up PID name
+			// put into waiting list to try again
 			pthread_mutex_lock(&wait_list_mutex);
 			add_item(&waiting_list,&cr,sizeof(conn_raw_t));
 			pthread_mutex_unlock(&wait_list_mutex);

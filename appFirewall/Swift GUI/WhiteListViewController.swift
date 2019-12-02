@@ -37,7 +37,7 @@ class WhiteListViewController: NSViewController {
 		super.viewWillDisappear()
 		save_log()
 		save_blocklist(); save_whitelist()
-		save_dns_cache()
+		save_dns_cache(); save_dns_conn_list()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 	}
 	
