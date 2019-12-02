@@ -19,7 +19,7 @@ void start_libnet() {
 	init_libnet(&ld_rst);
 	// start listening for commands to send RST packets
 	sock = bind_to_port(RST_PORT,2);
-	INFO("Now listening on localhost port %d\n", RST_PORT);
+	INFO("Now listening on localhost port %d (send_rst)\n", RST_PORT);
 }
 
 void init_libnet(libnet_data_t *ld) {
@@ -55,7 +55,7 @@ void init_libnet(libnet_data_t *ld) {
 	}
 	int n = 1;
 	if (setsockopt(ld->l4_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
-		ERR("setsockopt IP_HDRINCL failed: %s\n", strerror(errno));
+		ERR("libnet setsockopt IP_HDRINCL failed: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	
@@ -227,12 +227,12 @@ void rst_accept_loop() {
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 	for(;;) {
-		INFO("Waiting to accept connection on localhost port %d ...\n", RST_PORT);
+		INFO("Waiting to accept connection on localhost port %d (send_rst)...\n", RST_PORT);
 		if ((s2 = accept(sock, (struct sockaddr *)&remote, &len)) == -1) {
-			ERR("Problem accepting new connection on localhost port %d: %s\n", RST_PORT, strerror(errno));
+			ERR("Problem accepting new connection on localhost port %d (send_rst): %s\n", RST_PORT, strerror(errno));
 			continue;
 		}
-		INFO("Started new connection on port %d\n", RST_PORT);
+		INFO("Started new connection on port %d (send_rst)\n", RST_PORT);
 		if (check_signature(s2, RST_PORT)<0) {
 			// couldn't authenticate client
 			close(s2);
@@ -276,8 +276,8 @@ void rst_accept_loop() {
 		}
 		// likely UI client has closed its end of the connection, in which
 		// case res=0, otherwise something worse has happened to connection
-		if (res<0) WARN("recv() on port %d: %s\n",RST_PORT, strerror(errno));
-		INFO("Connection closed on port %d.\n", RST_PORT);
+		if (res<0) WARN("recv() on port %d (send_rst): %s\n",RST_PORT, strerror(errno));
+		INFO("Connection closed on port %d (send_rst).\n", RST_PORT);
 		close(s2);
 	}
 }

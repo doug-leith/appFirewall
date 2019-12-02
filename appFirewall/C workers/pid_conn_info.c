@@ -22,7 +22,7 @@ static int escapee_thread_count=0;
 static int changed = 0; // flag to GUI if pid list has changed
 
 // cache of recent PIDs and their names
-#define PID_CACHE_SIZE 2
+#define PID_CACHE_SIZE 3
 static list_t last_pid_list=LIST_INITIALISER;
 typedef struct last_pid_item_t {
 	int pid;

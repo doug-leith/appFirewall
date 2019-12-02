@@ -3,12 +3,9 @@ TO DO
 short term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  need developer id first though
 - add screenshots to readme ?
-- change dtrace to use libdtrace and fetch from buffers on syn (or syn-ack)
 
 longer term:
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - add export/upload to server of sanitised (no firefox, chrome, safari etc) log files
 
-helper: logrotate sends signal 15 ?  in any case it sends SIGHUP and should force change in log file.  same for client
-memory leak !
-nc bad descriptor
+when get a pid miss, can we guess using the dns lookup ?

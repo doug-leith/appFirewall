@@ -251,7 +251,7 @@ void *listener(void *ptr) {
 		
 		struct timeval ts = pkthdr.ts;
 		struct timeval start; gettimeofday(&start, NULL);
-		#define TIMEOUT 2 // SYN packets >2s old are dropped (syn timeout), likely due to wakeup after sleep
+		#define TIMEOUT 1 // SYN packets >2s old are dropped (syn timeout), likely due to wakeup after sleep.  Reduced this from 2s to 1s, already v old.
 		if (start.tv_sec - ts.tv_sec > TIMEOUT) {
 			INFO("received stale syn-ack, %f old. discard\n",(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
 			continue;

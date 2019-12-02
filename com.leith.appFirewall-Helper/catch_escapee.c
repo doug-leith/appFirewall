@@ -37,19 +37,19 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t port, conn_raw_t *cr
 	int bufferSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
 	if (bufferSize == -1) {
 		// probably process has stopped
-		WARN("Unable to get open file handles for PID %d\n", pid);
+		WARN("Unable to get open file handles for PID %d (catch_escapee)\n", pid);
 		return 0;
 	}
 
 	struct proc_fdinfo *procFDInfo = (struct proc_fdinfo *)malloc(bufferSize);
 	if (!procFDInfo) {
-		ERR("Out of memory. Unable to allocate buffer with %d bytes\n", bufferSize);
+		ERR("Out of memory. Unable to allocate buffer with %d bytes (catch_escapee)\n", bufferSize);
 		return -1;
 	}
 	
 	if (proc_pidinfo(pid, PROC_PIDLISTFDS, 0, procFDInfo, bufferSize) < 0){
 		// probably process has stopped
-		WARN("Unable to get open file handles for PID %d\n", pid);
+		WARN("Unable to get open file handles for PID %d (catch_escapee)\n", pid);
 		return 0;
 	}
 	int numberOfProcFDs = bufferSize / PROC_PIDLISTFD_SIZE;
@@ -165,7 +165,7 @@ void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 		cr.sport=dport; cr.dport=sport;
 		cr.seq=ack; cr.ack=seq;
 	} else {
-		WARN("received packet with mismatched ports, sport=%u/dport=%u but expected dport=%u\n",sport,dport,target_dport);
+		WARN("received packet with mismatched ports, sport=%u/dport=%u but expected dport=%u (catch_escapee)\n",sport,dport,target_dport);
 		return;
 	}
 	
@@ -185,7 +185,7 @@ void *catcher(void *ptr) {
 		pthread_mutex_unlock(&catcher_mutex);
 		
 		if (pcap_loop(pd_esc, -1,	catcher_callback, (u_char*)ptr)==PCAP_ERROR){	// this blocks
-			ERR("pcap_loop: %s\n", pcap_geterr(pd_esc));
+			ERR("catche_escapee pcap_loop: %s\n", pcap_geterr(pd_esc));
 		}
 		// catcher_listener calls pcap_breakloop() when connection is
 		// stopped or timeout occurs
@@ -209,9 +209,9 @@ void *catcher_listener(void *ptr) {
 	pthread_create(&catcher_thread, NULL, catcher, &a);
 	int prev_pid = -1;
 	for(;;) {
-		INFO("Waiting to accept connection on localhost port %u ...\n", CATCHER_PORT);
+		INFO("Waiting to accept connection on localhost port %u (catch_escapee) ...\n", CATCHER_PORT);
 		if ((c_sock2 = accept(c_sock, (struct sockaddr *)&remote, &len)) <= 0) {
-			ERR("Problem accepting new connection on localhost port %u: %s\n", CATCHER_PORT, strerror(errno));
+			ERR("Problem accepting new connection on localhost port %u (catch_escapee): %s\n", CATCHER_PORT, strerror(errno));
 			continue;
 		}
 		//INFO("Started new connection on port %d\n", CATCHER_PORT);
@@ -219,7 +219,7 @@ void *catcher_listener(void *ptr) {
 		// changes
 		int current_pid = get_sock_pid(c_sock2, CATCHER_PORT);
 		if (current_pid != prev_pid) {
-			INFO("Prev PID=%d npt equal to new PID=%d, authenticating ...\n",prev_pid,current_pid);
+			INFO("Prev PID=%d ot equal to new PID=%d (catch_escapee), authenticating ...\n",prev_pid,current_pid);
 			if (check_signature(c_sock2, CATCHER_PORT)<0) goto err;
 		}
 		prev_pid = current_pid;
@@ -242,7 +242,7 @@ void *catcher_listener(void *ptr) {
 		
 		char dn[INET6_ADDRSTRLEN];
 		inet_ntop(af, &dst, dn, INET6_ADDRSTRLEN);
-		INFO("Started new connection on port %d: pid=%d, af=%d, %s:%u, ack=%u\n",CATCHER_PORT,pid, af,dn,target_dport,ack);
+		INFO("Started new connection on port %d (catch_escapee): pid=%d, af=%d, %s:%u, ack=%u\n",CATCHER_PORT,pid, af,dn,target_dport,ack);
 		
 		// do some basic sanity checking
 		if (af!=AF_INET && af!=AF_INET6) continue;
@@ -250,7 +250,7 @@ void *catcher_listener(void *ptr) {
 		conn_raw_t c; memset(&c,0,sizeof(c));
 		res = find_fds(pid, af, dst, target_dport, &c);
 		if (res<0) {
-			INFO("couldn't find PID with those connection details: %d %s:%u\n",pid,dn,target_dport);
+			INFO("Couldn't find PID with those connection details (catch_escapee): %d %s:%u\n",pid,dn,target_dport);
 			ok=-1;
 			send(c_sock2, &ok, 1, 0);// just sending 1 byte, shouldn't ever block
 			close(c_sock2);
@@ -261,12 +261,12 @@ void *catcher_listener(void *ptr) {
 		sprintf(filter,"tcp and host %s and (port %u or port %u) and (tcp[tcpflags]&tcp-rst==0)", dn, c.sport, c.dport);
 		struct bpf_program fp;		/* The compiled filter expression */
 		if (pcap_compile(pd_esc, &fp, filter, 0, mask) == -1) {
-			ERR("Couldn't parse pcap filter %s: %s\n", filter, pcap_geterr(pd_esc));
+			ERR("Couldn't parse pcap filter %s (catch_escapee): %s\n", filter, pcap_geterr(pd_esc));
 			//exit(EXIT_FAILURE);
 			continue;
 		}
 		if (pcap_setfilter(pd_esc, &fp) == -1) {
-			ERR("Couldn't install pcap filter %s: %s\n", filter, pcap_geterr(pd_esc));
+			ERR("Couldn't install pcap filter %s (catch_escapee): %s\n", filter, pcap_geterr(pd_esc));
 			//exit(EXIT_FAILURE);
 			continue;
 		}
@@ -322,7 +322,7 @@ void *catcher_listener(void *ptr) {
 		close(c_sock2);
 		continue;
 	err:
-		INFO("Connection on port %u for %d %s ended: %s\n", prev_pid, CATCHER_PORT, dn, strerror(errno));
+		INFO("Connection on port %u for %d %s ended (catch_escapee): %s\n", prev_pid, CATCHER_PORT, dn, strerror(errno));
 		pcap_breakloop(pd_esc);
 		close(c_sock2);
 	}
@@ -331,6 +331,6 @@ void *catcher_listener(void *ptr) {
 
 void start_catcher_listener() {
 	c_sock = bind_to_port(CATCHER_PORT,25);
-	INFO("Now listening on localhost port %u\n", CATCHER_PORT);
+	INFO("Now listening on localhost port %u (catch_escapee)\n", CATCHER_PORT);
 	pthread_create(&catcher_listener_thread, NULL, catcher_listener, NULL);
 }

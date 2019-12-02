@@ -17,7 +17,7 @@
 int get_sock_pid(int sock, int port) {
 	pid_t pid; socklen_t pid_size = sizeof(pid);
 	if (getsockopt(sock, SOL_LOCAL,  LOCAL_PEERPID, &pid, &pid_size)<0) {
-		ERR("getsockopt() LOCAL_PEERPID for port %d: %s\n", port,strerror(errno));
+		WARN("getsockopt() LOCAL_PEERPID for port %d: %s\n", port,strerror(errno));
 		return -1;
 	}
 	return pid;
@@ -39,7 +39,7 @@ int check_signature(int sock, int port){
 	CFRelease(attr); CFRelease(pid_);
 	if (status != errSecSuccess) {
 		CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
-		ERR("problem getting code ref for PID %d on port %d: %s\n",pid,port, CFStringGetCStringPtr(err_str,1536));
+		WARN("problem getting code ref for PID %d on port %d: %s\n",pid,port, CFStringGetCStringPtr(err_str,1536));
 		CFRelease(err_str);
 		return -1;
 	}

@@ -183,9 +183,7 @@ extension LogViewController: NSTableViewDelegate {
 		} else if tableColumn == tableView.tableColumns[1] {
 			cellIdentifier = "ConnCell"
 			content=log_line
-			let buf = UnsafeMutablePointer<Int8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
-			get_filter_log_addr_name(Int32(r), buf, INET6_ADDRSTRLEN)
-			let ip = String(cString: buf)
+			let ip = String(cString:get_filter_log_addr_name(Int32(r)))
 			var domain = String(cString: &item.bl_item.domain.0)
 			if (domain.count == 0) {
 				domain = ip

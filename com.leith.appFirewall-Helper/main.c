@@ -49,9 +49,18 @@
 
 void sigterm_handler(int signum) {
 	INFO("signal %d received.\n", signum); // shouldn't really printf() in signal handler
-	kill_dtrace();
 	INFO("appFirewall-Helper exiting.\n");
 	exit(EXIT_SUCCESS);
+}
+
+void sighup_handler(int signum) {
+	// signalled by logrotate, reopen log file
+	INFO("signal %d received, reloading logs.\n", signum);
+	int logfd = open(LOGFILE,O_RDWR|O_CREAT|O_APPEND,0644);
+	dup2(logfd,STDOUT_FILENO); // redirect stdout to log file
+	dup2(logfd,STDERR_FILENO); // ditto stderr
+	setbuf(stdout, NULL); // disable buffering on stdout
+	close(logfd);
 }
 
 int main(int argc, char *argv[]) {
@@ -65,7 +74,7 @@ int main(int argc, char *argv[]) {
 		ERR("Failed to open logfile: %s\n",strerror(errno));
 		//exit(EXIT_FAILURE);
 	}
-	int stdout_fd = dup(STDOUT_FILENO); // keep orig stdout
+	//int stdout_fd = dup(STDOUT_FILENO); // keep orig stdout
 	if (!isatty(fileno(stdout))) {
 		dup2(logfd,STDOUT_FILENO); // redirect stdout to log file
 		dup2(logfd,STDERR_FILENO); // ditto stderr
@@ -96,9 +105,13 @@ int main(int argc, char *argv[]) {
 	action.sa_handler = sigterm_handler;
 	sigaction(SIGTERM, &action, NULL);
 
+	// set up SIGHUP handler
+	action.sa_handler = sighup_handler;
+	sigaction(SIGHUP, &action, NULL);
+
 	// configure log rotation
 	// see https://www.freebsd.org/cgi/man.cgi?newsyslog.conf(5)
-  char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t10000\t*\tNZ\n";
+  char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t5000\t*\tNZ\n";
   char rot_str[1024];
   sprintf(rot_str,rot_fmt,LOGFILE);
 	int rotatefd = open(ROTFILE,O_WRONLY|O_CREAT,0644);
@@ -113,7 +126,7 @@ int main(int argc, char *argv[]) {
 	start_listener();
 	INFO("pcap listener started\n");
 
-	start_dtrace(stdout_fd);
+	start_dtrace();
 	INFO("dtrace started\n");
 	
 	start_catcher_listener();

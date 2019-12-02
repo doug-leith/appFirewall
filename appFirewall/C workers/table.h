@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "util.h"
 
 typedef uint32_t Key;
 

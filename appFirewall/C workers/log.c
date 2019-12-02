@@ -7,11 +7,12 @@
 #include "log.h"
 
 // circular list
-static list_t log_list;
+static list_t log_list=LIST_INITIALISER;
 
-static list_t filtered_log_list;
+static list_t filtered_log_list=LIST_INITIALISER;
 static FILE *fp_txt = NULL; // pointer to human readable log file
 static int changed = 0; // flag to record whether log has been updated
+static int first_load = 1;
 
 char* log_hash(const void* it) {
 	log_line_t* l = (log_line_t*)it;
@@ -42,7 +43,6 @@ int_sw has_log_changed(void) {
 
 void clear_log_changed(void) {
 	changed = 0;
-	//printf("clear_log_changed\n");
 }
 
 size_t get_log_size(void) {
@@ -59,12 +59,6 @@ log_line_t* find_log_by_conn(char* name, conn_raw_t* item, int debug) {
 log_line_t* get_log_row(size_t row) {
 	return (log_line_t*)get_list_item(&log_list,row);
 }
-
-/*void get_log_addr_name(int row, char* str, int len) {
-	log_line_t *l = get_list_item(&log_list,row);
-	inet_ntop(l->raw.af,&l->raw.dst_addr,str,len);
-	//printf("get_log_addr_name '%s'\n",str);
-}*/
 
 void log_repeat(log_line_t *l) {
 	// we've just tried to add a duplicate entry
@@ -85,6 +79,7 @@ void log_repeat(log_line_t *l) {
 		sprintf(l->log_line,"%s (%d)",first_part,2);
 	}
 }
+
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
 	changed = 1; // record for GUI fact that log has been updated
 	//printf("append_log, %d\n",changed);
@@ -145,9 +140,12 @@ log_line_t* get_filter_log_row(int_sw row) {
 	return (log_line_t*)get_list_item(&filtered_log_list,(size_t)row);
 }
 
-void get_filter_log_addr_name(int_sw row, char* str, int_sw len) {
+static char _name[INET6_ADDRSTRLEN];
+char* get_filter_log_addr_name(int_sw row) {
 	log_line_t *l = get_list_item(&filtered_log_list,(size_t)row);
-	inet_ntop(l->raw.af,&l->raw.dst_addr,str,(socklen_t)len);
+	//char name[INET6_ADDRSTRLEN];
+	inet_ntop(l->raw.af,&l->raw.dst_addr,_name,INET6_ADDRSTRLEN);
+	return _name;
 }
 
 void save_log(void) {
@@ -160,21 +158,38 @@ void save_log(void) {
 	save_list(&log_list, path, sizeof(log_line_t));
 }
 
-void load_log() {
-	changed = 2; // record fact that log has been updated
-
+void open_logtxt() {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE_TXT,STR_SIZE);
+	if (fp_txt) close_logtxt();
 	fp_txt = fopen (path,"a");
 	if (fp_txt==NULL) {
 		WARN("Problem opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));
 	}
+}
+
+void close_logtxt() {
+	if (fp_txt != NULL) fclose(fp_txt);
+	fp_txt = NULL;
+}
+
+void load_log() {
+	changed = 2; // record fact that log has been updated
+
+	close_logtxt();
+	open_logtxt(); // will be left open for continuous appending
 	
+	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
-	init_list(&log_list,log_hash,NULL,1,-1,"log_list");
-	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
+	if (first_load) {
+		init_list(&log_list,log_hash,NULL,1,-1,"log_list");
+		init_list(&filtered_log_list, filtered_log_hash, NULL,1,-1, "filtered_log_list");
+		first_load = 0;
+	} else {
+		clear_list(&log_list); clear_list(&filtered_log_list);
+	}
 	//return;
 	load_list(&log_list, path, sizeof(log_line_t));
 }

@@ -25,14 +25,14 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 	
 	// get network device
 	if ((intf = pcap_lookupdev(ebuf)) == NULL) {
-		ERR("pcap couldn't find default device: %s", ebuf);
+		ERR("Couldn't find default pcap device: %s", ebuf);
 		//EXITFAIL("Problem listening to network: pcap couldn't find default device: %s", ebuf);
 		exit(EXIT_FAILURE);
 	}
 	//INFO("Listening on device: %s\n", intf);
 	bpf_u_int32 mask, net;
 	if (pcap_lookupnet(intf, &net, &mask, ebuf) == -1) {
-		WARN("Can't get netmask for device %s: %s\n", intf, ebuf);
+		WARN("Can't get netmask for pcap device %s: %s\n", intf, ebuf);
 		net = 0;
 		mask = 0;
 	}
@@ -90,7 +90,7 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 	// ethernet value of 14, so check link we have is compatible with this
 	int dl;
 	if ( (dl=pcap_datalink(*pd)) != DLT_EN10MB) { //
-		ERR("Device %s not supported: %d\n", intf, dl);
+		ERR("Pcap device %s not supported: %d\n", intf, dl);
 		//EXITFAIL("Device %s not supported: %d\n", intf, dl);
 		exit(EXIT_FAILURE);
 	}
@@ -113,6 +113,7 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	}
 	struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
 	int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
+	
 	if (syn) { signal_dtrace(); return; }
 	
 	// before sending data, we recheck client when PID changes
@@ -138,7 +139,7 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	return;
 	
 err:
-	WARN("send: %s\n", strerror(errno));
+	WARN("pcap send: %s\n", strerror(errno));
 	// likely helper has shut down connection,
 	// in any case close socket and exit pcap listening loop
 	pcap_breakloop(pd);
@@ -150,12 +151,12 @@ void *listener(void *ptr) {
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 	for(;;) {
-		INFO("Waiting to accept connection on localhost port %d ...\n", PCAP_PORT);
+		INFO("Waiting to accept connection on localhost port %d (pcap) ...\n", PCAP_PORT);
 		if ((p_sock2 = accept(p_sock, (struct sockaddr *)&remote, &len)) <= 0) {
-			ERR("Problem accepting new connection on localhost port %d: %s\n", PCAP_PORT, strerror(errno));
+			ERR("Problem accepting new connection on localhost port %d (pcap): %s\n", PCAP_PORT, strerror(errno));
 			continue;
 		}
-		INFO("Started new connection on port %d\n", PCAP_PORT);
+		INFO("Started new connection on port %d (pcap)\n", PCAP_PORT);
 		if (check_signature(p_sock2, PCAP_PORT)<=0) {
 			// couldn't authenticate client
 			close(p_sock2);
@@ -178,7 +179,7 @@ void *listener(void *ptr) {
 void start_listener() {
 	// start listening for requests to receive pcap info
 	p_sock = bind_to_port(PCAP_PORT,2);
-	INFO("Now listening on localhost port %d\n", PCAP_PORT);
+	INFO("Now listening on localhost port %d (pcap)\n", PCAP_PORT);
 
 	// tcpflags doesn't work for ipv6, sigh.
 	// UDP on ports 443 likely to be quic

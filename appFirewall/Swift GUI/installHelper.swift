@@ -12,6 +12,35 @@ import Foundation
 import ServiceManagement
 import os
 
+func isSIPEnabled()->Bool {
+	// is System Integrity Protection Enabled?
+	let task = Process();
+	task.launchPath = "/usr/bin/csrutil"
+	task.arguments = ["status"]
+	let pipe = Pipe()
+	task.standardOutput = pipe
+	task.launch()
+	let resp = pipe.fileHandleForReading.readDataToEndOfFile()
+	task.waitUntilExit()
+	// resp is a Data object i.e. a bytebuffer
+	// so convert to string
+	let resp_str = (String(data: resp, encoding: .utf8) ?? "-1").trimmingCharacters(in: .whitespacesAndNewlines)
+	//print("csrutil response: "+resp_str)
+	if (resp.count == 0) {
+		print("Problem querying csrutil for SIP status")
+		return false // let's hope SIP is disabled !
+	}
+	let resp_parts = resp_str.split { $0==":" }
+	let status = resp_parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+	//print(resp_parts, status)
+	if (status == "disabled.") {
+		return false
+	} else {
+		return true
+	}
+}
+
+
 func pgrep(Name: String)->Int {
 	// get number of running processing matching Name
 	let task = Process();
@@ -112,7 +141,7 @@ func start_helper() {
 		let version = get_helper_version(Name: kHelperToolName)
 		if (version == REQUIRED_VERSION) {
 			print(String(format:"helper "+kHelperToolName+", version %d already installed.", version))
-			//return // right version of helper already installed
+			return // right version of helper already installed
 		}
 	}
 	
@@ -145,6 +174,7 @@ func start_helper() {
 			exit_popup(msg:"Problem installing helper: \(blessError), exiting.")
 		}else{
 			print(kHelperToolName+" installed successfully")
+			AuthorizationFree(authRef!, [])
 		}
 	}
 }

@@ -73,8 +73,7 @@ func make_data_dir() {
 	print("storage path "+path)
 }
 
-func log_rotate(logName: String) {
-	// rotate human readable log file if getting too large
+func need_log_rotate(logName: String)->Bool {
 	let path = String(cString: get_path())
 	let logfile = path + logName
 	var fileSize : UInt64 = 0
@@ -82,36 +81,46 @@ func log_rotate(logName: String) {
 		let attr = try FileManager.default.attributesOfItem(atPath: logfile)
 		fileSize = attr[FileAttributeKey.size] as! UInt64
 	} catch {
-			print("Problem rotating log getting size of "+logName+": "+error.localizedDescription)
+			print("Problem rotating log getting size of "+logfile+": "+error.localizedDescription)
 	}
-	if (fileSize > 10000000) { // 10M
-		// rotate
-		print("Rotating log, trying to remove "+logfile+String(5))
-		if FileManager.default.fileExists(atPath: logfile+String(5)) {
-			do {
-				try FileManager.default.removeItem(atPath:logfile+String(5))
-			} catch {
-				print("Rotating log, removing "+logfile+String(5)+": "+error.localizedDescription)
-			}
-		}
-		for i in (0...4).reversed() {
-			if FileManager.default.fileExists(atPath: logfile+String(i)) {
-				print("Rotating ",logfile+String(i)," to ",logfile+String(i+1))
-				do {
-					try FileManager.default.moveItem(atPath:logfile+String(i), toPath: logfile+String(i+1))
-				} catch {
-					print("Rotating log "+logfile+String(i)+": "+error.localizedDescription)
-				}
-			} else {
-				print("Rotating: ",logfile+String(i)," doesn't exist, continuing")
-			}
-		}
+	print("logrotate ",logfile," size ",String(fileSize))
+	if (fileSize < 5000000) { // 5M
+		return false
+	} else {
+		return true
+	}
+}
+
+func log_rotate(logName: String) {
+	// rotate human readable log file if getting too large
+	let path = String(cString: get_path())
+	let logfile = path + logName
+	// rotate
+	print("Rotating log, trying to remove "+logfile+String(5))
+	if FileManager.default.fileExists(atPath: logfile+String(5)) {
 		do {
-			try FileManager.default.moveItem(atPath:logfile, toPath: logfile+"0")
-			} catch {
-					print("Rotating log, moving "+logfile+" to ", logfile+"0: "+error.localizedDescription)
-			}
+			try FileManager.default.removeItem(atPath:logfile+String(5))
+		} catch {
+			print("Rotating log, removing "+logfile+String(5)+": "+error.localizedDescription)
+		}
 	}
+	for i in (0...4).reversed() {
+		if FileManager.default.fileExists(atPath: logfile+String(i)) {
+			print("Rotating ",logfile+String(i)," to ",logfile+String(i+1))
+			do {
+				try FileManager.default.moveItem(atPath:logfile+String(i), toPath: logfile+String(i+1))
+			} catch {
+				print("Rotating log "+logfile+String(i)+": "+error.localizedDescription)
+			}
+		} else {
+			print("Rotating: ",logfile+String(i)," doesn't exist, continuing")
+		}
+	}
+	do {
+		try FileManager.default.moveItem(atPath:logfile, toPath: logfile+"0")
+		} catch {
+				print("Rotating log, moving "+logfile+" to ", logfile+"0: "+error.localizedDescription)
+		}
 }
 
 // -------------------------------------

@@ -36,6 +36,7 @@ void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*ha
 void free_list(list_t *l);
 void save_list(list_t *l, char* path, size_t item_size);
 void load_list(list_t *l, char* path, size_t item_size);
+void clear_list(list_t *l);
 void sort_list(list_t *l, int (*sort_cmp)(const void *, const void *));
 void deep_copy_list(list_t *l1, list_t *l2, size_t item_size);
 

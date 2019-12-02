@@ -43,7 +43,7 @@ hashtable_free(Hashtable *table) {
 void dump_hashtable(Hashtable *table){
 		Bucket *p, *q;
 		if (!table) {
-			printf("empty table\n");
+			WARN("dump_hashtable() empty table\n");
 			return;
 		}
 		for (uint32_t i = 0; i < table->size; i++) {
@@ -53,7 +53,7 @@ void dump_hashtable(Hashtable *table){
 					//free(p->value);
 				}
 				if (p->key_string) {
-					printf("key: %u, key_string: '%s'\n", p->key, p->key_string);
+					INFO("key: %u, key_string: '%s'\n", p->key, p->key_string);
 				}
 			}
 		}
@@ -80,9 +80,13 @@ hashtable_remove(Hashtable *table, const char* key_string) {
 void*
 hashtable_get(Hashtable *table, const char* key_string) {
 	Bucket *p;
+	if (!table) {
+		WARN("hashtable_get() called with empty table\n");
+		return NULL;
+	}
 	Key key = hash(key_string);
-	if (table->size ==0) {
-		printf("ERROR: hashtable_get() called with table size = 0\n");
+	if (table->size == 0) {
+		WARN("hashtable_get() called with table size = 0\n");
 		return NULL;
 	}
 	//uint32_t i = key%table->size;

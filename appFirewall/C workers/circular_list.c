@@ -17,6 +17,8 @@ int list_cmp(char* (*hash)(const void* item),const void* item1, const void* item
 }
 
 void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*hash)(const void* item),const void* item1, const void* item2), int circular, ssize_t size, char* name) {
+	// configure a fresh list. should call free_list() beforehand
+	// is an already existing list or will have a mem leak.
 	l->hash = hash;
 	if (cmp) {
 		l->cmp = cmp;
@@ -36,6 +38,8 @@ void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*ha
 }
 
 void free_list(list_t *l) {
+	// free all memory used by list, list is unusable
+	// afterwards as hashtable is not allocated
 	for (size_t i=l->list_start; i<l->list_start+l->list_size;i++) {
 		if (l->list[i%l->maxsize]) {
 			free(l->list[i%l->maxsize]);
@@ -45,6 +49,13 @@ void free_list(list_t *l) {
 	if (l->htab!=NULL) hashtable_free(l->htab);
 	l->list_size=0; l->list_start=0;
 }
+
+void clear_list(list_t *l) {
+	// empty list contents
+	free_list(l);
+	l->htab = hashtable_new(l->maxsize);
+}
+
 
 void deep_copy_list(list_t *l1, list_t *l2, size_t item_size) {
 	*l1 = *l2;
@@ -100,7 +111,9 @@ void* add_item(list_t *l, void* item, size_t item_size) {
 	if (l->hash == NULL) return NULL;
 	void* ptr = in_list(l, item, 0);
 	if (ptr) {
-		DEBUG2("add_item() item %s exists in list %s.\n", l->hash(item),l->list_name);
+		char* hash = l->hash(item);
+		DEBUG2("add_item() item %s exists in list %s.\n", hash,l->list_name);
+		free(hash);
 		return ptr;
 	}
 
@@ -124,11 +137,15 @@ void* add_item(list_t *l, void* item, size_t item_size) {
 		l->list_start++; l->list_size--;
 		size_t end = (l->list_start+l->list_size)%l->maxsize;
 		l->list[end] = it;
-		INFO2("add_item() %s circular list %s full.\n",l->hash(item),l->list_name);
+		char* hash = l->hash(item);
+		INFO2("add_item() %s circular list %s full.\n",hash,l->list_name);
+		free(hash);
 		l->list_size++;
 	} else {
 		free(it);
-		WARN("add_item() %s list %s full.\n", l->hash(item),l->list_name);
+		char* hash = l->hash(item);
+		WARN("add_item() %s list %s full.\n", hash,l->list_name);
+		free(hash);
 		return NULL;
 	}
 	add_item_to_htab(l, it);
@@ -198,14 +215,14 @@ void save_list(list_t *l, char* path, size_t item_size) {
 		}
 	}
 	fclose(fp);
+	INFO("saved %zu items to list %s\n", l->list_size,l->list_name);
+
 }
 
 void load_list(list_t *l, char* path, size_t item_size) {
 	
-	// initialise hash table
-	if (l->htab!=NULL) hashtable_free(l->htab);
-	l->list_size = 0; l->list_start=0; l->maxsize=MAXLIST;
-	l->htab = hashtable_new(l->maxsize);
+	// partial re-initialisation of list (keep maxsize, name etc)
+	clear_list(l);
 	//return;
 
 	// open and read file
@@ -258,5 +275,6 @@ void load_list(list_t *l, char* path, size_t item_size) {
 		l->list_size = 0;
 	}
 	fclose(fp);
+	INFO("loaded %zu items to list %s\n", l->list_size,l->list_name);
 }
 

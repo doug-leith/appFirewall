@@ -2,12 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:/Users/doug/Desktop/appFirewall/PRIVACY">
-   </FileRef>
-   <FileRef
-      location = "group:/Users/doug/Desktop/appFirewall/libnet-1.2">
-   </FileRef>
-   <FileRef
       location = "self:">
    </FileRef>
 </Workspace>

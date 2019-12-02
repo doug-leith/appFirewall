@@ -43,10 +43,12 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 void filter_log_list(int_sw show_blocked, const char* str);
 int_sw get_filter_log_size(void);
 log_line_t* get_filter_log_row(int_sw row);
-void get_filter_log_addr_name(int_sw row, char* str, int_sw len);
+char*  get_filter_log_addr_name(int_sw row);
 void save_log(void);
 void load_log(void);
 void clear_log(void);
+void open_logtxt(void);
+void close_logtxt(void);
 int_sw has_log_changed(void);
 void clear_log_changed(void);
 

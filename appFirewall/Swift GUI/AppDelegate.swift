@@ -173,11 +173,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if (Int(listener_error()) != 0) {
 				raise(SIGCHLD)
 		}
-		// rotate log files if they're getting too large
-		save_log() // this will flush human-readable log file
-		log_rotate(logName: "log.txt")
-		load_log() // we reopen human-readable log file
-		log_rotate(logName: "app_log.txt")
+		save_log()
+		if (need_log_rotate(logName: "log.txt")) {
+			close_logtxt() // close human-readable log file
+			log_rotate(logName: "log.txt")
+			open_logtxt(); // open new log file
+		}
+		if (need_log_rotate(logName: "app_log.txt")) {
+			log_rotate(logName: "app_log.txt")
+			redirect_stdout(); // redirect output to the new log file
+		}
 
 		// update menubar button tooltip
 		if let button = statusItem.button {
@@ -269,8 +274,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				
 		// set whether to use dtrace assistance or not
 		UserDefaults.standard.register(defaults: ["dtrace":1])
-		let dtrace = UserDefaults.standard.integer(forKey: "dtrace")
-		
+		let sipEnabled = isSIPEnabled()
+		print("SIP enabled: ",sipEnabled)
+		var dtrace = UserDefaults.standard.integer(forKey: "dtrace")
+		if (sipEnabled) { dtrace = 0 } // dtrace doesn't work with SIP
+		if (dtrace > 0) {
+			print("Dtrace enabled")
+		} else {
+			print("Dtrace disabled")
+		}
 		// reload state
 		load_log(); load_blocklist(); load_whitelist()
 		load_dns_cache()
@@ -280,6 +292,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// this can be slow since it blocks while making network connection to helper
     DispatchQueue.global(qos: .background).async {
 			start_helper_listeners(Int32(dtrace))
+			//start_helper_listeners(Int32(0))
 		}
 		
 		// schedule house-keeping ...
