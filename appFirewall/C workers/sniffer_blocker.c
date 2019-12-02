@@ -320,6 +320,11 @@ void *listener(void *ptr) {
 					
 					// carry out PID and DNS lookup
 					bl_item_t c = create_blockitem_from_addr(&cr,0);
+					if (strcmp(c.name,NOTFOUND)==0) {
+						// we seem to often miss process for a UDP pkt, for now
+						// we guess its Chrome.
+						strlcpy(c.name,"Google Chrome?",MAXCOMLEN);
+					}
 					// log connection
 					char dns[MAXDOMAINLEN]={0};
 					if (strlen(c.domain)) {
