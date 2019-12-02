@@ -141,7 +141,7 @@ func start_helper() {
 		let version = get_helper_version(Name: kHelperToolName)
 		if (version == REQUIRED_VERSION) {
 			print(String(format:"helper "+kHelperToolName+", version %d already installed.", version))
-			return // right version of helper already installed
+			//return // right version of helper already installed
 		}
 	}
 	

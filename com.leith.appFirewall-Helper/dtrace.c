@@ -132,7 +132,7 @@ syscall::connect*:return{\
   this->fdptr = curproc->p_fd->fd_ofiles[this->connect_fd]; \
 } \
 syscall::connect*:return/!this->fdptr/{\
-  printf(\"%s bad file descriptor %d/%d for %s %d, likely mDNSResponder issue.\\n\", probefunc, this->connect_fd, this->last, execname, pid) \
+  printf(\"%s bad file descriptor %d/%d for %s %d, ret=%d. likely mDNSResponder issue.\\n\", probefunc, this->connect_fd, this->last, execname, pid, arg1) \
 } \
 syscall::connect*:return/this->fdptr/{\
   this->sock = ((struct socket *) (this->fdptr->f_fglob->fg_data)); \
@@ -277,7 +277,7 @@ void *dtrace(void *ptr) {
 		INFO("Started new connection on port %d (dtrace)\n", DTRACE_PORT);
 		if (check_signature(d_sock2, DTRACE_PORT)<0) {
 			// couldn't authenticate client
-			close(d_sock2);
+			close(d_sock2); d_sock2=-1;
 			continue;
 		}
 		pid = get_sock_pid(d_sock2, PCAP_PORT);
@@ -286,6 +286,7 @@ void *dtrace(void *ptr) {
 		INFO("Starting dtrace ...\n");
 		if (init_dtrace()<0) {
 			dtrace_stop(g_dtp); dtrace_close(g_dtp);
+			close(d_sock2); d_sock2=-1;
 			continue;
 		}
 
@@ -327,6 +328,10 @@ void *dtrace(void *ptr) {
 		dtrace_stop(g_dtp); dtrace_close(g_dtp);
 	}
 	return NULL;
+}
+
+int dtrace_active() {
+	return (d_sock2!=-1);
 }
 
 void start_dtrace() {

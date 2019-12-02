@@ -101,21 +101,25 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	// send pkt to GUI
 	DEBUG2("sniffed pkt, sending to GUI ... %d bytes\n",pkthdr->caplen);
 	
-	const int pcap_off = 14; // ethernet link layer offset
-	int version = (*(pkt + pcap_off))>>4; // get IP version
-	u_char* nexth=NULL; // this will point to TCP/UDP header
-	if (version == 4) {
-		struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)(pkt + pcap_off);
-		nexth=((u_char *)ip + (ip->ip_hl * 4));
-	} else {
-		struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)(pkt + pcap_off);
-		nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
+	if (dtrace_active()) {
+		// when dtrace is running on receipt of a syn we signal to
+		// dtrace to look for connect() trace info, otherwise
+		// we pass the syn on to client.
+		const int pcap_off = 14; // ethernet link layer offset
+		int version = (*(pkt + pcap_off))>>4; // get IP version
+		u_char* nexth=NULL; // this will point to TCP/UDP header
+		if (version == 4) {
+			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)(pkt + pcap_off);
+			nexth=((u_char *)ip + (ip->ip_hl * 4));
+		} else {
+			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)(pkt + pcap_off);
+			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
+		}
+		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
+		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
+		
+		if (syn) { signal_dtrace(); return; }
 	}
-	struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
-	int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
-	
-	if (syn) { signal_dtrace(); return; }
-	
 	// before sending data, we recheck client when PID changes
 	int current_pid = get_sock_pid(p_sock2, PCAP_PORT);
 	if (current_pid != pid) {

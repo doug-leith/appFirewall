@@ -24,5 +24,6 @@ void start_dtrace(void);
 void *dtrace(void *ptr);
 int exec(char* cmd, int *pipefd, int d_sock2);
 void signal_dtrace(void);
+int dtrace_active(void);
 
 #endif /* dtrace_h */

@@ -3,9 +3,9 @@ TO DO
 short term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  need developer id first though
 - add screenshots to readme ?
+- when get a pid miss, can we guess using the dns lookup ?
 
 longer term:
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - add export/upload to server of sanitised (no firefox, chrome, safari etc) log files
 
-when get a pid miss, can we guess using the dns lookup ?
