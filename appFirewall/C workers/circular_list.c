@@ -46,7 +46,7 @@ void free_list(list_t *l) {
 			l->list[i%l->maxsize]=NULL;
 		}
 	}
-	if (l->htab!=NULL) hashtable_free(l->htab);
+	if (l->htab!=NULL) { hashtable_free(l->htab); l->htab = NULL;}
 	l->list_size=0; l->list_start=0;
 }
 
@@ -96,7 +96,8 @@ void add_item_to_htab(list_t *l, void *item) {
 	// add item to hash table
 	if (l->hash == NULL) return;
 	char * temp = (l->hash)(item);
-	hashtable_put(l->htab, temp, item);
+	void* prev = hashtable_put(l->htab, temp, item);
+	if (prev) free(prev);
 	free(temp);
 }
 
@@ -104,6 +105,8 @@ void del_from_htab(list_t *l, const void *item) {
 	if (l->hash == NULL) return;
 	char * temp = (l->hash)(item);
 	hashtable_remove(l->htab, temp);
+	//void* prev = hashtable_remove(l->htab, temp);
+	//if (prev) free(prev);
 	free(temp);
 }
 
@@ -162,7 +165,9 @@ int del_item(list_t *l, const void* item) {
 		}
 	}
 	if (posn==l->list_start+l->list_size) {
-		INFO2("del_item() %s item not found.\n", l->hash(item));
+		char* temp = l->hash(item);
+		INFO2("del_item() %s item not found.\n", temp);
+		free(temp);
 		return -1;
 	}
 	del_from_htab(l,item);  //need to do this before do free

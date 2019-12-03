@@ -51,6 +51,7 @@ void add_hostlist(char * domain) {
 	strlcpy(str,domain,len);
 	TAKE_LOCK(&hl_mutex,"add_hostlist()");
 	hashtable_put(hl_htab, str, hl_htab); // last parameter is just a placeholder
+	free(str);
 	host_list_size++;
 	pthread_mutex_unlock(&hl_mutex);
 }
@@ -76,17 +77,17 @@ int_sw load_hostsfile(const char* fname) {
 			if (addr == NULL) continue; // blank line
 			if (addr[0] == '#') continue; // comment line
 			if ((strncmp(addr,"0.0.0.0",7)!=0) && (strncmp(addr,"127.0.0.1",9)!=0)) continue; // not a blacklist entry
-			if (!strncmp(addr,"fe80",4))  continue; // IPv6 device local
-			if (!strncmp(addr,"fe00",4))  continue; // IPv6 device local
-			if (!strncmp(addr,"fe82",4))  continue; // IPv6 device local
+			if (strncmp(addr,"fe80",4)==0)  continue; // IPv6 device local
+			if (strncmp(addr,"fe00",4)==0)  continue; // IPv6 device local
+			if (strncmp(addr,"fe82",4)==0)  continue; // IPv6 device local
 			// get second word, it should be the domain name
 			char* domain = strtok_r(NULL, " ", &ptr);
 			if (domain == NULL) continue; // no domain name, skip
-			if (!strcmp(domain,"localhost")) continue;
-			if (!strcmp(domain,"localhost.localdomain")) continue;
-			if (!strcmp(domain,"local")) continue;
-			if (!strcmp(domain,"ip6-localhost")) continue;
-			if (!strcmp(domain,"ip6-loopback")) continue;
+			if (strcmp(domain,"localhost")==0) continue;
+			if (strcmp(domain,"localhost.localdomain")==0) continue;
+			if (strcmp(domain,"local")==0) continue;
+			if (strcmp(domain,"ip6-localhost")==0) continue;
+			if (strcmp(domain,"ip6-loopback")==0) continue;
 			// strip any newline
 			char * nl = strstr(domain,"\n"); if (nl!=NULL) *nl=0;
 			DEBUG2("%s\n", domain);

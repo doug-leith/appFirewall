@@ -13,7 +13,7 @@
 #include "circular_list.h"
 #include "connection.h"
 
-void init_dns_conn_list(void);
+//void init_dns_conn_list(void);
 void add_dns_conn(char* domain, char* name);
 void dump_dns_conn_list(void);
 char* guess_name(char* domain, double* confidence);

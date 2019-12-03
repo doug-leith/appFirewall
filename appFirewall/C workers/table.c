@@ -25,7 +25,7 @@ hashtable_free(Hashtable *table) {
   Bucket *p, *q;
   if (!table) return;
   //printf("hashtable_free: size=%d\n", table->size);
-  for (uint32_t i = 0; i < table->size; i++)
+  for (uint32_t i = 0; i < table->size; i++) {
     for (p = table->buckets[i]; p; p = q) {
       //printf("hashtable del\n");
       q = p->link;
@@ -37,6 +37,8 @@ hashtable_free(Hashtable *table) {
 			}
       free(p);
     }
+    table->buckets[i] = NULL;
+	}
 	free(table);
 }
 

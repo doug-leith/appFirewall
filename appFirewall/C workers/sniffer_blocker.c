@@ -279,7 +279,7 @@ void *listener(void *ptr) {
 	signal(SIGPIPE, SIG_IGN);
 
 	init_list(&waiting_list,conn_raw_hash,NULL,1,-1,"waiting_list");
-	init_dns_conn_list();
+	//init_dns_conn_list();
 	
 	// set up handler for waiting list (connections for which we didn't manage to
 	// get the process name immediately)

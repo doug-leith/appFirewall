@@ -84,7 +84,7 @@ class LogViewController: NSViewController {
 	
 	
 	@IBAction func helpButton(_ sender: helpButton!) {
-			sender.clickButton(msg:"This window logs the network connections made by the apps running on your computer.  Connections marked in green are not blocked.  Those marked in red are blocked by the blacklist (on the next tab), those in orange and brown are blocked by filter files (see preferences to modify these).  For some connections the app name may be marked as <not found>.  These are usually connections which are so brief that we didn't manage to link the connection to an app before the app finished.  To catch such connections try disabling SIP (System Integrity Protection) so that appFirewall can use Dtrace - this requires a reboot.")
+			sender.clickButton(msg:"This window logs the network connections made by the apps running on your computer.  Connections marked in green are not blocked.  Those marked in red are blocked by the blacklist (on the next tab), those in orange and brown are blocked by filter files (see preferences to modify these).  The numbers in brackets indicate multiple connections within a short time.  For some connections the app name may be marked as <not found>.  These are usually connections which are so brief (a millisecond or two) that we didn't manage to link the connection to an app before the app finished.  If you'd like to catch such connections try disabling SIP (System Integrity Protection) so that the firewall can use Dtrace - this requires a reboot but lets the firewall detect link connections to apps *much* more quickly.")
 	}
 	
 	

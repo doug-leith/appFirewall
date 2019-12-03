@@ -27,9 +27,9 @@ char* dns_conn_hash(const void* it) {
 	return temp;
 }
 
-void init_dns_conn_list() {
+/*void init_dns_conn_list() {
 	init_list(&dns_conn_list, dns_conn_hash, NULL,1,-1,"dns_conn_list");
-}
+}*/
 
 void add_dns_conn(char* domain, char* name) {
 	dns_conn_t item_new;

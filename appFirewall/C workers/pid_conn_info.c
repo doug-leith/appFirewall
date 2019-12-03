@@ -588,7 +588,6 @@ void find_escapees() {
 						// should we just choose a randome one, or otherwise adjust it ?
 						stats.stale_escapees++;
 					}
-					free(l);
 				}
 				// and ask helper to catch this "escapee" connection
 				pthread_t escapee_thread;
@@ -607,7 +606,9 @@ void find_escapees() {
 			} else {
 				pthread_mutex_unlock(&escapee_mutex);
 			}
-		}	}
+		}
+		if (l!=NULL) free(l);
+	}
 	pthread_mutex_unlock(&pid_mutex);
 }
 
