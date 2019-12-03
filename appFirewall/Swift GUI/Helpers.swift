@@ -132,7 +132,17 @@ func save_state() {
 func load_state() {
 	load_log();
 	load_blocklist(); load_whitelist()
-	load_dns_cache(); load_dns_conn_list()
+	load_dns_cache();
+	// we distribute app with preconfigured dns_conn cache so that
+	// can guess process names of common apps more quickly
+	let filePath = String(cString:get_path())
+	let backupPath = Bundle.main.resourcePath ?? "./"
+	if (load_dns_conn_list(filePath)<0) {
+		print("Falling back to loading dns_conn_list from ",backupPath)
+		load_hostsfile(backupPath)
+	}
+
+	
 }
 
 // -------------------------------------

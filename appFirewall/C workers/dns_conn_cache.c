@@ -122,11 +122,16 @@ void save_dns_conn_list() {
 	//dump_dns_conn_list();
 }
 
-void load_dns_conn_list() {
+int load_dns_conn_list(const char* dir) {
 	#define STR_SIZE 1024
-	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
 	init_list(&dns_conn_list, dns_conn_hash, NULL,1,-1, "dns_conn_list");
+
+	char path[STR_SIZE]; strlcpy(path,dir,STR_SIZE);
+	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
+	FILE *fp = fopen(path,"r");
+	if (fp == NULL) return -1; // problem opening file
+
 	load_list(&dns_conn_list, path, sizeof(dns_conn_t));
 	dump_dns_conn_list();
+	return 0;
 }

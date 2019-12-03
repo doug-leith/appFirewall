@@ -219,7 +219,7 @@ void save_list(list_t *l, char* path, size_t item_size) {
 
 }
 
-void load_list(list_t *l, char* path, size_t item_size) {
+int load_list(list_t *l, char* path, size_t item_size) {
 	
 	// partial re-initialisation of list (keep maxsize, name etc)
 	clear_list(l);
@@ -230,32 +230,32 @@ void load_list(list_t *l, char* path, size_t item_size) {
 	FILE *fp = fopen(path,"r");
 	if (fp==NULL) {
 		WARN("Problem opening %s for reading: %s\n", path, strerror(errno));
-		return;
+		return -1;
 	}
 	uint8_t ver;
 	size_t res = fread(&ver,1,1,fp);
 	if (res<1) {
 		WARN("Problem loading %s: %s", path, strerror(errno));
-		return;
+		return 0;
 	}
 	if (ver != FILE_VERSION) {
 	WARN("Problem loading %s: version mismatch, expected %d got %d", path, FILE_VERSION, ver);
-		return;
+		return 0;
 	}
 	res=fread(&l->list_size,sizeof(l->list_size),1,fp);
 	if (res<1) {
 		WARN("Problem loading %s: %s", path, strerror(errno));
-		return;
+		return 0;
 	}
 	if (l->list_size < 0) {
 		WARN("Problem loading %s: list_size %zu <0\n",path,l->list_size);
 		l->list_size=0;
-		return;
+		return 0;
 	}
 	if (l->list_size > l->maxsize) {
 		WARN("Problem loading %s: list_size %zu too large\n",path,l->list_size);
 		l->list_size=0;
-		return;
+		return 0;
 	}
 	size_t i;
 	for(i = 0; i < l->list_size; i++){
@@ -276,5 +276,6 @@ void load_list(list_t *l, char* path, size_t item_size) {
 	}
 	fclose(fp);
 	INFO("loaded %zu items to list %s\n", l->list_size,l->list_name);
+	return 1;
 }
 

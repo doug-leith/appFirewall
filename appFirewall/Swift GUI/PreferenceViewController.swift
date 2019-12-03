@@ -75,7 +75,7 @@ class PreferenceViewController: NSViewController {
 		// we fall back to files distributed by app
 		init_hosts_list();
 		let filePath = String(cString:get_path())
-		let backupPath = Bundle.main.resourcePath ?? "."
+		let backupPath = Bundle.main.resourcePath ?? "./"
 		var n = String("")
 		for item in HostNameLists {
 			guard (item["Name"] != nil) else { continue };

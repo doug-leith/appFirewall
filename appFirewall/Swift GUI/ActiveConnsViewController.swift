@@ -67,9 +67,8 @@ class ActiveConnsViewController: NSViewController {
 	}
 	
 	@IBAction func helpButton(_ sender: helpButton!) {
-			sender.clickButton(msg:"This window logs the network connections currently being made by the apps running on your computer.  Note that connections can sometimes take a few seconds to die, during which time they may remain visible here.  Also, we only block connections when they try to start so its possible for some connections on the blacklist to be running temporarily, but they will be blocked when they try to restart.")
+			sender.clickButton(msg:"This window logs the network connections currently being made by the apps running on your computer.  Note that connections can sometimes take a few seconds to die, during which time they may remain visible here.")
 		}
-	
 	
 	@IBAction func Click(_ sender: blButton!) {
 		BlockBtnAction(sender: sender)
