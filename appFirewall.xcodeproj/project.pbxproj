@@ -58,6 +58,7 @@
 		91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B5909923925620000F418D /* libdtrace.tbd */; };
 		91B67F2823793C1C00706027 /* TODO in Resources */ = {isa = PBXBuildFile; fileRef = 91B67F2723793C1C00706027 /* TODO */; };
 		91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 91D96AD2239648D400AAA73B /* dns_conn_cache.c */; };
+		91D96AD6239718CF00AAA73B /* latest release in Resources */ = {isa = PBXBuildFile; fileRef = 91D96AD5239718CF00AAA73B /* latest release */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -176,6 +177,7 @@
 		91B67F2723793C1C00706027 /* TODO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
 		91D96AD1239648D400AAA73B /* dns_conn_cache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dns_conn_cache.h; sourceTree = "<group>"; };
 		91D96AD2239648D400AAA73B /* dns_conn_cache.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns_conn_cache.c; sourceTree = "<group>"; };
+		91D96AD5239718CF00AAA73B /* latest release */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "latest release"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,6 +205,7 @@
 		91607BA6236AB280002E50A8 = {
 			isa = PBXGroup;
 			children = (
+				91D96AD5239718CF00AAA73B /* latest release */,
 				9157B05323903EF00027457A /* PRIVACY.md */,
 				9157B04A238FB09E0027457A /* README.md */,
 				9180E16A2387FCC9007002CB /* LICENSE.md */,
@@ -419,6 +422,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91D96AD6239718CF00AAA73B /* latest release in Resources */,
 				9180E16B2387FCC9007002CB /* LICENSE.md in Resources */,
 				91B67F2823793C1C00706027 /* TODO in Resources */,
 				9157B052238FC2290027457A /* icons in Resources */,
