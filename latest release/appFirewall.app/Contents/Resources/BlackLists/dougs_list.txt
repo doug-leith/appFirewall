@@ -1,8 +1,0 @@
-127.0.0.1 nexus.officeapps.live.com
-127.0.0.1 nexusrules.officeapps.live.com
-127.0.0.1 mobile.pipe.aria.microsoft.com
-127.0.0.1 adservice.google.ie
-127.0.0.1 dart.l.doubleclick.net
-127.0.0.1 partnerad.l.doubleclick.net
-127.0.0.1 adeventtracker.spotify.com
-
