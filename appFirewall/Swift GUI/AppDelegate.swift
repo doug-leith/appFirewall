@@ -169,8 +169,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		
 		// check is listener thread (for talking with helper process that
 		// has root priviledge) has run into trouble -- if so, its fatal
-		if (Int(listener_error()) != 0) {
-				raise(SIGCHLD)
+		if (Int(check_for_error()) != 0) {
+				exit_popup(msg:String(cString: get_error_msg()), force:Int(get_error_force()))
+				// this call won't return
 		}
 		save_log()
 		if (need_log_rotate(logName: "log.txt")) {
@@ -209,7 +210,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		init_stats(); // must be done before any C threads are fired up
 
 		if (is_app_already_running()) {
-			exit_popup(msg:"appFirewall is already running!")
+			exit_popup(msg:"appFirewall is already running!", force: 0)
 		}
 
 		UserDefaults.standard.register(defaults: ["signal":-1])
@@ -252,10 +253,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 		// set up handler to catch errors.
 		setup_sig_handlers()
-
+		
 		// install appFirewall-Helper, if not already installed
-		start_helper()
-
+		UserDefaults.standard.register(defaults: ["force_helper_restart":false])
+		let force = UserDefaults.standard.bool(forKey: "force_helper_restart")
+		start_helper(force: force)
+		// reset, force is one time only
+		UserDefaults.standard.set(false, forKey: "force_helper_restart")
+		
 		// setup menubar action
 		let val = UserDefaults.standard.integer(forKey: "Number of connections blocked")
 		set_num_conns_blocked(Int32(val))
@@ -270,7 +275,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])
 		UserDefaults.standard.register(defaults: ["log_asc":false])
 		UserDefaults.standard.register(defaults: ["log_show_blocked":3])
-				
+					
 		// set whether to use dtrace assistance or not
 		UserDefaults.standard.register(defaults: ["dtrace":1])
 		let sipEnabled = isSIPEnabled()
@@ -284,8 +289,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			print("Dtrace disabled")
 		}
 		// reload state
-		load_log(); load_blocklist(); load_whitelist()
-		load_dns_cache(); load_dns_conn_list()
+		load_state()
 		prefController.load_hostlists() // might be slow?
 
 		// start listeners

@@ -284,14 +284,17 @@ void *catcher_listener(void *ptr) {
 		// ack is the seq number from the remote.  we need to use a value that lies
 		// in current window for RST to provoke a response
 		c.seq = 0; c.ack = ack;
-		uint32_t win = 65536/2; // estimate of recv window of localhost		
-		// sit here and keep an eye on procinfo.  when connection goes away we can stop.
-		#define WAITTIME 5000 // 1ms
+		// estimate of recv window of localhost
+		// changed top be more aggressive as suspect tcp shrinks window
+		// for idle connections
+		uint32_t win = 65536/4;
+		// sit here and keep an eye on procinfo.  when connection goes away we can
+		// stop.
+		#define WAITTIME 1000 // 1ms
 		#define TRIES 33 // 32 plus 1 for initial probe with only INIT_RSTs rst's
 		#define INIT_RSTs 5
-		// 2^32/win = 131072, so need to send this many probe RSTs to cover seq space
-		// 131072/32 = 4096
-		#define LATER_RSTs 4096
+		#define MAXSEQ 0xFFFFFFFF // 2^32-1
+		uint32_t tries_per_round = MAXSEQ/win/(TRIES-1);
 		int i, n=INIT_RSTs;
 		for (i=0; i<TRIES; i++) {
 			for (int j=0; j<n; j++){
@@ -307,7 +310,7 @@ void *catcher_listener(void *ptr) {
 				break; // connection has gone away
 			}
 			usleep(WAITTIME);
-			n = LATER_RSTs; // let's try a bit harder !
+			n = tries_per_round; // let's try a bit harder !
 		}
 		if (i==TRIES) {
 			struct timeval end; gettimeofday(&end, NULL);

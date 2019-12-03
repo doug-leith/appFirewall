@@ -22,7 +22,7 @@ int connect_to_helper(int port, int quiet) {
 			ERR("socket: %s", strerror(errno));
 			 // tell GUI to popup error to user
 			sprintf(err_msg,"Problem connecting to appFirewall-Helper, socket: %s\n", strerror(errno));
-			set_error_msg(err_msg);
+			set_error_msg(err_msg,1);
 			return -1;
 		}
 		struct sockaddr_un remote;
@@ -38,37 +38,16 @@ int connect_to_helper(int port, int quiet) {
 			} else {
 				// a more serious problem, bail.
 				sprintf(err_msg,"Problem connecting to appFirewall-Helper on %s: %s\n", remote.sun_path, strerror(errno));
-				set_error_msg(err_msg);
+				set_error_msg(err_msg,1);
 				return -1;
 			}
 		}
-		/*struct sockaddr_in remote;
-		memset(&remote,0,sizeof(remote));
-		remote.sin_family = AF_INET;
-		remote.sin_port = htons(port);
-		remote.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-		//char buf[256];
-		//printf("%s",inet_ntop(AF_INET,&remote.sin_addr.s_addr,buf,245));
-		if (connect(sock, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
-			DEBUG2("Connecting to helper process on port %d: %s\n", port, strerror(errno));
-			if (errno == ECONNREFUSED || errno == ETIMEDOUT || errno == ECONNRESET) {
-				// helper hasn't started yet, try again
-				sleep(1);
-				close(sock); // if don't close and reopen sock we get error
-				continue;
-			} else {
-				// a more serious problem, bail.
-				sprintf(err_msg,"Problem connecting to appFirewall-Helper on port %d: %s\n", port, strerror(errno));
-				set_error_msg(err_msg);
-				return -1;
-			}
-		}*/
 		break;
 	}
 	if (tries == MAXTRIES) {
 		ERR("Failed to connect to appFirewall-Helper port %d after %d tries\n",port,tries);
 		sprintf(err_msg,"Failed to connect to appFirewall-Helper port %d after %d tries\n",port,tries);
-		set_error_msg(err_msg);
+		set_error_msg(err_msg,1);
 		return -1;
 	}
 	

@@ -36,9 +36,6 @@ extern int verbose;          // debugging level
 #define INFO2(args ...) if (verbose>1) fprintf(stdout, args)
 #define DEBUG2(args ...) if (verbose>2) fprintf(stdout, args)
 
-// raise SIGUSR1 event in C to display popup to user before exiting on error.
-#define EXITFAIL(args ...) do{char str[1024]; sprintf(str,args); set_error_msg(str);raise(SIGUSR1);}while(0)
-
 #define LINEBUF_SIZE 4096 // max line size of readn line
 #define STR_SIZE 1024
 #define RECV_TIMEOUT 10 // 10s for socket read timeout
@@ -55,6 +52,7 @@ typedef struct {
 	int pidinfo_cachehits, pidinfo_cachemisses, pidinfo_syn_cachehits, pidinfo_syn_cachemisses;
 	int dtrace_hits, dtrace_misses, dtrace_syn_hits, dtrace_syn_misses;
 	int waitinglist_hits, waitinglist_misses;
+	int num_noguess, num_guesses, num_failed_guesses;
 	cm_quantile cm_t_notblocked, cm_t_blocked, cm_t_waitinglist_hit, cm_t_waitinglist_miss, cm_t_dns,cm_t_pidinfo_cache_hit, cm_t_pidinfo_cache_miss, cm_t_sniff, cm_t_udp, cm_t_escapees_hits, cm_t_escapees_misses, cm_escapee_thread_count;
 	int num_escapees,escapees_not_in_log,stale_escapees,escapees_hits,escapees_misses;
 } stats_t;
@@ -88,6 +86,8 @@ int cm_add_sample_lock(cm_quantile *cm, double sample);
 char* get_path(void);
 void set_path(const char* path);
 char* get_error_msg(void);
-void set_error_msg(char* msg);
+int get_error_force(void);
+void set_error_msg(char* msg, int force);
+int check_for_error(void);
 
 #endif

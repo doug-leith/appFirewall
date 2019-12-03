@@ -59,6 +59,7 @@
 		91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B590952390F7BC000F418D /* HyperlinkTextView.swift */; };
 		91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B5909923925620000F418D /* libdtrace.tbd */; };
 		91B67F2823793C1C00706027 /* TODO in Resources */ = {isa = PBXBuildFile; fileRef = 91B67F2723793C1C00706027 /* TODO */; };
+		91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 91D96AD2239648D400AAA73B /* dns_conn_cache.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -178,6 +179,8 @@
 		91B590952390F7BC000F418D /* HyperlinkTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperlinkTextView.swift; sourceTree = "<group>"; };
 		91B5909923925620000F418D /* libdtrace.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libdtrace.tbd; path = usr/lib/libdtrace.tbd; sourceTree = SDKROOT; };
 		91B67F2723793C1C00706027 /* TODO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
+		91D96AD1239648D400AAA73B /* dns_conn_cache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dns_conn_cache.h; sourceTree = "<group>"; };
+		91D96AD2239648D400AAA73B /* dns_conn_cache.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns_conn_cache.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -308,6 +311,8 @@
 				91607BC3236AB2D1002E50A8 /* pid_conn_info.c */,
 				91607BEB236B8F0A002E50A8 /* sniffer_blocker.h */,
 				91607BC9236AD08F002E50A8 /* sniffer_blocker.c */,
+				91D96AD1239648D400AAA73B /* dns_conn_cache.h */,
+				91D96AD2239648D400AAA73B /* dns_conn_cache.c */,
 				91607BF823714D46002E50A8 /* dns_sniffer.h */,
 				91607BF923714D46002E50A8 /* dns_sniffer.c */,
 				9139F67D237BC49A00600D37 /* helper.h */,
@@ -446,6 +451,7 @@
 				91ABB26E237680B7007F8FFE /* table.c in Sources */,
 				9180E17C238D2882007002CB /* installHelper.swift in Sources */,
 				91607BF6237142A0002E50A8 /* log.c in Sources */,
+				91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */,
 				9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */,
 				9139F68E2381E3FF00600D37 /* blButton.swift in Sources */,
 				9180E17E238D2D07007002CB /* Helpers.swift in Sources */,

@@ -5,7 +5,6 @@ short term:
 - add screenshots to readme ?
 - check operation with SIPS enabled, will fall back to not using dtrace
 - UI remove dock item, but need to create menu when open window from status bar
-- error-popup - option to reinstall helper, when appropriate
 
 longer term:
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19

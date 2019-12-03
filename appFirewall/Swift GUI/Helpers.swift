@@ -13,13 +13,13 @@ import AppKit
 // C helpers
 
 func setup_sig_handlers() {
-	// if a C routine fatally fails it raises a SIGUSR1 signal
+	// if a C routine fatally fails it raises a SIGHUP signal
 	// and we catch it here to raise an popup to inform user
 	// and exit gracefully
-	let handler: @convention(c) (Int32) -> () = { sig in
-		// handle the signal
-		exit_popup(msg:String(cString: get_error_msg()))
-	}
+	/*let handler: @convention(c) (Int32) -> () = { sig in
+		print("signal ",String(sig)," caught")
+		exit_popup(msg:String(cString: get_error_msg()), force:Int(get_error_force()))
+	}*/
 	let backtrace_handler: @convention(c) (Int32) -> () = { sig in
 		// handle the signal
 
@@ -34,17 +34,17 @@ func setup_sig_handlers() {
 		exit(1)
 	}
 
-	var action = sigaction(__sigaction_u: unsafeBitCast(handler, to: __sigaction_u.self),
+	/*var action = sigaction(__sigaction_u:
+												unsafeBitCast(handler, to: __sigaction_u.self),
 												sa_mask: 0,
 												sa_flags: 0)
-
-	sigaction(SIGUSR1, &action, nil)
+	sigaction(SIGUSR1, &action, nil)*/
 	
 	// and dump backtrace on other fatal errors
-	action = sigaction(__sigaction_u: unsafeBitCast(backtrace_handler, to: __sigaction_u.self),
+	var action = sigaction(__sigaction_u: unsafeBitCast(backtrace_handler,
+											to: __sigaction_u.self),
 												sa_mask: 0,
 												sa_flags: 0)
-
 	sigaction(SIGSEGV, &action, nil)
 	sigaction(SIGABRT, &action, nil)
 	sigaction(SIGIOT, &action, nil)
@@ -129,18 +129,46 @@ func save_state() {
 	save_dns_cache(); save_dns_conn_list()
 }
 
+func load_state() {
+	load_log();
+	load_blocklist(); load_whitelist()
+	load_dns_cache(); load_dns_conn_list()
+}
+
 // -------------------------------------
 // UI Helpers
 
-func exit_popup(msg: String) {
+func exit_popup(msg: String, force:Int) {
 	print(msg)
 	let alert = NSAlert()
 	alert.messageText = "Error"
 	alert.informativeText = msg
 	alert.alertStyle = .critical
+	alert.addButton(withTitle: "Restart")
 	alert.addButton(withTitle: "OK")
-	alert.runModal()
-	exit(1)
+	let response = alert.runModal()
+	if (force > 0) {
+		// force reinstall of helper on restart of app
+		UserDefaults.standard.set(true, forKey: "force_helper_restart")
+	}
+	if (response == .alertFirstButtonReturn) {
+		//restart
+		print("Restarting app ...")
+		restart_app()
+	} else {
+		print("Exiting app.")
+		exit(1)
+	}
+}
+
+func restart_app() {
+	let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
+	let path = url.deletingLastPathComponent().deletingLastPathComponent().absoluteString
+	let task = Process()
+	task.launchPath = "/usr/bin/open"
+	task.arguments = [path]
+	task.launch()
+	exit(0)
 }
 
 func error_popup(msg: String) {

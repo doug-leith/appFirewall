@@ -23,20 +23,22 @@
 #include "dns_sniffer.h"
 #include "is_blocked.h"
 #include "log.h"
+#include "dns_conn_cache.h"
 
 int get_pid_name(int pid, char* name);
 int find_pid(conn_raw_t *c, char*name, int syn);
 void cache_pid(int pid, char* name);
 
 void init_pid_lists(void);
-int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab, int quiet_refresh);
-int refresh_active_conns(int quiet_refresh);
+int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab);
+int refresh_active_conns(void);
 
 void start_pid_watcher(void);
 void signal_pid_watcher(int syn);
 void set_pid_watcher_hook(void (*hook)(void));
 int get_pid_changed(void);
 void clear_pid_changed(void);
+void find_escapees(void);
 void *catch_escapee(void *ptr);
 
 //swift

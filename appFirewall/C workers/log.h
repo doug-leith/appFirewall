@@ -36,7 +36,7 @@ typedef struct log_line_t {
 size_t get_log_size(void);
 log_line_t* get_log_row(size_t row);
 log_line_t* find_log_by_conn(char* name, conn_raw_t* c, int debug);
-void update_log_by_conn(char* name, conn_raw_t* c, int blocked);
+double update_log_by_conn(char* name, conn_raw_t* c, int blocked);
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked, double confidence);
 
 //swift

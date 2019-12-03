@@ -27,6 +27,8 @@
 #include "connection.h"
 #include "dtrace.h"
 #include "is_blocked.h"
+#include "dns_conn_cache.h"
+
 
 #define RST_PORT 2
 #define PCAP_PORT 3
@@ -40,7 +42,8 @@ void start_listener(void);
 void stop_listener(void);
 int_sw get_num_conns_blocked(void);
 void set_num_conns_blocked(int_sw val);
-int listener_error(void);
+int sniffer_blocker_error(void);
+int check_for_error(void);
 void save_dns_conn_list(void);
 void load_dns_conn_list(void);
 

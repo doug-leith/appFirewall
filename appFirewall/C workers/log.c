@@ -80,29 +80,31 @@ log_line_t* find_log_by_conn(char* name, conn_raw_t* item, int debug) {
 	}
 }
 
-void update_log_line(log_line_t* l, char* name) {
+double update_log_line(log_line_t* l, char* name) {
   INFO2("Updating log entry %s: changing name %s->%s, confidence %f->%f\n", l->log_line,l->bl_item.name,name,l->confidence,1.0);
+  double prev_conf = l->confidence;
 	l->confidence = 1.0;
 	strlcpy(l->bl_item.name, name, MAXCOMLEN);
 	// remove any question mark from log string
 	char* loc = strstr(l->log_line,"?");
 	if (loc != NULL) *loc = ' '; // delete the '?'
+	return prev_conf;
 }
 
-void update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
+double update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
 	// let's see if we can just look up the
 	// log line -- will work if we guessed the process name correctly
 	// in original log entry
-	log_line_t l;
+	log_line_t l; double prev_conf = -1.0;
 	memcpy(&l.raw,c,sizeof(conn_raw_t));
 	strlcpy(l.bl_item.name,name,MAXCOMLEN);
 	TAKE_LOCK(&log_list_mutex,"update_log_by_conn()");
 	log_line_t* res =	in_list(&log_list,&l,0);
 	if (res != NULL) {
 		// success!
-		update_log_line(res,name);
+		prev_conf = update_log_line(res,name);
 		pthread_mutex_unlock(&log_list_mutex);
-		return;
+		return prev_conf;
 	}
 	// failed, let's walk recent log entries ...
 	char* temp0 = conn_raw_hash(&c);
@@ -115,7 +117,7 @@ void update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
 		char* temp1 = conn_raw_hash(&res->raw);
 		if (strcmp(temp0,temp1)==0) {
 			// we've found an entry with the right connection details
-			if ((res->confidence >0.95) && (strcmp(res->bl_item.name,name)!=0)) {
+			if ((res->confidence >=0.95) && (strcmp(res->bl_item.name,name)!=0)) {
 				// different process name, and we're v sure of it, move on
 				free(temp1);
 				continue;
@@ -123,7 +125,7 @@ void update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
 			// it could be that the source port number has been recycled
 			// and so this is a different connection, but we've only checked
 			// recent connections so let's take a gamble!
-			update_log_line(res,name);
+			prev_conf = update_log_line(res,name);
 			free(temp1);
 			break;
 		}
@@ -131,7 +133,7 @@ void update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
 	}
 	free(temp0);
 	pthread_mutex_unlock(&log_list_mutex);
-	return;
+	return prev_conf;
 }
 
 log_line_t* get_log_row(size_t row) {

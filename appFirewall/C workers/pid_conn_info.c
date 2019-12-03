@@ -37,7 +37,7 @@ static pthread_mutex_t pid_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t gui_pid_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t pid_thread; // handle to pid watcher thread
 static int pid_thread_started = 0; // indicates whether pid watcher thread already running
-static int wakeup = 0, quiet_refresh = 0;
+static int wakeup = 0;
 static void (*pid_watcher_hook)(void) = NULL;
 
 //--------------------------------------------------------
@@ -48,7 +48,8 @@ static void (*pid_watcher_hook)(void) = NULL;
 // -get_gui_conn(),get_num_gui_conns(),get_pid_changed(),set_pid_changed()
 // are called fro, swift ActiveConnsViewController which runs in a separate
 // thread
-// -find_pid() is called by sniffer_blocker listener (via create_blockitem_from_addr())
+// -find_pid() is called by sniffer_blocker listener (via
+// create_blockitem_from_addr())
 // from its own thread, and also from pid_watcher_hook()
 
 void *pid_watcher(void *ptr) {
@@ -59,9 +60,11 @@ void *pid_watcher(void *ptr) {
 	#define NSEC_PER_SEC 1000000000
 	timeout.tv_nsec = PID_WATCHER_TIMEOUT*(NSEC_PER_SEC/1000);
 
+	struct timeval t_last;
+	memset(&t_last,0,sizeof(struct timeval));
+	
 	int res=0;
-	refresh_active_conns(quiet_refresh); // takes lock itself as needed
-	quiet_refresh = 0;
+	refresh_active_conns(); // takes lock itself as needed
 	for(;;) {
 		clock_gettime(CLOCK_REALTIME, &now);
 		ts = timespec_add(now,timeout);
@@ -80,9 +83,22 @@ void *pid_watcher(void *ptr) {
 		wakeup = 0; // if a signal occurs now this will be reset to be non-zero
 		// have lock on mutex here.  release it
 		pthread_mutex_unlock(&pid_mutex);
+
+		refresh_active_conns(); // will take lock as needed
 		
-		refresh_active_conns(quiet_refresh); // will take lock as needed
-		quiet_refresh = 0;
+		struct timeval t; gettimeofday(&t, NULL);
+		double elapsed = (t.tv_sec - t_last.tv_sec) +(t.tv_usec - t_last.tv_usec)/1000000.0;
+		// should probably try to tune this timeout
+		// -- if too small then we call escapee_catcher for conns which
+		// have already been killed by RSTs but which we haven't noticed
+		// that yet.  if too large we have to do more work to kill conn
+		// (since ack seq number is stale), but we call escapee_catcher
+		// and create a backlog of work
+		#define ESCAPEE_TIMEOUT 0.05 // 50ms
+		if (elapsed > ESCAPEE_TIMEOUT) {
+			find_escapees();
+			t_last = t;
+		}
 		
 		// handle waiting list, will take lock as needed
 		if (pid_watcher_hook != NULL) pid_watcher_hook();
@@ -98,14 +114,10 @@ void start_pid_watcher() {
 	}
 }
 
-void signal_pid_watcher(int syn) {
+void signal_pid_watcher(syn) {
 	// ask watcher to refresh pid_list
 	TAKE_LOCK(&pid_mutex,"signal_pid_watcher");
 	wakeup = 1;
-	if (syn)
-		quiet_refresh = 1;
-	else
-		quiet_refresh = 0;
 	pthread_cond_signal(&pid_cond);
 	pthread_mutex_unlock(&pid_mutex);
 	//printf("signal sent\n");
@@ -131,7 +143,7 @@ char* gui_pid_hash(const void *it) {
 }
 
 void update_gui_pid_list() {
-	printf("update_gui_pid_list\n");
+	// called by swift GUI
 	
 	TAKE_LOCK(&gui_pid_mutex,"update_gui_pid_list");
 	free_list(&gui_pid_list);
@@ -193,10 +205,13 @@ void clear_pid_changed() {
 }
 
 void print_escapees() {
+	// called by swift GUI
+	TAKE_LOCK(&pid_mutex,"print_escapees");
 	if (get_list_size(&escapee_list)>0) {
 		INFO2("Escapees:\n");
 		dump_connlist(&escapee_list);
 	}
+	pthread_mutex_unlock(&pid_mutex);
 }
 
 void cache_pid(int pid, char* name) {
@@ -258,7 +273,7 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 		last_pid_item_t *it = get_list_item(&last_pid_list,i);
 		if (it->pid<=0) continue; // shouldn't happen
 		
-		if (find_fds(it->pid, it->name, pid_list_fdtab, l, pid_list_fdtab, syn)!=1) {
+		if (find_fds(it->pid, it->name, pid_list_fdtab, l, pid_list_fdtab)!=1) {
 			continue; // cached pid is a dud, probably cached process has died
 		} else if (in_list(l,&c,0)) { // list lookup only uses raw
 			pthread_mutex_unlock(&pid_mutex);
@@ -305,7 +320,6 @@ int get_pid_name(int pid, char* name) {
 	return 0;
 }
 
-
 char* pid_hash(const void *it) {
 	last_pid_item_t *item = (last_pid_item_t*) it;
 	char* temp = malloc(STR_SIZE);
@@ -328,16 +342,12 @@ void init_pid_lists() {
 	init_list(&escapee_list,conn_hash,NULL,1,-1,"escapee_list");
 }
 
-int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab, int quiet_refresh) {
+int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab) {
 	// Refresh the list of network connections for process with PID pid.
 	// Updated list of conns is returned in new_pid_list, and a lookup table
 	// in new_pid_list_fdtab.
 	// Old_pid_list_fdtab is current list of conns for this pid -- used so that
 	// we can flag whether conns have changed (and so need to update GUI).
-	// When quiet_refresh=1 then we leave escapees alone -- used when called
-	// for a SYN, since haven't yet tried to kill new connections (that's
-	// done on a SYN-ACK) i.e we just want to refresh the conn list
-	// ahead of arrival of SYN-ACK, but do nothing more.
 	
 	// Figure out the size of the buffer needed to hold the list of open FDs
 	int bufferSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
@@ -471,69 +481,12 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			}
 			pthread_mutex_unlock(&gui_pid_mutex);
 		}
-
-		if (quiet_refresh) continue;
-		
-		// is this a connection which outght to have been blocked (an "escapee") ?
-		bl_item_t b;
-		strlcpy(b.name,name,MAXCOMLEN);
-		strlcpy(b.domain,c.domain,MAXDOMAINLEN);
-		strlcpy(b.addr_name,c.dst_addr_name,INET6_ADDRSTRLEN);
-		// get log entry for this item, if it exists.
-		log_line_t *l = find_log_by_conn(name,&c.raw,0);
-		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c.raw.udp==0)) {
-			// its an active connection that is supposed to have been blocked
-			TAKE_LOCK(&escapee_mutex,"find_fds escape_mutex");
-			if ( (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX)) {
-				// a new escapee, add to the active list ...
-				add_item(&escapee_list,&c,sizeof(conn_t));
-				INFO("escapee added %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
-				pthread_mutex_unlock(&escapee_mutex);
-				conn_t *e = malloc(sizeof(conn_t));
-				memcpy(e,&c,sizeof(conn_t));
-				// get the initial seq number of conn from log, if possible.
-				if (l==NULL) {
-					//INFO("escapee not in log %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
-					// guess ! the seq number is used to prompt local to send a pkt
-					// when connection is idle so that we can get the real seq number
-					// from it. its not needed for conns sending pkts already. this will
-					// probably fail unless connection is already sending pkts
-					e->raw.seq = (uint32_t)rand(); e->raw.ack = (uint32_t)rand();
-					stats.escapees_not_in_log++;
-				} else {
-					// we get the seq number from syn-ack in log ...
-					e->raw.seq =l->raw.seq; e->raw.ack =l->raw.ack;
-					struct timeval start; gettimeofday(&start, NULL);
-					#define TIMEOUT 10 // 10secs
-					if (start.tv_sec - l->raw.ts.tv_sec < TIMEOUT) {
-						// keep some stats
-						stats.num_escapees++;
-					} else {
-						//an ancient connections.  seq number is maybe too old now,
-						// should we just choose a randome one, or otherwise adjust it ?
-						stats.stale_escapees++;
-					}
-					free(l);
-				}
-				// and ask helper to catch this "escapee" connection
-				pthread_t escapee_thread;
-				pthread_create(&escapee_thread,NULL,catch_escapee,e);
-				cm_add_sample_lock(&stats.cm_escapee_thread_count,escapee_thread_count);
-				// escapee_thread will now remove from escapee_list and free (e)
-				
-				// if process name was unknown/unsure we can now update it in log,
-				// and also update the blocked status
-					update_log_by_conn(name,&c.raw,is_blocked(&b));
-			} else {
-				pthread_mutex_unlock(&escapee_mutex);
-			}
-		}
 	}
 	free(procFDInfo);
 	return 1;
 }
 
-int refresh_active_conns(int quiet_refresh) {
+int refresh_active_conns() {
 	// called to update list of active process
 	// and network connectionsb(held in conns global var).
 	// returns 1 if set of active connections has changed,
@@ -571,7 +524,7 @@ int refresh_active_conns(int quiet_refresh) {
 			continue;
 		}
 		
-		if (find_fds(pid, name, pid_list_fdtab, &new_pid_list, new_pid_list_fdtab, quiet_refresh)<0) {
+		if (find_fds(pid, name, pid_list_fdtab, &new_pid_list, new_pid_list_fdtab)<0) {
 			free_list(&new_pid_list);
 			hashtable_free(new_pid_list_fdtab);
 			return 0;
@@ -591,6 +544,73 @@ int refresh_active_conns(int quiet_refresh) {
 	return changed;
 }
 
+void find_escapees() {
+	TAKE_LOCK(&pid_mutex,"get_conn");
+	for (size_t j=0; j< get_list_size(&pid_list); j++) {
+		conn_t *c = get_list_item(&pid_list, j);
+		
+		// is this a connection which outght to have been blocked (an "escapee") ?
+		bl_item_t b;
+		strlcpy(b.name, c->name,MAXCOMLEN);
+		strlcpy(b.domain,c->domain,MAXDOMAINLEN);
+		strlcpy(b.addr_name,c->dst_addr_name,INET6_ADDRSTRLEN);
+		// get log entry for this item, if it exists.
+		log_line_t *l = find_log_by_conn(c->name,&c->raw,0);
+		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c->raw.udp==0)) {
+			// its an active connection that is supposed to have been blocked
+			TAKE_LOCK(&escapee_mutex,"find_fds escape_mutex");
+			if ( (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX)) {
+				// a new escapee, add to the active list ...
+				add_item(&escapee_list,c,sizeof(conn_t));
+				INFO("escapee added %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c->name, c->pid, c->src_addr_name,c->raw.sport, c->domain, c->dst_addr_name, c->raw.dport, c->raw.udp,l==NULL);
+				pthread_mutex_unlock(&escapee_mutex);
+				conn_t *e = malloc(sizeof(conn_t));
+				memcpy(e,c,sizeof(conn_t));
+				// get the initial seq number of conn from log, if possible.
+				if (l==NULL) {
+					//INFO("escapee not in log %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
+					// guess ! the seq number is used to prompt local to send a pkt
+					// when connection is idle so that we can get the real seq number
+					// from it. its not needed for conns sending pkts already. this will
+					// probably fail unless connection is already sending pkts
+					e->raw.seq = (uint32_t)rand(); e->raw.ack = (uint32_t)rand();
+					stats.escapees_not_in_log++;
+				} else {
+					// we get the seq number from syn-ack in log ...
+					e->raw.seq =l->raw.seq; e->raw.ack =l->raw.ack;
+					struct timeval start; gettimeofday(&start, NULL);
+					#define TIMEOUT 10 // 10secs
+					if (start.tv_sec - l->raw.ts.tv_sec < TIMEOUT) {
+						// keep some stats
+						stats.num_escapees++;
+					} else {
+						//an ancient connections.  seq number is maybe too old now,
+						// should we just choose a randome one, or otherwise adjust it ?
+						stats.stale_escapees++;
+					}
+					free(l);
+				}
+				// and ask helper to catch this "escapee" connection
+				pthread_t escapee_thread;
+				pthread_create(&escapee_thread,NULL,catch_escapee,e);
+				cm_add_sample_lock(&stats.cm_escapee_thread_count,escapee_thread_count);
+				// escapee_thread will now remove from escapee_list and free (e)
+				
+				// if process name was unknown/unsure we can now update it in log,
+				// and also update the blocked status
+					double prev_conf = update_log_by_conn(c->name,&c->raw,is_blocked(&b));
+					if ((prev_conf>0) && (prev_conf < 1.0-1.0e-6)) {
+						// log entry was a guess, now that we're sure let's add
+						// that new info to the dns_conn cache
+						add_dns_conn(c->domain, c->name);
+					}
+			} else {
+				pthread_mutex_unlock(&escapee_mutex);
+			}
+		}	}
+	pthread_mutex_unlock(&pid_mutex);
+}
+
 #define CATCHER_PORT 5
 #include "helper.h"
 void *catch_escapee(void *ptr) {
@@ -601,10 +621,15 @@ void *catch_escapee(void *ptr) {
 	conn_t *e = (conn_t*)ptr;
 	struct timeval start; gettimeofday(&start, NULL);
 
+	//INFO("escapee started %s(%d) fd=%d %s:%u -> %s(%s):%u ack=%u,udp=%d\n", e->name, e->pid, e->fd,e->src_addr_name, e->raw.sport, e->domain, e->dst_addr_name, e->raw.dport, e->raw.ack,e->raw.udp);
+
 	int c_sock;
 	// block here if helper is busy with killing a connection
 	if ( (c_sock=connect_to_helper(CATCHER_PORT,1))<0 ) {
-		return NULL;  //either helper has gone away or listen queue for escapees is full
+		// either helper has gone away or listen queue for escapees is full.
+		// if former, fatal error ?  just now we just muddle through, will
+		// mean that don't catch escapees
+		return NULL;
 	}
 	//struct timeval end0; gettimeofday(&end0, NULL);
 	//printf("catch escapee connected, %fs\n",(end0.tv_sec - start.tv_sec) +(end0.tv_usec - start.tv_usec)/1000000.0);

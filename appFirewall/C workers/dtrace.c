@@ -13,6 +13,7 @@ static pthread_t thread; // handle to listener thread
 static list_t dtrace_cache;
 static void (*dtrace_watcher_hook)(void) = NULL;
 static pthread_mutex_t dtrace_mutex = MUTEX_INITIALIZER;
+int is_running;
 
 int lookup_dtrace(conn_raw_t *cr, char* name, int* pid) {
 	// get PID name corresponding to connection cr
@@ -91,7 +92,12 @@ void set_dtrace_watcher_hook(void (*hook)(void)) {
 
 void *dtrace_listener(void *ptr) {
 
-	if ( (d_sock=connect_to_helper(DTRACE_PORT,0))<0 ) {pthread_exit(NULL);} //fatal error
+  is_running = 1;
+	if ( (d_sock=connect_to_helper(DTRACE_PORT,0))<0 ) {
+		//fatal error
+		is_running =0;
+		pthread_exit(NULL);
+	}
 	
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
@@ -118,7 +124,8 @@ void *dtrace_listener(void *ptr) {
 		// likely helper has shut down dtrace connection for some reason, reopen it
 		close(d_sock); // if don't close and reopen sock we get error
 		if ( (d_sock=connect_to_helper(DTRACE_PORT,0))<0 ){
-			pthread_exit(NULL); //fatal error
+			is_running = 0;
+			pthread_exit(NULL);
 		}
 		continue;
 	}
@@ -136,4 +143,8 @@ void start_dtrace_listener() {
 
 void stop_dtrace_listener() {
 	pthread_kill(thread, SIGTERM);
+}
+
+int dtrace_error() {
+	return !is_running;
 }

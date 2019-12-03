@@ -28,126 +28,11 @@ typedef struct udp_conn_t {
 udp_conn_t udp_cache[MAXUDP];
 int udp_cache_size=0, udp_cache_start=0;
 
-// dns process cache. a list of lists ...
-#define DNS_CONNLISTFILE "dns_connlist.dat"
-#define MAXDNS 21 // best to be an odd number since we use majority vote
-typedef struct dns_conn_t {
-	// domain of interest
-	char domain[MAXDOMAINLEN];
-	// circular list of processes that have used the domain
-	char name[MAXDNS][MAXCOMLEN];
-	size_t list_start, list_size;
-} dns_conn_t;
-static list_t dns_conn_list = LIST_INITIALISER;
 
 //--------------------------------------------------------
 // private functions
 
-char* dns_conn_hash(const void* it) {
-	dns_conn_t *item = (dns_conn_t*)it;
-	char* temp = malloc(MAXDOMAINLEN);
-	strlcpy(temp, item->domain, MAXDOMAINLEN);
-	return temp;
-}
 
-void add_dns_conn(char* domain, char* name) {
-	dns_conn_t item_new;
-	strlcpy(item_new.domain, domain, MAXDOMAINLEN);
-	strlcpy(item_new.name[0], name, MAXCOMLEN);
-	item_new.list_start = 0; item_new.list_size = 1;
-	dns_conn_t* it = in_list(&dns_conn_list, &item_new, 0);
-	if (it == NULL) {
-		// a new domain, add initial entry to list
-		add_item(&dns_conn_list,&item_new, sizeof(dns_conn_t));
-		return;
-	}
-	strlcpy(it->name[(it->list_start+it->list_size)%MAXDNS],name,MAXCOMLEN);
-	it->list_size++;
-}
-
-void dump_dns_conn_list() {
-	list_t *l = &dns_conn_list;
-	printf("dns_conn_list start/size: %zu/%zu\n", l->list_start, l->list_size);
-	for (size_t i=0; i<get_list_size(l); i++) {
-		dns_conn_t *b = get_list_item(l,i);
-		printf("%s (%zu/%zu): ",b->domain, b->list_start, b->list_size);
-		for (size_t j = 0; j< b->list_size; j++) {
-			printf("%s ", b->name[(b->list_start+j)%MAXDNS]);
-		}
-		printf("\n");
-	}
-}
-
-char* guess_name(char* domain, double* confidence) {
-	dns_conn_t item_new;
-	strlcpy(item_new.domain, domain, MAXDOMAINLEN);
-	dns_conn_t* it = in_list(&dns_conn_list, &item_new, 0);
-	if (it == NULL) {
-		// no entry for domain in dns_conn list
-		*confidence = 0.0;
-		return NULL;
-	}
-	// get a count for each process name that has connected to domain ...
-	char *name[MAXDNS] = {0};
-	size_t count[MAXDNS] = {0};
-	size_t num=0;
-	for (size_t i=0; i<it->list_size; i++) {
-		size_t index = (it->list_start+i)%MAXDNS;
-		int found = 0; size_t j;
-		for (j = 0; j< num; j++) {
-			if (strcmp(name[j],it->name[index])==0) {
-				found = 1; break;
-			}
-		}
-		if (found) {
-			count[j]++;
-		} else {
-			name[num] = it->name[index];
-			count[num] = 1;
-			num++;
-		}
-	}
-	// now pick the one which has connected most
-	size_t max=0, max_posn=0;
-	for (size_t i=0; i<num; i++) {
-		if (count[i] > max) {
-			max = count[i]; max_posn = i;
-		}
-	}
-	// our guess is count[max_posn]
-	// rough estimate of our confidence in this gues
-	*confidence = max*1.0/it->list_size;
-		
-	// debugging
-	INFO2("GUESSED %s for %s, confidence %f\n", name[max_posn], domain, *confidence);
-	//dump_dns_conn_list();
-	/*for (size_t i=0; i<it->list_size; i++) {
-		printf("%s ",it->name[(i+it->list_start)%MAXDNS]);
-	}
-	printf("\n");*/
-	for (size_t i=0; i<num; i++) {
-		INFO2("%s:%zu ", name[i], count[i]);
-	}
-	INFO2("\n");
-	return name[max_posn];
-}
-
-void save_dns_conn_list() {
-	#define STR_SIZE 1024
-	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
-	save_list(&dns_conn_list, path, sizeof(dns_conn_t));
-	//dump_dns_conn_list();
-}
-
-void load_dns_conn_list() {
-	#define STR_SIZE 1024
-	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
-	init_list(&dns_conn_list, dns_conn_hash, NULL,1,-1, "dns_conn_list");
-	load_list(&dns_conn_list, path, sizeof(dns_conn_t));
-	//dump_dns_conn_list();
-}
 
 
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
@@ -198,6 +83,7 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 		// that have connected to this domain.  we can then use this
 		// to guess the process name for later <not found> connections
 		if (strcmp(c.name,NOTFOUND)!=0) add_dns_conn(c.domain, c.name);
+		stats.num_noguess++;
 	} else {
 		//printf("dns not found for %s\n",c.addr_name);
 		strlcpy(c.domain,c.addr_name,MAXDOMAINLEN);
@@ -282,7 +168,11 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 	err_r:
 		WARN("send pkt: %s\n", strerror(errno));
 		close(*r_sock); // if don't close and reopen sock we get error
-		if ( (*r_sock=connect_to_helper(RST_PORT,0)) <0 ) {is_running=0; pthread_exit(NULL);} //fatal error
+		if ( (*r_sock=connect_to_helper(RST_PORT,0)) <0 ) {
+			//fatal error
+			is_running=0;
+			pthread_exit(NULL);
+		}
 		return;
 }
 
@@ -317,6 +207,13 @@ void process_conn_waiting_list(void) {
 					char* name = guess_name(c_w.domain,&confidence);
 					if (name != NULL) {
 						strlcpy(c_w.name, name, MAXCOMLEN);
+						stats.num_guesses++;
+					} else {
+						// failed to lookup or guess the process name for conn,
+						// let's log this interesting event
+						INFO("NOT FOUND on dns_conn_list: %s\n", c_w.domain);
+						dump_dns_conn_list();
+						stats.num_failed_guesses++;
 					}
 					
 					// process
@@ -365,14 +262,24 @@ void *listener(void *ptr) {
 	
 	is_running=1; // flag that thread is running
 	
-	if ( (p_sock=connect_to_helper(PCAP_PORT,0))<0 ) {is_running=0; pthread_exit(NULL);} //fatal error
-	if ( (r_sock=connect_to_helper(RST_PORT,0)) <0 ) {is_running=0; pthread_exit(NULL);} //fatal error
+	if ( (p_sock=connect_to_helper(PCAP_PORT,0))<0 ) {
+		//fatal error
+		is_running=0;
+		printf("Exiting listener\n");
+		pthread_exit(NULL);
+	}
+	if ( (r_sock=connect_to_helper(RST_PORT,0)) <0 ) {
+		//fatal error
+		is_running=0;
+		printf("Exiting listener\n");
+		pthread_exit(NULL);
+	}
 
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
 
 	init_list(&waiting_list,conn_raw_hash,NULL,1,-1,"waiting_list");
-	init_list(&dns_conn_list, dns_conn_hash, NULL,1,-1,"dns_conn_list");
+	init_dns_conn_list();
 	
 	// set up handler for waiting list (connections for which we didn't manage to
 	// get the process name immediately)
@@ -469,6 +376,7 @@ void *listener(void *ptr) {
 						// we seem to often miss process for a UDP pkt, for now
 						// we guess its Chrome.
 						strlcpy(c.name,"Google Chrome",MAXCOMLEN);
+						stats.num_guesses++;
 					}
 					// log connection
 					char dns[MAXDOMAINLEN]={0};
@@ -581,13 +489,18 @@ void stop_listener() {
 	pthread_kill(thread, SIGTERM);
 }
 
-int listener_error() {
-	// nb: we can only raise signal that generates error popup from
+int sniffer_blocker_error() {
+	return !is_running;
+}
+
+int check_for_error() {
+	// nb: we can only generate error popup from
 	// within the main GUI thread, not from within listener() thread.
 	// so we get GUI thread to poll listener status using this routing
-	return !is_running;
-	// should really take a lock on is_running var, but its just an int so
-	// almost certainly updated by thread atomically
+
+	// we don't fail on the dtrace or escapee connections failing as
+	// we can survive that, but its fatal if sniffer_blocker conns fail
+	return sniffer_blocker_error();
 }
 
 int_sw get_num_conns_blocked() {

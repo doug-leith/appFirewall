@@ -122,7 +122,7 @@ func get_helper_version(Name: String)->Int {
 	}
 }
 
-func start_helper() {
+func start_helper(force: Bool) {
 	// install appFirewall-Helper if not already installed
 	
 	/*
@@ -134,15 +134,20 @@ func start_helper() {
 	/*let app_version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
 		let helper_version = UserDefaults.standard.string(forKey: "helper_version")
 	*/
+	
 	let kHelperToolName:String = "com.leith.appFirewall-Helper"
 
 	let REQUIRED_VERSION = 1
-	if (is_helper_running(Name: kHelperToolName)) {
+	if ((!force) && (is_helper_running(Name: kHelperToolName))) {
 		let version = get_helper_version(Name: kHelperToolName)
 		if (version == REQUIRED_VERSION) {
 			print(String(format:"helper "+kHelperToolName+", version %d already installed.", version))
 			return // right version of helper already installed
 		}
+	}
+	
+	if (force) {
+		print("Forcing restart of helper.")
 	}
 	
 	// ask user for authorisation to install helper
@@ -159,7 +164,7 @@ func start_helper() {
 	let status = AuthorizationCreate(&authRights, nil, authFlags, &authRef)
 	if (status != errAuthorizationSuccess){
 		let error = NSError(domain:NSOSStatusErrorDomain, code:Int(status), userInfo:nil)
-		exit_popup(msg:"Authorization error: \(error)")
+		exit_popup(msg:"Authorization error: \(error)", force: 1)
 	}else{
 		// We have authorisation from user, go ahead and install helper
 		// Call SMJobBless to verify appFirewall-Helper and,
@@ -171,7 +176,7 @@ func start_helper() {
 		var cfError: Unmanaged<CFError>? = nil
 		if !SMJobBless(kSMDomainSystemLaunchd, kHelperToolName as CFString, authRef, &cfError) {
 			let blessError = cfError!.takeRetainedValue()
-			exit_popup(msg:"Problem installing helper: \(blessError), exiting.")
+			exit_popup(msg:"Problem installing helper: \(blessError), exiting.", force: 1)
 		}else{
 			print(kHelperToolName+" installed successfully")
 			AuthorizationFree(authRef!, [])
