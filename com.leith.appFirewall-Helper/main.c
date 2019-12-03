@@ -130,6 +130,12 @@ int main(int argc, char *argv[]) {
 	// once we get this far any errors are treated as non-fatal i.e.
 	// won't kill process but instead will try to repair things
 	
+	// flush DNS
+	INFO("Flushing DNS (sending HUP to mDNSResponder) ...\n");
+	system("/usr/bin/pkill -HUP mDNSResponder");
+	
+	INFO("Starting RST loop ...\n");
+	
 	// now wait in accept() loop to handle connections from GUI to send RST pkts
 	rst_accept_loop();
 }
