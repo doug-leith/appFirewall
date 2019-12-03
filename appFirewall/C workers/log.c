@@ -8,7 +8,7 @@
 
 // circular list
 static list_t log_list=LIST_INITIALISER;
-static pthread_mutex_t log_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t log_list_mutex = MUTEX_INITIALIZER;
 
 static list_t filtered_log_list=LIST_INITIALISER;
 static FILE *fp_txt = NULL; // pointer to human readable log file
@@ -40,7 +40,7 @@ char* filtered_log_hash(const void *it) {
 
 int_sw has_log_changed(void) {
 	// only called by GUI
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"has_log_changed()");
 	int_sw res = changed;
 	pthread_mutex_unlock(&log_list_mutex);
 	return res;
@@ -48,7 +48,7 @@ int_sw has_log_changed(void) {
 
 void clear_log_changed(void) {
 	// only called by GUI
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"clear_log_changed()");
 	changed = 0;
 	pthread_mutex_unlock(&log_list_mutex);
 }
@@ -60,24 +60,78 @@ size_t get_log_size(void) {
  	return res;
 }
 
-static log_line_t res;
 log_line_t* find_log_by_conn(char* name, conn_raw_t* item, int debug) {
-	// take lock here (even though only append
-	// to log, it might wrap around and an delete entry)
-	// - only called by find_pid()
+	// take lock here (even though we only append
+	// to log, it might wrap around and delete entry)
+	// - only called by find_fds() in pid_conn.c
 	log_line_t l;
 	memcpy(&l.raw,item,sizeof(conn_raw_t));
 	strlcpy(l.bl_item.name,name,MAXCOMLEN);
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"find_log_by_conn()");
 	log_line_t* res_ptr =	in_list(&log_list,&l,0);
 	if (res_ptr != NULL) {
-		memcpy(&res,res_ptr,sizeof(log_line_t));
+		log_line_t *res = malloc(sizeof(log_line_t));
+		memcpy(res,res_ptr,sizeof(log_line_t));
 		pthread_mutex_unlock(&log_list_mutex);
-		return &res;
+		return res;
 	} else {
 		pthread_mutex_unlock(&log_list_mutex);
 		return NULL;
 	}
+}
+
+void update_log_line(log_line_t* l, char* name) {
+  INFO2("Updating log entry %s: changing name %s->%s, confidence %f->%f\n", l->log_line,l->bl_item.name,name,l->confidence,1.0);
+	l->confidence = 1.0;
+	strlcpy(l->bl_item.name, name, MAXCOMLEN);
+	// remove any question mark from log string
+	char* loc = strstr(l->log_line,"?");
+	if (loc != NULL) *loc = ' '; // delete the '?'
+}
+
+void update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
+	// let's see if we can just look up the
+	// log line -- will work if we guessed the process name correctly
+	// in original log entry
+	log_line_t l;
+	memcpy(&l.raw,c,sizeof(conn_raw_t));
+	strlcpy(l.bl_item.name,name,MAXCOMLEN);
+	TAKE_LOCK(&log_list_mutex,"update_log_by_conn()");
+	log_line_t* res =	in_list(&log_list,&l,0);
+	if (res != NULL) {
+		// success!
+		update_log_line(res,name);
+		pthread_mutex_unlock(&log_list_mutex);
+		return;
+	}
+	// failed, let's walk recent log entries ...
+	char* temp0 = conn_raw_hash(&c);
+	#define RECENT_LOG_LINES 50
+	for (size_t i = 1; i < RECENT_LOG_LINES; i++) {
+		if (i > log_list.list_size) break;
+		if (log_list.list_size-i < log_list.list_start) break;
+		size_t posn = (log_list.list_size-i)%log_list.maxsize;
+		res = log_list.list[posn];
+		char* temp1 = conn_raw_hash(&res->raw);
+		if (strcmp(temp0,temp1)==0) {
+			// we've found an entry with the right connection details
+			if ((res->confidence >0.95) && (strcmp(res->bl_item.name,name)!=0)) {
+				// different process name, and we're v sure of it, move on
+				free(temp1);
+				continue;
+			}
+			// it could be that the source port number has been recycled
+			// and so this is a different connection, but we've only checked
+			// recent connections so let's take a gamble!
+			update_log_line(res,name);
+			free(temp1);
+			break;
+		}
+		free(temp1);
+	}
+	free(temp0);
+	pthread_mutex_unlock(&log_list_mutex);
+	return;
 }
 
 log_line_t* get_log_row(size_t row) {
@@ -109,7 +163,7 @@ void log_repeat(log_line_t *l) {
 	}
 }
 
-void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked) {
+void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked, double confidence) {
 	//printf("append_log, %d\n",changed);
 	log_line_t *l = malloc(sizeof(log_line_t)+2);
 	strlcpy(l->log_line,str,LOGSTRSIZE);
@@ -122,10 +176,11 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	memcpy(&l->bl_item,bl_item,sizeof(struct bl_item_t));
 	memcpy(&l->raw,raw,sizeof(conn_raw_t));
 	l->blocked = blocked;
+	l->confidence = confidence;
 	
 	// might be called from main sniffer_blocker thread or from waiting list
 	// thread, so take lock
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"append_log()");
 	changed = 1; // record for GUI fact that log has been updated
 	add_item(&log_list, l, sizeof(log_line_t));
 	pthread_mutex_unlock(&log_list_mutex);
@@ -146,7 +201,7 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 }
 
 void clear_log() {
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"clear_log()");
 	changed = 2; // record fact that log has been updated
 	free_list(&log_list);
 	init_list(&log_list,log_hash,NULL,1,-1,"log_list");
@@ -158,7 +213,7 @@ void filter_log_list(int_sw show_blocked, const char* str) {
 	free_list(&filtered_log_list);
 	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
 	// hold lock for full loop so that no partial updates are displayed to user
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"filter_log_list()");
 	for (size_t i=0; i< get_log_size(); i++) {
 		log_line_t *l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
@@ -183,7 +238,7 @@ log_line_t* get_filter_log_row(int_sw row) {
 
 static char _name[INET6_ADDRSTRLEN];
 char* get_filter_log_addr_name(int_sw row) {
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"get_filter_log_addr_name()");
 	log_line_t *l = get_list_item(&filtered_log_list,(size_t)row);
 	//char name[INET6_ADDRSTRLEN];
 	inet_ntop(l->raw.af,&l->raw.dst_addr,_name,INET6_ADDRSTRLEN);
@@ -198,7 +253,7 @@ void save_log(void) {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"save_log()");
 	save_list(&log_list, path, sizeof(log_line_t));
 	pthread_mutex_unlock(&log_list_mutex);
 }
@@ -227,7 +282,7 @@ void load_log() {
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
 	
-	pthread_mutex_lock(&log_list_mutex);
+	TAKE_LOCK(&log_list_mutex,"load_log()");
 	changed = 2; // record fact that log has been updated
 	if (first_load) {
 		init_list(&log_list,log_hash,NULL,1,-1,"log_list");

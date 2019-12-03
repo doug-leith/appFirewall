@@ -10,7 +10,7 @@
 
 // globals
 static list_t white_list=LIST_INITIALISER;
-static pthread_mutex_t white_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t white_mutex = MUTEX_INITIALIZER;
 
 void init_white_list() {
 	// caller must hold lock
@@ -20,7 +20,7 @@ void init_white_list() {
 
 static bl_item_t res;
 bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug) {
-	pthread_mutex_lock(&white_mutex);
+	TAKE_LOCK(&white_mutex,"in_whitelist_htab()");
 	bl_item_t *res_ptr = in_list(&white_list, item, 0);
 	if (res_ptr != NULL) {
 		memcpy(&res,res_ptr,sizeof(bl_item_t));
@@ -42,7 +42,7 @@ void add_whiteitem(bl_item_t *item) {
 		return;
 	}
 	//printf("add_whiteitem %s\n",white_list.hash(item));
-	pthread_mutex_lock(&white_mutex);
+	TAKE_LOCK(&white_mutex,"add_whiteitem()");
 	add_item(&white_list, item, sizeof(bl_item_t));
 	pthread_mutex_unlock(&white_mutex);
 	sort_white_list(0, -1);
@@ -50,7 +50,7 @@ void add_whiteitem(bl_item_t *item) {
 
 int del_whiteitem(bl_item_t *item) {
 	//printf("del_whiteitem %s\n",white_list.hash(item));
-	pthread_mutex_lock(&white_mutex);
+	TAKE_LOCK(&white_mutex,"del_whiteitem()");
 	del_item(&white_list,item);
 	pthread_mutex_unlock(&white_mutex);
 	return 0;
@@ -85,7 +85,7 @@ static int asc=1, col=0;
 void sort_white_list(int asc1, int col1) {
 	if ((asc1 == -1) || (asc1==1)) asc = asc1;
 	if ((col1==0) || (col1==1)) col=col1;
-	pthread_mutex_lock(&white_mutex);
+	TAKE_LOCK(&white_mutex,"sort_white_list()");
 	sort_list(&white_list, bl_sort_cmp);
 	pthread_mutex_unlock(&white_mutex);
 }
@@ -96,7 +96,7 @@ void save_whitelist(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,WHITELISTFILE,STR_SIZE);
 	
-	pthread_mutex_lock(&white_mutex);
+	TAKE_LOCK(&white_mutex,"save_whitelist()");
 	save_list(&white_list, path, sizeof(bl_item_t));
 	pthread_mutex_unlock(&white_mutex);
 }
@@ -110,7 +110,7 @@ void load_whitelist(void) {
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,WHITELISTFILE,STR_SIZE);
 	
-	pthread_mutex_lock(&white_mutex);
+	TAKE_LOCK(&white_mutex,"load_whitelist()");
 	init_white_list();
 	load_list(&white_list, path, sizeof(bl_item_t));
 	pthread_mutex_unlock(&white_mutex);

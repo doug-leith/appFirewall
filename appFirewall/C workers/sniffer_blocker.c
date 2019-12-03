@@ -10,7 +10,7 @@
 
 // globals
 static pthread_t thread; // handle to listener thread
-static pthread_mutex_t wait_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t wait_list_mutex = MUTEX_INITIALIZER;
 static int r_sock, p_sock;
 static int is_running=0;
 static int num_conns_blocked=0;
@@ -78,12 +78,13 @@ void dump_dns_conn_list() {
 	}
 }
 
-char* guess_name(char* domain) {
+char* guess_name(char* domain, double* confidence) {
 	dns_conn_t item_new;
 	strlcpy(item_new.domain, domain, MAXDOMAINLEN);
 	dns_conn_t* it = in_list(&dns_conn_list, &item_new, 0);
 	if (it == NULL) {
-		// not entry for domain in dns_conn list
+		// no entry for domain in dns_conn list
+		*confidence = 0.0;
 		return NULL;
 	}
 	// get a count for each process name that has connected to domain ...
@@ -102,27 +103,32 @@ char* guess_name(char* domain) {
 			count[j]++;
 		} else {
 			name[num] = it->name[index];
+			count[num] = 1;
 			num++;
 		}
 	}
-	// not pick the one which has connected most
+	// now pick the one which has connected most
 	size_t max=0, max_posn=0;
 	for (size_t i=0; i<num; i++) {
 		if (count[i] > max) {
 			max = count[i]; max_posn = i;
 		}
 	}
+	// our guess is count[max_posn]
+	// rough estimate of our confidence in this gues
+	*confidence = max*1.0/it->list_size;
+		
 	// debugging
-	printf("guessed %s for %s\n", name[max_posn], domain);
+	INFO2("GUESSED %s for %s, confidence %f\n", name[max_posn], domain, *confidence);
 	//dump_dns_conn_list();
-	for (size_t i=0; i<it->list_size; i++) {
+	/*for (size_t i=0; i<it->list_size; i++) {
 		printf("%s ",it->name[(i+it->list_start)%MAXDNS]);
 	}
-	printf("\n");
+	printf("\n");*/
 	for (size_t i=0; i<num; i++) {
-		printf("%s:%zu ", name[i], count[i]);
+		INFO2("%s:%zu ", name[i], count[i]);
 	}
-	printf("\n");
+	INFO2("\n");
 	return name[max_posn];
 }
 
@@ -187,6 +193,7 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	if (dns!=NULL) {
 		//printf("dns found for %s\n",dns);
 		strlcpy(c.domain,dns,MAXDOMAINLEN);
+		free(dns);
 		// append this process name to list of processes
 		// that have connected to this domain.  we can then use this
 		// to guess the process name for later <not found> connections
@@ -199,10 +206,18 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	return c;
 }
 
-void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
+void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, int logstats) {
 
 		int blocked = is_blocked(c);
 		DEBUG2("%s %s %d\n",c->name,c->addr_name,blocked);
+		// if we're really not sure about process name then don't
+		// block.  can tune aggressiveness by adjusting threshold here
+		#define CONF_THRESH 0.5
+		char* conf_str="";
+		if ((confidence < CONF_THRESH) && (strcmp(c->name,NOTFOUND)!=0)) {
+			blocked = 0;
+			conf_str="?";
+		}
 
 		// log the connection
 		char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
@@ -216,9 +231,9 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, int *r_sock, int logstats) {
 			strlcpy(dns,c->addr_name,MAXDOMAINLEN);
 			strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
 		}
-		sprintf(str,"%s → %s:%u", c->name, dst_name, cr->dport);
-		sprintf(long_str,"%s %s:%u -> %s:%u (blocked=%d)", c->name, sn, cr->sport, dns, cr->dport,blocked);
-		append_log(str, long_str, c, cr, blocked);
+		sprintf(str,"%s%s → %s:%u", c->name, conf_str, dst_name, cr->dport);
+		sprintf(long_str,"%s %s:%u -> %s:%u (blocked=%d, confidence=%f)", c->name, sn, cr->sport, dns, cr->dport,blocked, confidence);
+		append_log(str, long_str, c, cr, blocked, confidence);
 
 		if (!blocked) {
 			INFO2("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
@@ -275,7 +290,7 @@ void process_conn_waiting_list(void) {
 		// try to process waiting conns. called whenever pid info is updated,
 		// so have a hope of being able to remove conns from list
 		
-		pthread_mutex_lock(&wait_list_mutex);
+		TAKE_LOCK(&wait_list_mutex,"process_conn_waiting_list()");
 
 		if (get_list_size(&waiting_list) !=0 ) {
 			INFO2("waiting list size = %zu, hits=%d, misses=%d\n",get_list_size(&waiting_list),stats.waitinglist_hits,stats.waitinglist_misses);
@@ -298,16 +313,14 @@ void process_conn_waiting_list(void) {
 					INFO2("wait timeout for %s %s\n",c_w.name,c_w.addr_name);
 					
 					// look up domain name and use most frequent process
-					char* name = guess_name(c_w.domain);
+					double confidence = 1.0;
+					char* name = guess_name(c_w.domain,&confidence);
 					if (name != NULL) {
 						strlcpy(c_w.name, name, MAXCOMLEN);
-						strlcat(c_w.name,"?", MAXCOMLEN); // add ? to name
 					}
 					
 					// process
-					// nb: "?" in name means it won't match any blocklist items,
-					// which seems reasonable since we're unsure.
-					process_conn(&cr_w, &c_w, &r_sock,0);
+					process_conn(&cr_w, &c_w, confidence, &r_sock,0);
 					
 					// record stats
 					stats.waitinglist_misses++;
@@ -318,12 +331,12 @@ void process_conn_waiting_list(void) {
 					del=1;
 				} else {
 					// an outstanding conn, refresh pid info again
-					signal_pid_watcher();
+					signal_pid_watcher(0);
 				}
 			} else {
 				// got process name, we can proceed
 				INFO2("delayed processing of %s %s\n",c_w.name,c_w.addr_name);
-				process_conn(&cr_w, &c_w, &r_sock,0); // process
+				process_conn(&cr_w, &c_w, 1.0, &r_sock,0); // process
 				stats.waitinglist_hits++;
 				struct timeval end; gettimeofday(&end, NULL);
 				double t=(end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0;
@@ -331,7 +344,7 @@ void process_conn_waiting_list(void) {
 				del = 1; // flag that need to remove this conn from waiting list
 			}
 			
-			pthread_mutex_lock(&wait_list_mutex);
+			TAKE_LOCK(&wait_list_mutex,"process_conn_waiting_list() #2");
 			if (del==1) {
 				del_item(&waiting_list,&cr_w); // remove from waiting list
 				// no need to update i as removing conn from list
@@ -455,9 +468,7 @@ void *listener(void *ptr) {
 					if (strcmp(c.name,NOTFOUND)==0) {
 						// we seem to often miss process for a UDP pkt, for now
 						// we guess its Chrome.
-						// nb: "?" in name means it won't match any blocklist items,
-						// which seems reasonable since we're unsure.
-						strlcpy(c.name,"Google Chrome?",MAXCOMLEN);
+						strlcpy(c.name,"Google Chrome",MAXCOMLEN);
 					}
 					// log connection
 					char dns[MAXDOMAINLEN]={0};
@@ -468,7 +479,7 @@ void *listener(void *ptr) {
 					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
 					sprintf(str,"%s → UDP/QUIC %s:%u", c.name, c.domain, dport);
 					sprintf(long_str,"%s UDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
-					append_log(str, long_str, &c, &cr, 0); // can't block QUIC yet ...
+					append_log(str, long_str, &c, &cr, 0, 1.0); // can't block QUIC yet ...
 					
 					double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 					INFO2("t (sniffed) %f ", t);
@@ -518,21 +529,22 @@ void *listener(void *ptr) {
 		if (syn) {
 			// we use syn's to prime the procinfo cache.  if connection is not in
 			// cache we trigger a refresh here.  the hope is that by the time the
-			// synack arrives the connection will be in the cache and we'll avoid waiting.
-			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher();
+			// synack arrives the connection will be in the cache and we'll avoid
+			// waiting.
+			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher(1);
 			continue; // nothing more to do for a syn.
 		}
 		
 		if (strcmp(c.name,NOTFOUND)==0) {
 			// failed to look up PID name
 			// put into waiting list to try again
-			pthread_mutex_lock(&wait_list_mutex);
+			TAKE_LOCK(&wait_list_mutex,"listener()");
 			add_item(&waiting_list,&cr,sizeof(conn_raw_t));
 			pthread_mutex_unlock(&wait_list_mutex);
 		} else {
 			// got PID name, proceed with processing ...
 			// if on block list, send rst.  otherwise just log conn and move on
-			process_conn(&cr, &c, &r_sock,1);
+			process_conn(&cr, &c, 1.0, &r_sock, 1);
 		}
 		// refresh pid info (may take a while, so we don't wait here).  serves a dual purpose:
 		// 1. if have just added conn to waiting list because can't find the conn in
@@ -541,7 +553,7 @@ void *listener(void *ptr) {
 		// 2. for a conn which we've just processed refresh of pidinfo will cause a
 		// check that conn has really died, and if not will call helper to catch the
 		// "escapee".		
-		signal_pid_watcher();
+		signal_pid_watcher(0);
 		continue;
 		
 	err_p:

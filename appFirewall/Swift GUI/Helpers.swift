@@ -123,6 +123,12 @@ func log_rotate(logName: String) {
 		}
 }
 
+func save_state() {
+	save_log()
+	save_blocklist(); save_whitelist()
+	save_dns_cache(); save_dns_conn_list()
+}
+
 // -------------------------------------
 // UI Helpers
 

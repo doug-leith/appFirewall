@@ -18,7 +18,7 @@
 static Hashtable *bls_htab=NULL; // black list based on (app name,domain) pairs
 static Hashtable *bls_app_htab=NULL; // black list based on app name only
 static Hashtable *wls_app_htab=NULL; // whitelist based on (app name,domain) pairs
-static pthread_mutex_t bls_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t bls_mutex = MUTEX_INITIALIZER;
 
 void init_blocklists_tabs() {
 	// initialise hash table
@@ -47,7 +47,7 @@ char* bls_app_hash(const void *it) {
 void* in_blocklists_htab(bl_item_t *b) {
 	// return values are just NULL or non-NULL, actual values
 	// don't matter
-	pthread_mutex_lock(&bls_mutex);
+	TAKE_LOCK(&bls_mutex,"in_blocklists_htab()");
 	if (wls_app_htab!=NULL) {
 		char *temp = bl_hash((void*)b);
 		void* res_ptr=hashtable_get(wls_app_htab, temp);
@@ -93,8 +93,7 @@ int_sw load_blocklistfile(const char* fname) {
 			WARN("Problem opening block list file %s for reading: %s\n", fname, strerror(errno));
 			return -1;
 	}
-
-	pthread_mutex_lock(&bls_mutex);
+	TAKE_LOCK(&bls_mutex,"load_blocklistfile()");
 	init_blocklists_tabs();
 	pthread_mutex_unlock(&bls_mutex);
 	char * line = NULL;
@@ -137,7 +136,7 @@ int_sw load_blocklistfile(const char* fname) {
 			if (!allapps) {
 				// add to app blacklist
 				char *str = bls_app_hash(&b);
-				pthread_mutex_lock(&bls_mutex);
+				TAKE_LOCK(&bls_mutex,"load_blocklistfile() #2");
 				hashtable_put(bls_app_htab, str, bls_htab); // last parameter is just a placeholder
 				pthread_mutex_unlock(&bls_mutex);
 				free(str);
@@ -168,7 +167,7 @@ int_sw load_blocklistfile(const char* fname) {
 		if (!allapps){
 			// and add to blocklists table
 			char *str = bl_hash(&b);
-			pthread_mutex_lock(&bls_mutex);
+			TAKE_LOCK(&bls_mutex,"load_blocklistfile() #3");
 			hashtable_put(htab, str, bls_htab); // last parameter is just a placeholder
 			pthread_mutex_unlock(&bls_mutex);
 			free(str);

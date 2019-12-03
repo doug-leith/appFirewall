@@ -8,7 +8,7 @@
 
 // globals
 static list_t block_list=LIST_INITIALISER;
-static pthread_mutex_t block_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t block_mutex = MUTEX_INITIALIZER;
 
 char* bl_hash(const void *it) {
 	// generate table lookup key string from block list item
@@ -42,7 +42,7 @@ int bl_sort_cmp(const void* it1, const void* it2){
 void sort_block_list(int asc1, int col1) {
 	if ((asc1 == -1) || (asc1==1)) asc = asc1;
 	if ((col1==0) || (col1==1)) col=col1;
-	pthread_mutex_lock(&block_mutex);
+	TAKE_LOCK(&block_mutex,"sort_block_list()");
 	sort_list(&block_list, bl_sort_cmp);
 	pthread_mutex_unlock(&block_mutex);
 }
@@ -50,7 +50,7 @@ void sort_block_list(int asc1, int col1) {
 static bl_item_t res;
 bl_item_t *in_blocklist_htab(const bl_item_t *item, int debug) {
 	// called by is_blocked() and by GUI
-	pthread_mutex_lock(&block_mutex);
+	TAKE_LOCK(&block_mutex,"in_blocklist_htab()");
 	bl_item_t * res_ptr = in_list(&block_list, item, debug);
 	if (res_ptr != NULL) {
 		memcpy(&res,res_ptr,sizeof(bl_item_t));
@@ -73,7 +73,7 @@ void add_blockitem(bl_item_t *item) {
 		return;
 	}
 	// take lock so we don't tread on toes of other threads reading list
-	pthread_mutex_lock(&block_mutex);
+	TAKE_LOCK(&block_mutex,"add_blockitem()");
 	add_item(&block_list, item, sizeof(bl_item_t));
 	pthread_mutex_unlock(&block_mutex);
 	sort_block_list(0, -1); // takes it own lock
@@ -81,7 +81,7 @@ void add_blockitem(bl_item_t *item) {
 
 int del_blockitem(bl_item_t *item) {
 	// called by GUI
-	pthread_mutex_lock(&block_mutex);
+	TAKE_LOCK(&block_mutex,"del_blockitem()");
 	del_item(&block_list,item);
 	pthread_mutex_unlock(&block_mutex);
 	return 0;
@@ -119,7 +119,7 @@ void save_blocklist(void) {
 	#define STR_SIZE 1024
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,BLOCKLISTFILE,STR_SIZE);
-	pthread_mutex_lock(&block_mutex);
+	TAKE_LOCK(&block_mutex,"save_blocklist()");
 	save_list(&block_list, path, sizeof(bl_item_t));
 	pthread_mutex_unlock(&block_mutex);
 }
@@ -146,7 +146,7 @@ void load_blocklist(void) {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,BLOCKLISTFILE,STR_SIZE);
-	pthread_mutex_lock(&block_mutex);
+	TAKE_LOCK(&block_mutex,"load_blocklist()");
 	init_block_list();
 	load_list(&block_list, path, sizeof(bl_item_t));
 	pthread_mutex_unlock(&block_mutex);

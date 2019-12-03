@@ -166,7 +166,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// note: state is saved on window close, no need to do it here
 		// (and if we do it here it might be interrupted by a window
 		// close event and lead to file corruption
-		//save_log(); save_blocklist(); save_dns_cache()
 		
 		// check is listener thread (for talking with helper process that
 		// has root priviledge) has run into trouble -- if so, its fatal

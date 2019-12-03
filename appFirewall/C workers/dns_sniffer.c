@@ -10,7 +10,7 @@
 static list_t dns_cache = LIST_INITIALISER;
 // need lock because called both by main sniffer_blocker thread and by waiting
 // list thread
-static pthread_mutex_t dns_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t dns_mutex = MUTEX_INITIALIZER;
 
 // DNS header struct
 struct dnshdr {
@@ -31,21 +31,22 @@ char* dns_hash(const void* it) {
 	return temp;
 }
 
-static dns_item_t res;
+
 char* lookup_dns_name(int af, struct in6_addr addr) {
 	dns_item_t d;
 	d.af=af;
 	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
-	pthread_mutex_lock(&dns_mutex);
+	TAKE_LOCK(&dns_mutex,"lookup_dns_name()");
 	dns_item_t* res_ptr = in_list(&dns_cache,&d,0);
 	if (res_ptr != NULL) {
 		//printf("found '%s' for %s/'%s'\n",res.name, dns_hash(&d), dns_hash(&res));
-		memcpy(&res,res_ptr,sizeof(dns_item_t));
+		char *name = malloc(MAXDOMAINLEN);
+		strlcpy(name,res_ptr->name,MAXDOMAINLEN);
 		pthread_mutex_unlock(&dns_mutex);
-		return res.name;
+		return name;
 	} else {
-		pthread_mutex_unlock(&dns_mutex);
 		//printf("not found %s\n",dns_hash(&d));
+		pthread_mutex_unlock(&dns_mutex);
 		return NULL;
 	}
 }
@@ -56,7 +57,7 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
 	strlcpy(d.name,name,MAXDOMAINLEN);
 	//printf("adding %s/'%s'\n",d.name,dns_hash(&d));
-	pthread_mutex_lock(&dns_mutex);
+	TAKE_LOCK(&dns_mutex,"append_dns()");
 	add_item(&dns_cache,&d,sizeof(dns_item_t));
 	pthread_mutex_unlock(&dns_mutex);
 }
@@ -64,7 +65,7 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 void save_dns_cache(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
-	pthread_mutex_lock(&dns_mutex);
+	TAKE_LOCK(&dns_mutex,"save_dns_cache()");
 	save_list(&dns_cache,path,sizeof(dns_item_t));
 	pthread_mutex_unlock(&dns_mutex);
 }
@@ -72,7 +73,7 @@ void save_dns_cache(void) {
 void load_dns_cache(void) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,DNSFILE,STR_SIZE);
-	pthread_mutex_lock(&dns_mutex);
+	TAKE_LOCK(&dns_mutex,"load_dns_cache()");
 	init_list(&dns_cache,dns_hash,NULL,1,-1,"dns_cache");
 	load_list(&dns_cache,path,sizeof(dns_item_t));
 	pthread_mutex_unlock(&dns_mutex);

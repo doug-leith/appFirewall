@@ -163,14 +163,10 @@ static int
 chewrec(const dtrace_probedata_t *data, const dtrace_recdesc_t *rec, void *arg)
 {
 	//printf("chewrec\n");
-	dtrace_actkind_t act;
-	uintptr_t addr;
-
 	if (rec == NULL) {
 		return (DTRACE_CONSUME_NEXT);
 	}
-	act = rec->dtrd_action;
-	addr = (uintptr_t)data->dtpda_data;
+	dtrace_actkind_t act = rec->dtrd_action;
 	if (act == DTRACEACT_EXIT) {
 		return (DTRACE_CONSUME_NEXT);
 	}

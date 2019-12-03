@@ -35,9 +35,7 @@ class WhiteListViewController: NSViewController {
 	override func viewWillDisappear() {
 		// window is closing, save state
 		super.viewWillDisappear()
-		save_log()
-		save_blocklist(); save_whitelist()
-		save_dns_cache(); save_dns_conn_list()
+		save_state()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 	}
 	

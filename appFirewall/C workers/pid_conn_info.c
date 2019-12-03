@@ -12,14 +12,16 @@
 
 //global
 static list_t pid_list=LIST_INITIALISER; // list of active pid's and network conns
-static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
 static Hashtable* pid_list_fdtab=NULL; // table for fast lookup of pid_list using socket fd
 #define TABSIZE 1024
+
+static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
+
+static pthread_mutex_t escapee_mutex = MUTEX_INITIALIZER;
 static list_t escapee_list=LIST_INITIALISER; // list of blocked yet active connections
-static pthread_mutex_t escapee_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int escapee_thread_count=0;
 #define ESCAPEEMAX 10 // max num of escapees we try to catch concurrently
-static int changed = 0; // flag to GUI if pid list has changed
+static int changed = 1; // flag to GUI if pid list has changed
 
 // cache of recent PIDs and their names
 #define PID_CACHE_SIZE 3
@@ -35,7 +37,7 @@ static pthread_mutex_t pid_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t gui_pid_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t pid_thread; // handle to pid watcher thread
 static int pid_thread_started = 0; // indicates whether pid watcher thread already running
-static int wakeup = 0;
+static int wakeup = 0, quiet_refresh = 0;
 static void (*pid_watcher_hook)(void) = NULL;
 
 //--------------------------------------------------------
@@ -43,8 +45,9 @@ static void (*pid_watcher_hook)(void) = NULL;
 
 // thread safety for pid_list:
 // -pid_watcher runs in its own thread and calls refresh_active_conns().
-// -get_conn(),get_num_conns(),get_pid_changed(),set_pid_changed() are called from
-// swift ActiveConnsViewController which runs in a separate thread
+// -get_gui_conn(),get_num_gui_conns(),get_pid_changed(),set_pid_changed()
+// are called fro, swift ActiveConnsViewController which runs in a separate
+// thread
 // -find_pid() is called by sniffer_blocker listener (via create_blockitem_from_addr())
 // from its own thread, and also from pid_watcher_hook()
 
@@ -57,12 +60,13 @@ void *pid_watcher(void *ptr) {
 	timeout.tv_nsec = PID_WATCHER_TIMEOUT*(NSEC_PER_SEC/1000);
 
 	int res=0;
-	refresh_active_conns(0); // takes lock itself as needed
+	refresh_active_conns(quiet_refresh); // takes lock itself as needed
+	quiet_refresh = 0;
 	for(;;) {
 		clock_gettime(CLOCK_REALTIME, &now);
 		ts = timespec_add(now,timeout);
 		
-		pthread_mutex_lock(&pid_mutex);
+		TAKE_LOCK(&pid_mutex,"pid_watcher");
 		res = 0;
 		// release mutex and wait (either for timeout or a signal from]
 		// sniffer_blocker that a new conn has started) ...
@@ -77,8 +81,9 @@ void *pid_watcher(void *ptr) {
 		// have lock on mutex here.  release it
 		pthread_mutex_unlock(&pid_mutex);
 		
-		refresh_active_conns(0); // will take lock as needed
-
+		refresh_active_conns(quiet_refresh); // will take lock as needed
+		quiet_refresh = 0;
+		
 		// handle waiting list, will take lock as needed
 		if (pid_watcher_hook != NULL) pid_watcher_hook();
 	}
@@ -93,10 +98,14 @@ void start_pid_watcher() {
 	}
 }
 
-void signal_pid_watcher() {
+void signal_pid_watcher(int syn) {
 	// ask watcher to refresh pid_list
-	pthread_mutex_lock(&pid_mutex);
+	TAKE_LOCK(&pid_mutex,"signal_pid_watcher");
 	wakeup = 1;
+	if (syn)
+		quiet_refresh = 1;
+	else
+		quiet_refresh = 0;
 	pthread_cond_signal(&pid_cond);
 	pthread_mutex_unlock(&pid_mutex);
 	//printf("signal sent\n");
@@ -107,17 +116,52 @@ void set_pid_watcher_hook(void (*hook)(void)) {
 	pid_watcher_hook = hook;
 }
 
-conn_t get_conn(int_sw row) {
+char* gui_pid_hash(const void *it) {
+	// we add the domain name to hash to catch cases where
+	// dns cache is updated to replace IP addr with name.
+	// and remove source port, so treat conns which are same except for
+	// source port as being the same
+	conn_t *item = (conn_t*) it;
+	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
+	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
+	robust_inet_ntop(&item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
+	char* temp = malloc(2*INET6_ADDRSTRLEN+strlen(item->domain)+64);
+	sprintf(temp,"%s-%s:%u-%s",sn,dn,item->raw.dport,item->domain);
+	return temp;
+}
+
+void update_gui_pid_list() {
+	printf("update_gui_pid_list\n");
+	
+	TAKE_LOCK(&gui_pid_mutex,"update_gui_pid_list");
+	free_list(&gui_pid_list);
+	init_list(&gui_pid_list, gui_pid_hash,NULL,0,-1,"gui_pid_list");
+	// we take lock for full loop so that we don't show
+	// partial updates in GUI.
+	TAKE_LOCK(&pid_mutex,"get_conn");
+	for (size_t j=0; j< get_list_size(&pid_list); j++) {
+		conn_t *c = get_list_item(&pid_list, j);
+		// ignore child processes, and also if several parallel
+		// connections to same domain (differing only in src port) then hash
+		// for gui_pid_list treats these as same so we just log first one in GUI
+		// pid list (to keep GUI clean)
+		if (!in_list(&gui_pid_list, c, 0)) {
+			add_item(&gui_pid_list,c,sizeof(conn_t));
+		}
+	}
+	pthread_mutex_unlock(&pid_mutex);
+	pthread_mutex_unlock(&gui_pid_mutex);
+}
+
+conn_t get_gui_conn(int_sw row) {
 	// for use by swift GUI
 	conn_t c;
 	memset(&c,0,sizeof(conn_t));
-	pthread_mutex_lock(&gui_pid_mutex);
 	if (row > get_list_size(&gui_pid_list)) {
-		pthread_mutex_unlock(&gui_pid_mutex);
 		return c;
 	}
 	memcpy(&c,get_list_item(&gui_pid_list,(size_t)row),sizeof(conn_t));
-	pthread_mutex_unlock(&gui_pid_mutex);
+
 	return c;
 }
 
@@ -126,28 +170,26 @@ void free_conn(conn_t* c) {
 	if (c) free(c);
 }
 
-int_sw get_num_conns() {
+int_sw get_num_gui_conns() {
 	// for use by swift GUI
-	pthread_mutex_lock(&gui_pid_mutex);
 	int_sw res = (int_sw)get_list_size(&gui_pid_list);
-	pthread_mutex_unlock(&gui_pid_mutex);
 	//dump_connlist(&gui_pid_list);
 	return res;
 }
 
 int_sw get_pid_changed() {
 	// for use by swift GUI
-	pthread_mutex_lock(&gui_pid_mutex);
+	TAKE_LOCK(&pid_mutex,"get_pid_changed");
 	int res=changed;
-	pthread_mutex_unlock(&gui_pid_mutex);
+	pthread_mutex_unlock(&pid_mutex);
 	return res;
 }
 
 void clear_pid_changed() {
 	// for use by swift GUI
-	pthread_mutex_lock(&gui_pid_mutex);
+	TAKE_LOCK(&pid_mutex,"clear_pid_changed");
 	changed=0;
-	pthread_mutex_unlock(&gui_pid_mutex);
+	pthread_mutex_unlock(&pid_mutex);
 }
 
 void print_escapees() {
@@ -161,7 +203,8 @@ void cache_pid(int pid, char* name) {
 	// we freshen cache using dtrace info since it gets most hits
 	last_pid_item_t it;
 	it.pid = pid; strlcpy(it.name,name,MAXCOMLEN);
-	pthread_mutex_lock(&pid_mutex);
+
+	TAKE_LOCK(&pid_mutex,"cache_pid");
 	// only add new pid if not already in list
 	if (!in_list(&last_pid_list,&it,0)) {
 		add_item(&last_pid_list,&it,sizeof(last_pid_item_t));
@@ -177,7 +220,7 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 
 	conn_t c;
 	memcpy(&c.raw,cr,sizeof(conn_raw_t));
-	pthread_mutex_lock(&pid_mutex);
+	TAKE_LOCK(&pid_mutex,"find_pid");
 	// lookup existing pid info list to see if connection is on it.
 	// lookup only uses raw part of conn_t
 	conn_t *res = in_list(&pid_list,&c,0); // list lookup only uses raw
@@ -197,7 +240,7 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 	else
 		stats.pidinfo_misses++;
 
-	pthread_mutex_unlock(&pid_mutex);
+	//pthread_mutex_unlock(&pid_mutex);
 	// we cache last few PIDs and then try to
 	// do a targetted refresh of their network conns here.
 	// if we get a hit then we catch pid name earlier,
@@ -209,12 +252,13 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 	struct timeval start; gettimeofday(&start, NULL);
 	list_t *l = &pid_list;
 	
-	pthread_mutex_lock(&pid_mutex);
+	//TAKE_LOCK(&pid_mutex,"find_pid #2");
+	// we hold pid_mutex lock here
 	for (size_t i = 0; i< get_list_size(&last_pid_list); i++) {
 		last_pid_item_t *it = get_list_item(&last_pid_list,i);
 		if (it->pid<=0) continue; // shouldn't happen
 		
-		if (find_fds(it->pid, it->name, pid_list_fdtab, l, pid_list_fdtab, NULL)!=1) {
+		if (find_fds(it->pid, it->name, pid_list_fdtab, l, pid_list_fdtab, syn)!=1) {
 			continue; // cached pid is a dud, probably cached process has died
 		} else if (in_list(l,&c,0)) { // list lookup only uses raw
 			pthread_mutex_unlock(&pid_mutex);
@@ -230,9 +274,10 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 			return 1;
 		}
 	}
+	pthread_mutex_unlock(&pid_mutex);
 	struct timeval end; gettimeofday(&end, NULL);
 	double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
-	cm_add_sample_lock(&stats.cm_t_pidinfo_cache_miss,t);	pthread_mutex_unlock(&pid_mutex);
+	cm_add_sample_lock(&stats.cm_t_pidinfo_cache_miss,t);
 	if (syn)
 		stats.pidinfo_syn_cachemisses++;
 	else
@@ -260,20 +305,6 @@ int get_pid_name(int pid, char* name) {
 	return 0;
 }
 
-char* gui_pid_hash(const void *it) {
-	// we add the domain name to hash to catch cases where
-	// dns cache is updated to replace IP addr with name.
-	// and remove source port, so treat conns which are same except for
-	// source port as being the same
-	// should hold lock when call this
-	conn_t *item = (conn_t*) it;
-	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
-	robust_inet_ntop(&item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
-	char* temp = malloc(2*INET6_ADDRSTRLEN+strlen(item->domain)+64);
-	sprintf(temp,"%s-%s:%u-%s",sn,dn,item->raw.dport,item->domain);
-	return temp;
-}
 
 char* pid_hash(const void *it) {
 	last_pid_item_t *item = (last_pid_item_t*) it;
@@ -297,11 +328,16 @@ void init_pid_lists() {
 	init_list(&escapee_list,conn_hash,NULL,1,-1,"escapee_list");
 }
 
-int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab, list_t* new_gui_pid_list) {
+int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab, int quiet_refresh) {
 	// Refresh the list of network connections for process with PID pid.
-	// can call this function without holding lock, and also
-	// ok to call with lock already held -- it will reuse lock/take new lock
-	// as needed.
+	// Updated list of conns is returned in new_pid_list, and a lookup table
+	// in new_pid_list_fdtab.
+	// Old_pid_list_fdtab is current list of conns for this pid -- used so that
+	// we can flag whether conns have changed (and so need to update GUI).
+	// When quiet_refresh=1 then we leave escapees alone -- used when called
+	// for a SYN, since haven't yet tried to kill new connections (that's
+	// done on a SYN-ACK) i.e we just want to refresh the conn list
+	// ahead of arrival of SYN-ACK, but do nothing more.
 	
 	// Figure out the size of the buffer needed to hold the list of open FDs
 	int bufferSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
@@ -412,6 +448,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		char* dns=lookup_dns_name(c.raw.af,c.raw.dst_addr);
 		if (dns!=NULL) {
 			strlcpy(c.domain,dns,MAXDOMAINLEN);
+			free(dns);
 		} else {
 			strlcpy(c.domain,c.dst_addr_name,INET6_ADDRSTRLEN);
 		}
@@ -428,9 +465,16 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
 			hashtable_put(new_pid_list_fdtab, key, it);
 			free(key);
+			TAKE_LOCK(&gui_pid_mutex,"find_fds() gui_pid_mutex");
+			if (!in_list(&gui_pid_list, &c, 0)) {
+				changed = 1;
+			}
+			pthread_mutex_unlock(&gui_pid_mutex);
 		}
+
+		if (quiet_refresh) continue;
 		
-		// is this a connection which outght to have been blocked (and "escapee") ?
+		// is this a connection which outght to have been blocked (an "escapee") ?
 		bl_item_t b;
 		strlcpy(b.name,name,MAXCOMLEN);
 		strlcpy(b.domain,c.domain,MAXDOMAINLEN);
@@ -439,10 +483,11 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		log_line_t *l = find_log_by_conn(name,&c.raw,0);
 		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c.raw.udp==0)) {
 			// its an active connection that is supposed to have been blocked
-			pthread_mutex_lock(&escapee_mutex);
+			TAKE_LOCK(&escapee_mutex,"find_fds escape_mutex");
 			if ( (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX)) {
 				// a new escapee, add to the active list ...
 				add_item(&escapee_list,&c,sizeof(conn_t));
+				INFO("escapee added %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
 				pthread_mutex_unlock(&escapee_mutex);
 				conn_t *e = malloc(sizeof(conn_t));
 				memcpy(e,&c,sizeof(conn_t));
@@ -468,34 +513,19 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 						// should we just choose a randome one, or otherwise adjust it ?
 						stats.stale_escapees++;
 					}
+					free(l);
 				}
 				// and ask helper to catch this "escapee" connection
 				pthread_t escapee_thread;
 				pthread_create(&escapee_thread,NULL,catch_escapee,e);
 				cm_add_sample_lock(&stats.cm_escapee_thread_count,escapee_thread_count);
 				// escapee_thread will now remove from escapee_list and free (e)
+				
+				// if process name was unknown/unsure we can now update it in log,
+				// and also update the blocked status
+					update_log_by_conn(name,&c.raw,is_blocked(&b));
 			} else {
 				pthread_mutex_unlock(&escapee_mutex);
-			}
-		}
-		
-		// ignore child processes again, and also if several parallel
-		// connections to same domain (differing only in src port) then hash
-		// for gui_pid_list treats these as same so we just log first one in GUI pid list
-		// (to keep GUI clean)
-		if (new_gui_pid_list) {
-			if (!in_list(new_gui_pid_list, &c, 0)) {
-				add_item(new_gui_pid_list,&c,sizeof(conn_t));
-			}
-			int res=pthread_mutex_trylock(&gui_pid_mutex);
-			if (!in_list(&gui_pid_list, &c, 0)) {
-				// we've added a new entry to pid list, flag to GUI if it needs to refresh
-				changed = 1;
-				//INFO("changed %s(%d): %s:%u -> %s(%s):%u udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp);
-		  	//dump_connlist(&gui_pid_list);
-			}
-			if (res != EBUSY) {
-				pthread_mutex_unlock(&gui_pid_mutex);
 			}
 		}
 	}
@@ -503,7 +533,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 	return 1;
 }
 
-int refresh_active_conns(int localhost) {
+int refresh_active_conns(int quiet_refresh) {
 	// called to update list of active process
 	// and network connectionsb(held in conns global var).
 	// returns 1 if set of active connections has changed,
@@ -517,8 +547,7 @@ int refresh_active_conns(int localhost) {
 	// then we copy this over to pid_list to update.  that way
 	// the GUI etc only ever see a fully updated pis list, not partial updates
 	// (which look nasty)
-	list_t new_pid_list; init_list(&new_pid_list,conn_hash,NULL,0,-1,"new_pid_list");
-	list_t new_gui_pid_list; init_list(&new_gui_pid_list,gui_pid_hash,NULL,0,-1,"new_gui_pid_list");
+	list_t new_pid_list; init_list(&new_pid_list,conn_hash,NULL,0,-1,"pid_list");
 	Hashtable *new_pid_list_fdtab = hashtable_new(TABSIZE);
 	
 	// get list of current processes
@@ -542,24 +571,19 @@ int refresh_active_conns(int localhost) {
 			continue;
 		}
 		
-		if (find_fds(pid, name, pid_list_fdtab, &new_pid_list, new_pid_list_fdtab, &new_gui_pid_list)<0) {
+		if (find_fds(pid, name, pid_list_fdtab, &new_pid_list, new_pid_list_fdtab, quiet_refresh)<0) {
 			free_list(&new_pid_list);
-			free_list(&new_gui_pid_list);
 			hashtable_free(new_pid_list_fdtab);
 			return 0;
 		}
 	}
-	pthread_mutex_lock(&gui_pid_mutex);
-	if (get_list_size(&new_gui_pid_list) != get_list_size(&gui_pid_list)) {
+	// now copy new list over to pid_list
+	TAKE_LOCK(&pid_mutex,"find_fds pid_mutex");
+	if (get_list_size(&new_pid_list) != get_list_size(&pid_list)) {
 		// could be that we have only removed some processes from pid list,
 		// in which case changed=0 when get here
-		//INFO("size changed: %d/%d\n",get_list_size(&new_gui_pid_list),get_list_size(&gui_pid_list));
 		changed = 1;
 	}
-	free_list(&gui_pid_list); gui_pid_list = new_gui_pid_list;
-	pthread_mutex_unlock(&gui_pid_mutex);
-	// now copy new list over to pid_list
-	pthread_mutex_lock(&pid_mutex);
 	free_list(&pid_list); pid_list = new_pid_list;
 	hashtable_free(pid_list_fdtab); pid_list_fdtab = new_pid_list_fdtab;
 	pthread_mutex_unlock(&pid_mutex);
@@ -570,7 +594,7 @@ int refresh_active_conns(int localhost) {
 #define CATCHER_PORT 5
 #include "helper.h"
 void *catch_escapee(void *ptr) {
-	pthread_mutex_lock(&escapee_mutex);
+	TAKE_LOCK(&escapee_mutex,"catch_escapee");
 	escapee_thread_count++;
 	pthread_mutex_unlock(&escapee_mutex);
 
@@ -606,9 +630,6 @@ void *catch_escapee(void *ptr) {
 		result="STOPPED";
 		stats.escapees_hits++;
 		cm_add_sample_lock(&stats.cm_t_escapees_hits,t);
-		// TO DO.  look up log to try to find escapee.  if process name was
-		// unknown/unsure we can now update it, and also update the blocked
-		// status
 	} else if (ok==-1) {
 		result="NOT FOUND";
 	} else {
@@ -617,9 +638,11 @@ void *catch_escapee(void *ptr) {
 	}
 	INFO("escapee %s(%d) fd=%d %s:%u -> %s(%s):%u ack=%u,udp=%d: %s. t=%fs\n", e->name, e->pid, e->fd,e->src_addr_name, e->raw.sport, e->domain, e->dst_addr_name, e->raw.dport, e->raw.ack,e->raw.udp,result,t);
 	del_item(&escapee_list,e);
+	print_escapees();
 	free(e);
 	close(c_sock);
-	pthread_mutex_lock(&escapee_mutex);
+
+	TAKE_LOCK(&escapee_mutex,"catch_escapee #2");
 	escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
 	return NULL;
@@ -629,7 +652,7 @@ err:
 	del_item(&escapee_list,e);
 	free(e);
 	close(c_sock);
-	pthread_mutex_lock(&escapee_mutex);
+	TAKE_LOCK(&escapee_mutex,"catch_escapee #3");
 	escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
 	return NULL;

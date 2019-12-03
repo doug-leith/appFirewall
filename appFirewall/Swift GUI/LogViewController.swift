@@ -77,9 +77,7 @@ class LogViewController: NSViewController {
 	override func viewWillDisappear() {
 		super.viewWillDisappear()
 		//print("saving state")
-		save_log()
-		save_blocklist(); save_whitelist()
-		save_dns_cache(); save_dns_conn_list()
+		save_state()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 		timer.invalidate()
 	}

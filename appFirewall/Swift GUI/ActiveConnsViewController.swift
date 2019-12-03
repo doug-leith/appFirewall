@@ -52,7 +52,8 @@ class ActiveConnsViewController: NSViewController {
 		let firstVisibleRow = tableView.rows(in: tableView.visibleRect).location
 		//let changed = refresh_active_conns(0)
 		if (force || ((firstVisibleRow==0) && (Int(get_pid_changed()) != 0)) ) {
-			clear_pid_changed();
+			clear_pid_changed()
+			update_gui_pid_list()
 			tableView.reloadData()
 		}
 	}
@@ -60,9 +61,7 @@ class ActiveConnsViewController: NSViewController {
 	override func viewWillDisappear() {
 		// window is closing, save state
 		super.viewWillDisappear()
-		save_log()
-		save_blocklist(); save_whitelist()
-		save_dns_cache(); save_dns_conn_list()
+		save_state()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 		timer.invalidate()
 	}
@@ -84,7 +83,7 @@ class ActiveConnsViewController: NSViewController {
 
 extension ActiveConnsViewController: NSTableViewDataSource {
 	func numberOfRows(in tableView: NSTableView) -> Int {
-		return Int(get_num_conns())
+		return Int(get_num_gui_conns())
 	}
 	
 	func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
@@ -102,7 +101,7 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 
 	func mapRow(row: Int) -> Int {
 		//map from displayed row to row in PID list itself
-		let last = Int(get_num_conns())-1
+		let last = Int(get_num_gui_conns())-1
 		if (row<0) { return 0 }
 		if (row>last) { return last }
 		if (asc) {
@@ -119,7 +118,7 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 		var tip: String = ""
 	
 		let r = mapRow(row: row)
-		var item = get_conn(Int32(r))
+		var item = get_gui_conn(Int32(r))
 		var bl_item = conn_to_bl_item(&item)
 		let blocked = Int(blocked_status(&bl_item))
 		let white = Int(is_white(&bl_item))

@@ -46,6 +46,10 @@ extern int verbose;          // debugging level
 #define NOTFOUND "<not found>" // label for connections for which process not found
 #define APPLOGFILE "app_log.txt"
 
+// for debugging locks
+#define MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER
+#define TAKE_LOCK(l,tag) do{pthread_mutex_lock(l); }while(0)
+
 typedef struct {
 	int pidinfo_hits, pidinfo_misses, pidinfo_syn_hits, pidinfo_syn_misses;
 	int pidinfo_cachehits, pidinfo_cachemisses, pidinfo_syn_cachehits, pidinfo_syn_cachemisses;
