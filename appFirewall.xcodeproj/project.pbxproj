@@ -21,7 +21,6 @@
 		9139F68E2381E3FF00600D37 /* blButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68D2381E3FF00600D37 /* blButton.swift */; };
 		9139F6902382890700600D37 /* helpButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68F2382890700600D37 /* helpButton.swift */; };
 		9157B04B238FB09E0027457A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 9157B04A238FB09E0027457A /* README.md */; };
-		9157B050238FB5830027457A /* libnet-1.2 in Resources */ = {isa = PBXBuildFile; fileRef = 9157B04F238FB5830027457A /* libnet-1.2 */; };
 		9157B052238FC2290027457A /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 9157B051238FC2290027457A /* icons */; };
 		91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB2236AB280002E50A8 /* AppDelegate.swift */; };
 		91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */; };
@@ -32,7 +31,6 @@
 		91607BC8236AB7CA002E50A8 /* LogViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BC7236AB7CA002E50A8 /* LogViewController.swift */; };
 		91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BC9236AD08F002E50A8 /* sniffer_blocker.c */; };
 		91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
-		91607BE2236B691A002E50A8 /* libnet in Resources */ = {isa = PBXBuildFile; fileRef = 91607BE1236B691A002E50A8 /* libnet */; };
 		91607BF3237140A4002E50A8 /* blocklist.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF2237140A4002E50A8 /* blocklist.c */; };
 		91607BF6237142A0002E50A8 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF5237142A0002E50A8 /* log.c */; };
 		91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF923714D46002E50A8 /* dns_sniffer.c */; };
@@ -118,7 +116,6 @@
 		9139F68D2381E3FF00600D37 /* blButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = blButton.swift; sourceTree = "<group>"; };
 		9139F68F2382890700600D37 /* helpButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpButton.swift; sourceTree = "<group>"; };
 		9157B04A238FB09E0027457A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		9157B04F238FB5830027457A /* libnet-1.2 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "libnet-1.2"; sourceTree = "<group>"; };
 		9157B051238FC2290027457A /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = icons; sourceTree = "<group>"; };
 		9157B05323903EF00027457A /* PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = PRIVACY.md; path = /Users/doug/Desktop/appFirewall/PRIVACY.md; sourceTree = "<absolute>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -135,7 +132,6 @@
 		91607BC9236AD08F002E50A8 /* sniffer_blocker.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sniffer_blocker.c; sourceTree = "<group>"; };
 		91607BCD236AD702002E50A8 /* libpcap.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libpcap.tbd; path = usr/lib/libpcap.tbd; sourceTree = SDKROOT; };
 		91607BCE236AD717002E50A8 /* libpcap.A.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libpcap.A.tbd; path = usr/lib/libpcap.A.tbd; sourceTree = SDKROOT; };
-		91607BE1236B691A002E50A8 /* libnet */ = {isa = PBXFileReference; lastKnownFileType = folder; path = libnet; sourceTree = "<group>"; };
 		91607BEA236B8D73002E50A8 /* pid_conn_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pid_conn_info.h; sourceTree = "<group>"; };
 		91607BEB236B8F0A002E50A8 /* sniffer_blocker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sniffer_blocker.h; sourceTree = "<group>"; };
 		91607BF1237140A4002E50A8 /* blocklist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = blocklist.h; sourceTree = "<group>"; };
@@ -152,7 +148,6 @@
 		91607C272372FF7F002E50A8 /* launchd.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = launchd.plist; sourceTree = "<group>"; };
 		91607C282372FF7F002E50A8 /* libnet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libnet.h; sourceTree = "<group>"; };
 		91607C292372FF7F002E50A8 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		91607C2A2372FF7F002E50A8 /* libnet */ = {isa = PBXFileReference; lastKnownFileType = folder; path = libnet; sourceTree = "<group>"; };
 		91607C302374080B002E50A8 /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
 		91607C3723741D65002E50A8 /* OSLog.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OSLog.framework; path = System/Library/Frameworks/OSLog.framework; sourceTree = SDKROOT; };
 		9180E1642387F407007002CB /* percentile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = percentile.h; sourceTree = "<group>"; };
@@ -232,8 +227,6 @@
 			children = (
 				9180E177238BC731007002CB /* Credits.html */,
 				91ABB292237734DE007F8FFE /* BlackLists */,
-				91607BE1236B691A002E50A8 /* libnet */,
-				9157B04F238FB5830027457A /* libnet-1.2 */,
 				9180E1632386653A007002CB /* C workers */,
 				91B67F2723793C1C00706027 /* TODO */,
 				9180E16223865418007002CB /* Swift GUI */,
@@ -264,7 +257,6 @@
 			children = (
 				91607C272372FF7F002E50A8 /* launchd.plist */,
 				91607C292372FF7F002E50A8 /* Info.plist */,
-				91607C2A2372FF7F002E50A8 /* libnet */,
 				91607C252372FF7E002E50A8 /* libnet.a */,
 				91607C282372FF7F002E50A8 /* libnet.h */,
 				91607C262372FF7E002E50A8 /* main.c */,
@@ -428,14 +420,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				9180E16B2387FCC9007002CB /* LICENSE.md in Resources */,
-				91607BE2236B691A002E50A8 /* libnet in Resources */,
 				91B67F2823793C1C00706027 /* TODO in Resources */,
 				9157B052238FC2290027457A /* icons in Resources */,
 				9180E178238BC731007002CB /* Credits.html in Resources */,
 				91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */,
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				9157B04B238FB09E0027457A /* README.md in Resources */,
-				9157B050238FB5830027457A /* libnet-1.2 in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

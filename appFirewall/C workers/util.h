@@ -59,7 +59,7 @@ typedef struct {
 
 typedef int32_t int_sw; // nail down swift interface int size
 
-extern stats_t stats;
+extern stats_t stats; // we collect performance stats in this global var
 
 ssize_t readn(int fd, void* buf, ssize_t n);
 int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line);

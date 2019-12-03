@@ -251,13 +251,19 @@ char* get_filter_log_addr_name(int_sw row) {
 void save_log(void) {
 	//printf("saving log\n");
 	fflush(fp_txt); // flush text log
-	
+
+	struct timeval s; gettimeofday(&s, NULL);
+
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,LOGFILE,STR_SIZE);
 	TAKE_LOCK(&log_list_mutex,"save_log()");
 	save_list(&log_list, path, sizeof(log_line_t));
 	pthread_mutex_unlock(&log_list_mutex);
+	
+	struct timeval end; gettimeofday(&end, NULL);
+	INFO2("save_log() t=%f\n", (end.tv_sec - s.tv_sec) +(end.tv_usec - s.tv_usec)/1000000.0);
+
 }
 
 void open_logtxt() {

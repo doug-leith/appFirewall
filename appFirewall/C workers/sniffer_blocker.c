@@ -50,13 +50,16 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	// can we get PID from dtrace cache ?
 	int pid;
 	int res=lookup_dtrace(cr, c.name, &pid);
-	if (res==0) { // quite rare, so interesting
+	if (res==0) { // rare when dtrace is active, otherwise boring
 		INFO2("%s:%u->%s:%u NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
 		if (syn)
 			stats.dtrace_syn_misses++;
 		else
 			stats.dtrace_misses++;
 		// try to get PID info from /proc
+		// nb: >90% of execution time of create_blockitem_from_addr()
+		// is spent in this find_pid() call, and within that call
+		// find_fds consumes >85% of execution time
 		res=find_pid(cr,c.name,syn);
 		//clock_t end1 = clock();
 		if (res==0) {
@@ -118,7 +121,7 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 			strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
 		}
 		sprintf(str,"%s%s → %s:%u", c->name, conf_str, dst_name, cr->dport);
-		sprintf(long_str,"%s %s:%u -> %s:%u (blocked=%d, confidence=%f)", c->name, sn, cr->sport, dns, cr->dport,blocked, confidence);
+		sprintf(long_str,"%s\t%s:%u -> %s:%u\t(blocked=%d, confidence=%.2f)", c->name, sn, cr->sport, dns, cr->dport,blocked, confidence);
 		append_log(str, long_str, c, cr, blocked, confidence);
 
 		if (!blocked) {
@@ -375,7 +378,7 @@ void *listener(void *ptr) {
 					if (strcmp(c.name,NOTFOUND)==0) {
 						// we seem to often miss process for a UDP pkt, for now
 						// we guess its Chrome.
-						strlcpy(c.name,"Google Chrome",MAXCOMLEN);
+						strlcpy(c.name,"Google Chrome H",MAXCOMLEN);
 						stats.num_guesses++;
 					}
 					// log connection
@@ -386,7 +389,7 @@ void *listener(void *ptr) {
 					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
 					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
 					sprintf(str,"%s → UDP/QUIC %s:%u", c.name, c.domain, dport);
-					sprintf(long_str,"%s UDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
+					sprintf(long_str,"%s\tUDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
 					append_log(str, long_str, &c, &cr, 0, 1.0); // can't block QUIC yet ...
 					
 					double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;

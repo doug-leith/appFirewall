@@ -22,7 +22,6 @@
 #define LOGFILE "log.dat"
 #define LOGFILE_TXT "log.txt" // human readable log file
 #define LOGSTRSIZE 256
-#define MAXLOGSIZE 1024
 
 //log_line_t used by swift
 typedef struct log_line_t {

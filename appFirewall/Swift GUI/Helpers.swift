@@ -224,3 +224,112 @@ func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
 		cell.textField?.textColor = NSColor.systemGreen
 	}
 }
+
+import Compression
+
+func sampleLogData(fname: String) {
+	// upload a sample from the app connection log
+	let path = String(cString:get_path())+fname
+	do {
+		// read log.  it won't be larger than 5MB since we rotate it otherwise
+		// so its ok to read into memory
+		let log_str : String = try String(contentsOfFile: path, encoding: String.Encoding.utf8)
+		let lines : Array<Substring> = log_str.split { $0.isNewline }
+		if (lines.count == 0) { print("sampleLogData(): log empty"); return }
+		
+		// pick a line at random and choose that app,
+		// so long as not a browser app
+		let browsers = ["firefox","Google Chrome H","Safari","Opera Helper","Brave Browser H","seamonkey"];
+		// TO DO:  move this list of browsers into Info.plist so that it can be
+		// easily updated
+		var app : String = ""
+		var count = 0
+		let TRIES = 10
+		repeat {
+			let line = String(lines.randomElement() ?? "")
+			let parts = line.split {$0 == "\t" }
+			if (parts.count >= 2) {
+				app = String(parts[1])
+			}
+			count = count + 1
+		} while ((browsers.contains(app)) && (count<TRIES))
+		if ((browsers.contains(app)) || (count == TRIES)) {
+			print("sampleLogData(): failed to sample app")
+			// strange, we'll come back later
+			return
+		}
+		
+		// now extract all the log lines for the chosen app
+		var lines_selected : [String] = []
+		count = 0
+		for line in lines {
+			let parts = line.split {$0 == "\t" }
+			if (String(parts[1]) == app) {
+				lines_selected.append(String(line))
+			}
+		}
+		if (lines_selected.count == 0) { // shouldn't happen
+			print("sampleLogData(): sample size is zero");
+			return
+		}
+		
+		// concatenate the lines back together
+		var str: String = ""
+		for line in lines_selected {
+			str = str + line + "\n"
+		}
+		//print("Sample from app connection log:")
+		//print(str)
+		
+		// zip data to save upload bandwidth
+		/*let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: str.count)
+		var sourceBuffer = Array(str.utf8)
+		let algorithm = COMPRESSION_ZLIB
+		let compressedSize = compression_encode_buffer(destinationBuffer, str.count, &sourceBuffer, str.count, nil, algorithm)
+		if compressedSize == 0 {
+				print("Encoding failed.")
+		}*/
+		// now upload
+		let url = URL(string: "https://leith.ie/logsample.php")!
+		var request = URLRequest(url: url); request.httpMethod = "POST"
+		let uploadData=("sample="+String(str)+"&compression=none").data(using: .ascii)
+		let session = URLSession(configuration: .default)
+		let task = session.uploadTask(with: request, from: uploadData)
+				{ data, response, error in
+				if let error = error {
+						print ("error when sending app sample: \(error)")
+						return
+				}
+				if let resp = response as? HTTPURLResponse {
+					if !(200...299).contains(resp.statusCode) {
+						print ("server error when sending app sample: ",resp.statusCode)
+					}
+				}
+		}
+		task.resume()
+		session.finishTasksAndInvalidate()
+		// and save a copy to ~/Library/Application Support/appFilewall/samples/
+		// so that use has a record of what has been uploaded
+		let sampleDir = String(cString:get_path())+"samples/"
+		if !FileManager.default.fileExists(atPath: sampleDir) {
+				do {
+						try FileManager.default.createDirectory(atPath: sampleDir, withIntermediateDirectories: true, attributes: nil)
+						print("created "+sampleDir)
+				} catch {
+						print("problem making sample dir: "+error.localizedDescription);
+						return
+				}
+		}
+		let dateString = String(cString:get_date())
+		let dateString2 = dateString.replacingOccurrences(of: " ", with: "_", options: .literal, range: nil)
+		let sampleFile = sampleDir + "sample_" + dateString2
+		print("uploaded sample of app connections to ", url, " and saved copy in ",sampleFile)
+		do {
+			try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
+		} catch {
+			print("problem saving "+sampleFile+":"+error.localizedDescription)
+		}
+	} catch {
+		print("sampleLogData() problem reading ",path,":", error.localizedDescription)
+	}
+}

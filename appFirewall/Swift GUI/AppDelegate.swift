@@ -178,6 +178,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			close_logtxt() // close human-readable log file
 			log_rotate(logName: "log.txt")
 			open_logtxt(); // open new log file
+			sampleLogData(fname: "log.txt0") // send off a sample of last log file
 		}
 		if (need_log_rotate(logName: "app_log.txt")) {
 			log_rotate(logName: "app_log.txt")
@@ -224,7 +225,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			print("had a crash with signal ",sig," for code release ", version)
 			backtrace.forEach{print($0)}
 			print("continuing")
-			// send report to www.leith.ie/logcrash.php.  post "backtrace=<>&version=<>"
+			// send report to www.leith.ie/logcrash.php.  post "backtrace=<>&version=<>"]
+			// TO DO: move this URL into Info.plist
 			let url = URL(string: "https://leith.ie/logcrash.php")!
 			var request = URLRequest(url: url); request.httpMethod = "POST"
 			var str: String = ""
@@ -282,7 +284,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("SIP enabled: ",sipEnabled)
 		var dtrace = UserDefaults.standard.integer(forKey: "dtrace")
 		if (sipEnabled) { dtrace = 0 } // dtrace doesn't work with SIP
-		dtrace = 0
+		dtrace = 0 // for testing
 		if (dtrace > 0) {
 			print("Dtrace enabled")
 		} else {
@@ -291,7 +293,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// reload state
 		load_state()
 		prefController.load_hostlists() // might be slow?
-
+		
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper
     DispatchQueue.global(qos: .background).async {

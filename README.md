@@ -6,7 +6,7 @@ A free, fully open-source application firewall for MAC OS Mojave and later.  All
 
 Just drag the appFirewall icon into your Applications folder and click on it to start, there's nothing more to it.
 
-## Privacy - What data we collect
+## Privacy - What personal data we collect
 
 The short answer is "none".  No personal data is shared by this app. 
 
@@ -21,7 +21,17 @@ If the app crashes (hopefully not !) then it will send a short backtrace to http
     4   appFirewall                         0x000000010dc4fab5 appFirewall   158389<br>
     5   appFirewall                         0x000000010dc5001b appFirewall   159771<br>
 
-(its a list of entry points in the app so that I can see where it crashed, nothing more).  The http://leith.ie web server does not log IP address or other connection details.
+Its a list of entry points in the app so that I can see where it crashed, nothing more.  The upload server does not log IP address or other connection details.
+
+The app also periodically uploads a sample of the connections made by a randomly selected app.  This is so we can try to learn more about app behaviour in the wild, and use this to develop better approaches for disrupting tracking etc.  We exclude browser apps from this sampling since the connections made by a browser are potentially sensitive (it may reveal some information about browsing history).   An example of such a sample is the following:
+
+    Dec 03 21:36:13 2019	Dropbox	192.168.1.27:64379 -> 162.125.19.131 (bolt.dropbox.com):443	
+    Dec 03 21:36:23 2019	Dropbox	192.168.1.27:64380 -> 162.125.19.130 (telemetry.dropbox.com):443
+    Dec 03 21:37:16 2019	Dropbox	192.168.1.27:64381 -> 162.125.64.7 (api.dropboxapi.com):443
+    Dec 03 21:38:38 2019	Dropbox	192.168.1.27:64389 -> 162.125.19.131 (bolt.dropbox.com):443	
+    Dec 03 21:40:21 2019	Dropbox	192.168.1.27:64393 -> 162.125.36.1 (d.dropbox.com):443	
+
+The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see what has been uploaded.  The upload server does not log IP address or other connection details.
 
 ## How It Works
 

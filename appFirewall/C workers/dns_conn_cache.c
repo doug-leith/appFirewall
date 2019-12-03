@@ -132,6 +132,6 @@ int load_dns_conn_list(const char* dir) {
 	if (fp == NULL) return -1; // problem opening file
 
 	load_list(&dns_conn_list, path, sizeof(dns_conn_t));
-	dump_dns_conn_list();
+	//dump_dns_conn_list();
 	return 0;
 }

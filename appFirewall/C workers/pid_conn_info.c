@@ -84,6 +84,7 @@ void *pid_watcher(void *ptr) {
 		// have lock on mutex here.  release it
 		pthread_mutex_unlock(&pid_mutex);
 
+		// this call consumes >85% of execution time
 		refresh_active_conns(); // will take lock as needed
 		
 		struct timeval t; gettimeofday(&t, NULL);
@@ -255,24 +256,23 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 	else
 		stats.pidinfo_misses++;
 
-	//pthread_mutex_unlock(&pid_mutex);
 	// we cache last few PIDs and then try to
 	// do a targetted refresh of their network conns here.
 	// if we get a hit then we catch pid name earlier,
 	// at the cost of slightly longer processing time on
-	// sniffer_blocker fast path, so would want to keep number of PIDs checked *small*
-	// might as well stash pid info in pid_list while we're at it,
+	// sniffer_blocker fast path, so would want to keep number of PIDs checked
+	// *small*. might as well stash pid info in pid_list while we're at it,
 	// in case it contains multiple new connections.
 	
 	struct timeval start; gettimeofday(&start, NULL);
 	list_t *l = &pid_list;
 	
-	//TAKE_LOCK(&pid_mutex,"find_pid #2");
 	// we hold pid_mutex lock here
 	for (size_t i = 0; i< get_list_size(&last_pid_list); i++) {
 		last_pid_item_t *it = get_list_item(&last_pid_list,i);
 		if (it->pid<=0) continue; // shouldn't happen
 		
+		// call here to find_fds() consumes >90% of executiomn time of find_pid()
 		if (find_fds(it->pid, it->name, pid_list_fdtab, l, pid_list_fdtab)!=1) {
 			continue; // cached pid is a dud, probably cached process has died
 		} else if (in_list(l,&c,0)) { // list lookup only uses raw
@@ -350,6 +350,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 	// we can flag whether conns have changed (and so need to update GUI).
 	
 	// Figure out the size of the buffer needed to hold the list of open FDs
+	// this call costs about 10% of execution time of find_fds
 	int bufferSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
 	if (bufferSize == -1) {
 		// probably process has stopped
@@ -357,12 +358,13 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		return 0;
 	}
 
-	struct proc_fdinfo *procFDInfo = (struct proc_fdinfo *)malloc((size_t)bufferSize);
+	struct proc_fdinfo *procFDInfo =  malloc((size_t)bufferSize);
 	if (!procFDInfo) {
 		ERR("Out of memory. Unable to allocate buffer with %d bytes\n", bufferSize);
 		return -1;
 	}
 	
+	// this is second most time-consuming part of find_fds (the first is proc_fdinfo), takes around 10% of execution time
 	if (proc_pidinfo(pid, PROC_PIDLISTFDS, 0, procFDInfo, bufferSize) < 0){
 		// probably process has stopped
 		WARN("Unable to get open file handles for PID %d\n", pid);
@@ -378,8 +380,8 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			continue; // not a socket fd
 			
 		// an optimisation.  if procFDInfo[i].proc_fd already known
-		// we can just grab its info and copy over, saving on call to proc_pidfdinfo()
-		// which is expensive
+		// we can just grab its info and copy over, saving on call to
+		// proc_pidfdinfo(), which is expensive
 		// NB: reuse of file descriptors means that can make mistakes here e.g.
 		// if between calls to here a process closes a connection and new one is
 		// opened (to new destination) but has the same fd.
@@ -398,6 +400,8 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		}*/
 		if (!match) {
 			// we need to call proc_pidfdinfo() to get the connection info
+			// nb: this call is where almost all (>70%) of the time is spent
+			// in find_fds(), rest of routine is much faster
 			struct socket_fdinfo socketInfo;
 			memset(&socketInfo,0,sizeof(socketInfo));
 			int res = proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
@@ -517,6 +521,7 @@ int refresh_active_conns() {
 		int pid = pids[j];
 		
 		// get app name associated with process
+		// this call consumes around 10% of executiin time of refresh_active_conns()
 		char name[MAXCOMLEN];
 		if (get_pid_name(pid, name)<0) {
 			// problem getting name for PID, probably process has stopped
@@ -524,6 +529,8 @@ int refresh_active_conns() {
 			continue;
 		}
 		
+		// this call to find_fds consumes >75% of execution time of
+		// refresh_active_conns()
 		if (find_fds(pid, name, pid_list_fdtab, &new_pid_list, new_pid_list_fdtab)<0) {
 			free_list(&new_pid_list);
 			hashtable_free(new_pid_list_fdtab);
