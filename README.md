@@ -2,7 +2,7 @@
 
 A free, fully open-source application firewall for macOS 10.14 Mojave and later.  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists (Energized Blu etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.  
 
-<img src="Screenshot.jpg" width="750"/>
+<img src="Screenshot.jpg" />
 
 ## Getting Started
 
