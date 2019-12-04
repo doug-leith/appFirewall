@@ -95,9 +95,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	
 	@IBAction func checkForUpdates(_ sender: NSMenuItem) {
-	let url = URL(string: "https://leith.ie/appFirewall_version.html")
 		let session = URLSession(configuration: .default)
-	 	let task = session.dataTask(with: url!)
+	 	let task = session.dataTask(with: Config.updateCheckURL)
 			 { data, response, error in
 			 if let error = error {
 					 print ("error when checking for updates: \(error)")
@@ -120,7 +119,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 					var extra = ""
 					if (version != latest_version) {
 						result = "An update to version "+latest_version+" is available."
-						extra = "Download at <a href='https://github.com/doug-leith/appFirewall'>https://github.com/doug-leith/appFirewall</a>"
+						extra = "Download at <a href='"+Config.updateURL+"'>"+Config.updateURL+"</a>"
 					}
 					if (msg != "<none>") {
 						extra = extra + "\n" + msg
@@ -173,16 +172,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				exit_popup(msg:String(cString: get_error_msg()), force:Int(get_error_force()))
 				// this call won't return
 		}
-		save_log()
-		if (need_log_rotate(logName: "log.txt")) {
+		save_log(Config.logName)
+		if (need_log_rotate(logName: Config.logName)) {
 			close_logtxt() // close human-readable log file
-			log_rotate(logName: "log.txt")
-			open_logtxt(); // open new log file
-			sampleLogData(fname: "log.txt0") // send off a sample of last log file
+			log_rotate(logName: Config.logName)
+			open_logtxt(Config.logTxtName); // open new log file
+			sampleLogData(fname: Config.logName+"0") // senda sample of last log file
 		}
-		if (need_log_rotate(logName: "app_log.txt")) {
-			log_rotate(logName: "app_log.txt")
-			redirect_stdout(); // redirect output to the new log file
+		if (need_log_rotate(logName: Config.appLogName)) {
+			log_rotate(logName: Config.appLogName)
+			redirect_stdout(Config.appLogName); // redirect output to the new log file
 		}
 
 		// update menubar button tooltip
@@ -201,7 +200,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		
 		// redirect C logging from stdout to logfile.  do this early but
 		// important to call make_data_dir() first so that logfile has somewhere to live
-		redirect_stdout()
+		redirect_stdout(Config.appLogName)
 
 		// set default logging level, again do this early
 		UserDefaults.standard.register(defaults: ["logging_level":2])
@@ -226,9 +225,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			backtrace.forEach{print($0)}
 			print("continuing")
 			// send report to www.leith.ie/logcrash.php.  post "backtrace=<>&version=<>"]
-			// TO DO: move this URL into Info.plist
-			let url = URL(string: "https://leith.ie/logcrash.php")!
-			var request = URLRequest(url: url); request.httpMethod = "POST"
+			var request = URLRequest(url: Config.crashURL); request.httpMethod = "POST"
 			var str: String = ""
 			for s in backtrace {
 				str = str + s + "\n"

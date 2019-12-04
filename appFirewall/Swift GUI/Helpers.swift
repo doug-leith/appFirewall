@@ -124,25 +124,23 @@ func log_rotate(logName: String) {
 }
 
 func save_state() {
-	save_log()
-	save_blocklist(); save_whitelist()
-	save_dns_cache(); save_dns_conn_list()
+	save_log(Config.logName)
+	save_blocklist(Config.blockListName); save_whitelist(Config.whiteListName)
+	save_dns_cache(Config.dnsName); save_dns_conn_list(Config.dnsConnListName)
 }
 
 func load_state() {
-	load_log();
-	load_blocklist(); load_whitelist()
-	load_dns_cache();
+	load_log(Config.logName, Config.logTxtName);
+	load_blocklist(Config.blockListName); load_whitelist(Config.whiteListName)
+	load_dns_cache(Config.dnsName);
 	// we distribute app with preconfigured dns_conn cache so that
 	// can guess process names of common apps more quickly
 	let filePath = String(cString:get_path())
 	let backupPath = Bundle.main.resourcePath ?? "./"
-	if (load_dns_conn_list(filePath)<0) {
+	if (load_dns_conn_list(filePath, Config.dnsConnListName)<0) {
 		print("Falling back to loading dns_conn_list from ",backupPath)
-		load_hostsfile(backupPath)
+		load_dns_conn_list(backupPath, Config.dnsConnListName)
 	}
-
-	
 }
 
 // -------------------------------------
@@ -239,9 +237,6 @@ func sampleLogData(fname: String) {
 		
 		// pick a line at random and choose that app,
 		// so long as not a browser app
-		let browsers = ["firefox","Google Chrome H","Safari","Opera Helper","Brave Browser H","seamonkey"];
-		// TO DO:  move this list of browsers into Info.plist so that it can be
-		// easily updated
 		var app : String = ""
 		var count = 0
 		let TRIES = 10
@@ -252,8 +247,8 @@ func sampleLogData(fname: String) {
 				app = String(parts[1])
 			}
 			count = count + 1
-		} while ((browsers.contains(app)) && (count<TRIES))
-		if ((browsers.contains(app)) || (count == TRIES)) {
+		} while ((Config.browsers.contains(app)) && (count<TRIES))
+		if ((Config.browsers.contains(app)) || (count == TRIES)) {
 			print("sampleLogData(): failed to sample app")
 			// strange, we'll come back later
 			return
@@ -290,8 +285,7 @@ func sampleLogData(fname: String) {
 				print("Encoding failed.")
 		}*/
 		// now upload
-		let url = URL(string: "https://leith.ie/logsample.php")!
-		var request = URLRequest(url: url); request.httpMethod = "POST"
+		var request = URLRequest(url: Config.sampleURL); request.httpMethod = "POST"
 		let uploadData=("sample="+String(str)+"&compression=none").data(using: .ascii)
 		let session = URLSession(configuration: .default)
 		let task = session.uploadTask(with: request, from: uploadData)
@@ -323,7 +317,7 @@ func sampleLogData(fname: String) {
 		let dateString = String(cString:get_date())
 		let dateString2 = dateString.replacingOccurrences(of: " ", with: "_", options: .literal, range: nil)
 		let sampleFile = sampleDir + "sample_" + dateString2
-		print("uploaded sample of app connections to ", url, " and saved copy in ",sampleFile)
+		print("uploaded sample of app connections to ", Config.sampleURL, " and saved copy in ",sampleFile)
 		do {
 			try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
 		} catch {

@@ -114,11 +114,11 @@ char* get_blocklist_item_addrname(bl_item_t *item) {
 	return item->addr_name;
 }
 
-void save_blocklist(void) {
+void save_blocklist(const char* fname) {
 	//printf("saving block_list\n");
 	#define STR_SIZE 1024
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,BLOCKLISTFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&block_mutex,"save_blocklist()");
 	save_list(&block_list, path, sizeof(bl_item_t));
 	pthread_mutex_unlock(&block_mutex);
@@ -139,13 +139,13 @@ void dump_blocklist() {
 	}
 }
 
-void load_blocklist(void) {
+void load_blocklist(const char* fname) {
 	//return;
 	// open and read file
 	#define STR_SIZE 1024
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,BLOCKLISTFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&block_mutex,"load_blocklist()");
 	init_block_list();
 	load_list(&block_list, path, sizeof(bl_item_t));

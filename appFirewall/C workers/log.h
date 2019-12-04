@@ -18,9 +18,7 @@
 #include "is_blocked.h"
 #include "circular_list.h"
 
-// file for maintaining state over restarts
-#define LOGFILE "log.dat"
-#define LOGFILE_TXT "log.txt" // human readable log file
+
 #define LOGSTRSIZE 256
 
 //log_line_t used by swift
@@ -43,11 +41,12 @@ void filter_log_list(int_sw show_blocked, const char* str);
 int_sw get_filter_log_size(void);
 log_line_t* get_filter_log_row(int_sw row);
 char*  get_filter_log_addr_name(int_sw row);
-void save_log(void);
-void load_log(void);
+void save_log(const char* logName);
+void load_log(const char* logName, const char* logTxtName);
 void clear_log(void);
-void open_logtxt(void);
+void open_logtxt(const char* logTxtName);
 void close_logtxt(void);
+void reopen_logtxt(void);
 int_sw has_log_changed(void);
 void clear_log_changed(void);
 

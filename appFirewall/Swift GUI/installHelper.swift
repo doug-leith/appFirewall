@@ -15,7 +15,7 @@ import os
 func isSIPEnabled()->Bool {
 	// is System Integrity Protection Enabled?
 	let task = Process();
-	task.launchPath = "/usr/bin/csrutil"
+	task.launchPath = Config.csrutil
 	task.arguments = ["status"]
 	let pipe = Pipe()
 	task.standardOutput = pipe
@@ -44,8 +44,8 @@ func isSIPEnabled()->Bool {
 func pgrep(Name: String)->Int {
 	// get number of running processing matching Name
 	let task = Process();
-	task.launchPath = "/usr/bin/pgrep"
-	task.arguments = ["-x",Name]
+	task.launchPath = Config.pgrep
+		task.arguments = ["-x",Name]
 	let pipe = Pipe()
 	task.standardOutput = pipe
 	task.launch()

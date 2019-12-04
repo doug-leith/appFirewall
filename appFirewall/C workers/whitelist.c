@@ -90,25 +90,25 @@ void sort_white_list(int asc1, int col1) {
 	pthread_mutex_unlock(&white_mutex);
 }
 
-void save_whitelist(void) {
+void save_whitelist(const char* fname) {
 	//printf("saving white_list\n");
 	#define STR_SIZE 1024
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,WHITELISTFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	
 	TAKE_LOCK(&white_mutex,"save_whitelist()");
 	save_list(&white_list, path, sizeof(bl_item_t));
 	pthread_mutex_unlock(&white_mutex);
 }
 
-void load_whitelist(void) {
+void load_whitelist(const char* fname) {
 	//return;
 	printf("load white list\n");
 	// open and read file
 	#define STR_SIZE 1024
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,WHITELISTFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	
 	TAKE_LOCK(&white_mutex,"load_whitelist()");
 	init_white_list();

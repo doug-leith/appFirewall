@@ -182,11 +182,11 @@ char *trimwhitespace(char *str) {
   return str;
 }
 
-void redirect_stdout() {
+void redirect_stdout(const char* appLog) {
 	// set up logging
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,APPLOGFILE,STR_SIZE);
+	strlcat(path,appLog,STR_SIZE);
 	int logfd = open(path,O_RDWR|O_CREAT|O_APPEND,0644);
 	if (logfd == -1) {
 		ERR("Failed to open %s: %s\n",path,strerror(errno));

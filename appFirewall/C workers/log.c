@@ -12,6 +12,7 @@ static pthread_mutex_t log_list_mutex = MUTEX_INITIALIZER;
 
 static list_t filtered_log_list=LIST_INITIALISER;
 static FILE *fp_txt = NULL; // pointer to human readable log file
+static char _logTxtName[STR_SIZE]; // name of file
 static int changed = 0; // flag to record whether log has been updated
 static int first_load = 1;
 
@@ -191,13 +192,8 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	if (fp_txt) {
 		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
 	} else {
-		WARN("Problem appending to %s, re-opening: %s\n", LOGFILE_TXT, strerror(errno));
-		char path[STR_SIZE];
-		strlcpy(path,get_path(),STR_SIZE); strlcat(path,LOGFILE,STR_SIZE);
-		fp_txt = fopen (path,"a");
-		if (fp_txt==NULL) {
-			WARN("Problem re-opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));
-		}
+		WARN("Problem appending to %s, re-opening: %s\n", _logTxtName, strerror(errno));
+		reopen_logtxt();
 	}
 	free(l); // free our temp copy
 }
@@ -248,7 +244,7 @@ char* get_filter_log_addr_name(int_sw row) {
 	return _name;
 }
 
-void save_log(void) {
+void save_log(const char* logName) {
 	//printf("saving log\n");
 	fflush(fp_txt); // flush text log
 
@@ -256,7 +252,9 @@ void save_log(void) {
 
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,LOGFILE,STR_SIZE);
+	//strlcat(path,LOGFILE,STR_SIZE);
+	strlcat(path,logName,STR_SIZE);
+
 	TAKE_LOCK(&log_list_mutex,"save_log()");
 	save_list(&log_list, path, sizeof(log_line_t));
 	pthread_mutex_unlock(&log_list_mutex);
@@ -266,14 +264,15 @@ void save_log(void) {
 
 }
 
-void open_logtxt() {
+void open_logtxt(const char* logTxtName) {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,LOGFILE_TXT,STR_SIZE);
+	strlcat(path,logTxtName,STR_SIZE);
+	strlcpy(_logTxtName, logTxtName, STR_SIZE);
 	if (fp_txt) close_logtxt();
 	fp_txt = fopen (path,"a");
 	if (fp_txt==NULL) {
-		WARN("Problem opening %s for appending: %s\n", LOGFILE_TXT, strerror(errno));
+		WARN("Problem opening %s for appending: %s\n", logTxtName, strerror(errno));
 	}
 }
 
@@ -282,13 +281,23 @@ void close_logtxt() {
 	fp_txt = NULL;
 }
 
-void load_log() {
+void reopen_logtxt() {
+	char path[STR_SIZE];
+	strlcpy(path,get_path(),STR_SIZE); strlcat(path,_logTxtName,STR_SIZE);
+	fp_txt = fopen (path,"a");
+	if (fp_txt==NULL) {
+		WARN("Problem re-opening %s for appending: %s\n", _logTxtName, strerror(errno));
+	}
+}
+
+void load_log(const char* logName, const char* logTxtName) {
 	close_logtxt();
-	open_logtxt(); // will be left open for continuous appending
+	open_logtxt(logTxtName); // will be left open for continuous appending
 	
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,LOGFILE,STR_SIZE);
+	//strlcat(path,LOGFILE,STR_SIZE);
+	strlcat(path,logName,STR_SIZE);
 	
 	TAKE_LOCK(&log_list_mutex,"load_log()");
 	changed = 2; // record fact that log has been updated

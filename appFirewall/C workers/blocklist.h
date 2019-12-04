@@ -18,10 +18,6 @@
 #include "connection.h"
 #include "circular_list.h"
 
-// file for maintaining state over restarts
-#define BLOCKLISTFILE "blocklist.dat"
-
-
 void add_blockitem(bl_item_t *item);
 bl_item_t* in_blocklist_htab(const bl_item_t *item,int debug); // looks up hash table, faster
 int del_blockitem(bl_item_t *item);
@@ -35,8 +31,8 @@ bl_item_t* get_blocklist_item(int_sw row);
 char* get_blocklist_item_name(bl_item_t *item);
 char* get_blocklist_item_domain(bl_item_t *item);
 char* get_blocklist_item_addrname(bl_item_t *item);
-void save_blocklist(void);
-void load_blocklist(void);
+void save_blocklist(const char* fname);
+void load_blocklist(const char* fname);
 void sort_block_list(int_sw asc1, int_sw col);
 
 #endif /* blocklist_h */

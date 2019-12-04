@@ -62,17 +62,17 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	pthread_mutex_unlock(&dns_mutex);
 }
 
-void save_dns_cache(void) {
+void save_dns_cache(const char* fname) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,DNSFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&dns_mutex,"save_dns_cache()");
 	save_list(&dns_cache,path,sizeof(dns_item_t));
 	pthread_mutex_unlock(&dns_mutex);
 }
 
-void load_dns_cache(void) {
+void load_dns_cache(const char* fname) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,DNSFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&dns_mutex,"load_dns_cache()");
 	init_list(&dns_cache,dns_hash,NULL,1,-1,"dns_cache");
 	load_list(&dns_cache,path,sizeof(dns_item_t));

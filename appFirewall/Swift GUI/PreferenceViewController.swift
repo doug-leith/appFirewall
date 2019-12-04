@@ -13,20 +13,7 @@ class PreferenceViewController: NSViewController {
 	
 	@IBOutlet weak var tableSelectedView: NSTableView!
 	
-	// available lists, hard-wired for now ...
-	let HostNameLists : [[String: String]] =
-	[
-		["Name":"Energized Blu (Recommended)", "File": "energized_blu.txt", "URL": "https://block.energized.pro/blu/formats/hosts","Tip":"A large, quite complete list (231K entries).", "Type":"Hostlist"],
-		["Name":"Steve Black Unified", "File": "steve_black_unified.txt", "URL": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts","Tip":"A good choice that tries to keep balance between blocking effectiveness and false positives.  Includes Dan Pollock's, MVPS, AdAway lists amongst other.  However, doesn't cover Irish specific trackers such as adservice.google.ie", "Type":"Hostlist"],
-		["Name": "Goodbye Ads by Jerryn70","File":"GoodbyeAds.txt",  "URL":"https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Hosts/GoodbyeAds.txt","Tip":"Blocks mobile ads and trackers, including blocks ads by Facebook.  Includes Irish specific trackers such as adservice.google.ie", "Type":"Hostlist"],
-		["Name": "Dan Pollock's hosts file","File": "hosts","URL":"https://someonewhocares.org/hosts/zero/hosts","Tip":"A balanced ad blocking hosts file.  Try this if other ones are blocking too much.", "Type":"Hostlist"],
-		["Name": "AdAway","File":"hosts.txt","URL":"https://adaway.org/hosts.txt","Tip":"Blocks ads and some analytics but quite limited (only 525 hosts)", "Type":"Hostlist"],
-		["Name": "hpHosts","File": "ad_servers.txt" ,"URL":"https://hosts-file.net/ad_servers.txt", "Tip":"Ad and trackers list from hpHosts, moderately sizesd (45K hosts)."],
-		["Name": "Doug's Annoyances Block List","File": "dougs_blocklist.txt","URL": "https://www.scss.tcd.ie/doug.leith/dougs_blocklist.txt", "Tip": "Based on MAC OS application traffic.", "Type":"Blocklist"]
-		//["Name": "","File": "","URL": "", "Tip": "", "Type":"Hostlist"]
-	]
-
-	var lists_lastUpdated : String = ""
+		var lists_lastUpdated : String = ""
 	var EnabledLists : [String] = []
 	var AvailableLists : [String] = []
 	var changed : Bool = false
@@ -51,7 +38,7 @@ class PreferenceViewController: NSViewController {
   
   func updateAvailableLists() {
 		AvailableLists = []
-		for item in HostNameLists{
+		for item in Config.hostNameLists{
 			guard (item["Name"] != nil) else { continue };
 			guard EnabledLists.firstIndex(of: item["Name"]!) == nil else { continue };
 			AvailableLists.append(item["Name"]!);
@@ -77,7 +64,7 @@ class PreferenceViewController: NSViewController {
 		let filePath = String(cString:get_path())
 		let backupPath = Bundle.main.resourcePath ?? "./"
 		var n = String("")
-		for item in HostNameLists {
+		for item in Config.hostNameLists {
 			guard (item["Name"] != nil) else { continue };
 			guard EnabledLists.firstIndex(of: item["Name"]!) != nil else { continue };
 			guard let fname = item["File"] else { continue };
@@ -117,7 +104,7 @@ class PreferenceViewController: NSViewController {
 
 	@IBAction func AddButton(_ sender: Any) {
 		let row = tableView.selectedRow
-		if (row<0 || row > HostNameLists.count) { return }
+		if (row<0 || row > Config.hostNameLists.count) { return }
 		
 		for item in EnabledLists {
 			if (item == AvailableLists[row]) {
@@ -160,7 +147,7 @@ class PreferenceViewController: NSViewController {
 		let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
 		refreshButton.isEnabled = false
 		downloadStartTime = Date().timeIntervalSinceReferenceDate
-		for (index, item) in HostNameLists.enumerated() {
+		for (index, item) in Config.hostNameLists.enumerated() {
 			let url_string = item["URL"] ?? ""
 			if (url_string.count < 5) { continue; }
 			let fname = item["File"] ?? ""
@@ -182,7 +169,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 
 	func updateDownloadProgess(index: Int, progress: String) {
 		// let's find where list is located
-		let name = HostNameLists[index]["Name"]
+		let name = Config.hostNameLists[index]["Name"]
 		var row: Int = -1
 		for (i, item) in EnabledLists.enumerated()  {
 			if (item == name) {
@@ -275,7 +262,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 			downloadsErrors.append(msg)
 			print(msg)
 		} else {
-			let fname = HostNameLists[index]["File"]!
+			let fname = Config.hostNameLists[index]["File"]!
 			let path = String(cString:get_path())+fname
 			do {
 				try FileManager.default.removeItem(atPath: path+".0")
@@ -340,7 +327,7 @@ extension PreferenceViewController: NSTableViewDelegate {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
 			cell.textField?.stringValue = AvailableLists[row]
 			var tip = ""
-			for item in HostNameLists {
+			for item in Config.hostNameLists {
 				if (item["Name"]! == AvailableLists[row]) {
 						tip = item["Tip"] ?? ""
 						tip += "\nURL:" + (item["URL"] ?? "")
@@ -356,7 +343,7 @@ extension PreferenceViewController: NSTableViewDelegate {
 			guard let cell = tableSelectedView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
 			cell.textField?.stringValue = EnabledLists[row]
 			var tip = ""
-			for item in HostNameLists {
+			for item in Config.hostNameLists {
 				if (item["Name"]! == EnabledLists[row]) {
 							tip = item["Tip"] ?? ""
 						tip += "\nURL:" + (item["URL"] ?? "")

@@ -17,7 +17,7 @@
 void add_dns_conn(char* domain, char* name);
 void dump_dns_conn_list(void);
 char* guess_name(char* domain, double* confidence);
-void save_dns_conn_list(void);
-int load_dns_conn_list(const char* dir);
+void save_dns_conn_list(const char* fname);
+int load_dns_conn_list(const char* dir, const char* fname);
 
 #endif /* dns_conn_cache_h */

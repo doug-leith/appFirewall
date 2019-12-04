@@ -41,7 +41,6 @@ extern int verbose;          // debugging level
 #define RECV_TIMEOUT 10 // 10s for socket read timeout
 #define SND_TIMEOUT 20 // 20s for socket send timeout, nice and long
 #define NOTFOUND "<not found>" // label for connections for which process not found
-#define APPLOGFILE "app_log.txt"
 
 // for debugging locks
 #define MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER
@@ -72,7 +71,7 @@ void set_recv_timeout(int sockfd, int timeout);
 void set_snd_timeout(int sockfd, int timeout);
 
 char *trimwhitespace(char *str);
-void redirect_stdout(void);
+void redirect_stdout(const char* appLog);
 
 struct timespec timespec_add(struct timespec ts1, struct timespec ts2);
 

@@ -9,7 +9,6 @@
 #include "dns_conn_cache.h"
 
 // dns process cache. a list of lists ...
-#define DNS_CONNLISTFILE "dns_connlist.dat"
 #define MAXDNS 21 // best to be an odd number since we use majority vote
 typedef struct dns_conn_t {
 	// domain of interest
@@ -114,20 +113,20 @@ char* guess_name(char* domain, double* confidence) {
 	return name[max_posn];
 }
 
-void save_dns_conn_list() {
+void save_dns_conn_list(const char* fname) {
 	#define STR_SIZE 1024
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	save_list(&dns_conn_list, path, sizeof(dns_conn_t));
 	//dump_dns_conn_list();
 }
 
-int load_dns_conn_list(const char* dir) {
+int load_dns_conn_list(const char* dir, const char* fname) {
 	#define STR_SIZE 1024
 	init_list(&dns_conn_list, dns_conn_hash, NULL,1,-1, "dns_conn_list");
 
 	char path[STR_SIZE]; strlcpy(path,dir,STR_SIZE);
-	strlcat(path,DNS_CONNLISTFILE,STR_SIZE);
+	strlcat(path,fname,STR_SIZE);
 	FILE *fp = fopen(path,"r");
 	if (fp == NULL) return -1; // problem opening file
 
