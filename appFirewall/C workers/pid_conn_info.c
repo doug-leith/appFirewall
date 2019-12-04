@@ -316,7 +316,11 @@ int get_pid_name(int pid, char* name) {
 		//INFO("Cannot get process info for PID %d, likely has died.\n",pid);
 		return -1;
 	}
-	strlcpy(name,proc.pbsi_comm,MAXCOMLEN);
+	// surprisingly, some process names have trailing whitespace
+	char n[MAXCOMLEN];
+	strlcpy(n,proc.pbsi_comm,MAXCOMLEN);
+	char* clean_n = trimwhitespace(n);
+	strlcpy(name,clean_n,MAXCOMLEN);
 	return 0;
 }
 

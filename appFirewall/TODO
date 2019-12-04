@@ -2,11 +2,10 @@ TO DO
 
 short term:
 - check operation with SIPS enabled, will fall back to not using dtrace
-- UI remove dock item, but need to create menu when open window from status bar.  main problem is how to let user control statusbar vs dock -- another pref pane just for this ?
 - distribute baseline dns_conn_cache (covering apple apps etc) with app
 
 longer term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  only for cataline onwards though
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
-- compress log samples uploaded to server
-
+- compress log samples uploaded to server?
+- UI remove dock item, but need to create menu when open window from status bar.  main problem is how to let user control statusbar vs dock -- another pref pane just for this ?

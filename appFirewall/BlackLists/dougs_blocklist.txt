@@ -24,6 +24,7 @@ Dropbox,-client.dropbox.com
 #Dropbox, nsf-1.dropbox.com
 
 DropboxMacUpdat, d.dropbox.com
+DropboxMacUpdat, client.dropbox.com
 
 Microsoft Word, *
 #Microsoft Word, prod-w.nexus.live.com.akadns.net
@@ -74,6 +75,8 @@ Microsoft Power,*
 Microsoft Updat, prd.col.aria.mobile.skypedata.akadns.net
 Microsoft Updat, officecdn-microsoft-com.akamaized.net
 Microsoft Updat, officeci.azurewebsites.net
+Microsoft Updat, officeci-mauservice.azurewebsites.net
+Microsoft Updat, mobile.pipe.aria.microsoft.com
 
 #Spotify,*
 #Spotify,-spclient.spotify.com
@@ -85,6 +88,7 @@ Spotify, gew1-accesspoint-a-6z1c.ap.spotify.com
 Spotify, pubads.g.doubleclick.net
 Spotify, spclient.wg.spotify.com
 Spotify, www.spotify.com
+Spotify, i.scdn.co
 
 #Spotify Helper, spclient.wg.spotify.com # don't block this
 Spotify Helper, audio4-ak-spotify-com.akamaized.net
@@ -107,6 +111,8 @@ Spotify Helper, www.youtube.com
 Spotify Helper, seeded-session-images.scdn.co
 Spotify Helper, r4---sn-5hnekn7k.googlevideo.com
 Spotify Helper, i.scdn.co
+Spotify Helper, cdn.hptos.firepit.tools
+Spotify Helper, pl.scdn.co
 
 CalendarAgent, dublin.sciencegallery.com
 CalendarAgent, sciencegallery.com
@@ -122,13 +128,15 @@ firefox, firefox.settings.services.mozilla.com
 firefox, content-signature-2.cdn.mozilla.net
 firefox, classify-client.services.mozilla.com
 firefox, browser.sentry-cdn.com
-
+firefox, normandy.cdn.mozilla.net
+firefox, search.services.mozilla.com
 
 firefox, downloads.mailchimp.com
 firefox, connect.facebook.net
 firefox, www.facebook.com
 firefox, star-mini.c10r.facebook.com
 firefox, cdn-images.mailchimp.com
+firefox, chimpstatic.com
 firefox, pixel.quantserve.com
 firefox, global.px.quantserve.com
 firefox, quantcast.mgr.consensu.org
@@ -136,6 +144,17 @@ firefox, syndication.twitter.com
 firefox, cdn.syndication.twimg.com
 firefox, platform.twitter.com
 firefox, pagead-googlehosted.l.google.com
+firefox, adverts-api.ryanair.com
+firefox, platform.cloud.coveo.com
+firefox, static.cloud.coveo.com
+firefox, t34htyd6jblf.statuspage.io
+firefox, cwhib9vv.r.us-east-1.awstrack.me
+firefox, accedian.com
+firefox, yt3.ggpht.com
+firefox, mxpez29397.i.lithium.com
+firefox, autopush.prod.mozaws.net
+firefox, tags.tiqcdn.com
+firefox, i.ytimg.com
 
 Google Chrome H, clientservices.googleapis.com
 Google Chrome H, accounts.google.com
@@ -145,6 +164,7 @@ Google Chrome H, fonts.googleapis.com
 ksfetch,*
 
 keyboardservice, configuration.apple.com
+keyboardservice, e673.dsce9.akamaiedge.net
 accountsd, fonts.googleapis.com
 com.apple.geod,*
 #commerce,*
@@ -164,6 +184,10 @@ IMRemoteURLConn, init-p01md.apple.com
 IMRemoteURLConn, profile.ess.apple.com
 com.apple.dt.Xc, contentdelivery.itunes.apple.com
 com.apple.WebKi, url7848.fieldmotion.com
+rtcreportingd, xp.apple.com
+rtcreportingd, cds.apple.com
+rtcreportingd, ocsp.apple.com
+com.apple.photo, gspe21-ssl.ls.apple.com
 
 balenaEtcher, *
 

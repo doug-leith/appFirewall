@@ -281,7 +281,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("SIP enabled: ",sipEnabled)
 		var dtrace = UserDefaults.standard.integer(forKey: "dtrace")
 		if (sipEnabled) { dtrace = 0 } // dtrace doesn't work with SIP
-		if ((Config.enableDtrace > 0) && (dtrace > 0)) {
+		if ((Config.enableDtrace == 0) && (dtrace > 0)) {
+			dtrace = 0
 			print("Dtrace enabled")
 		} else {
 			print("Dtrace disabled")
