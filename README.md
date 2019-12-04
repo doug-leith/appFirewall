@@ -4,7 +4,7 @@ A free, fully open-source application firewall for MAC OS Mojave and later.  All
 
 ## Getting Started
 
-Just drag the appFirewall icon into your Applications folder and click on it to start, there's nothing more to it.
+[Download the .dmg](https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg) and open it.  Then just drag the appFirewall icon into your Applications folder and click on it to start, there's nothing more to it.
 
 ## Privacy - What personal data we collect
 
