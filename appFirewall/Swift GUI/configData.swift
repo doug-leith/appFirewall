@@ -9,6 +9,9 @@
 import Foundation
 
 struct Config {
+	static let defaultLoggingLevel = 2 // more verbose, for testing
+	static let enableDtrace = 0 // disable for SIP testing
+	
 	static let crashURL = URL(string: "https://leith.ie/logcrash.php")!
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!
 	static let updateCheckURL = URL(string: "https://leith.ie/appFirewall_version.html")!
@@ -19,6 +22,7 @@ struct Config {
 	static let csrutil = "/usr/bin/csrutil"
 	static let pgrep = "/usr/bin/pgrep"
 	
+	static let defaultNameList = ["host_lists":["Energized Blu (Recommended)"],]
 	static let hostNameLists : [[String: String]] =
 	[
 		["Name":"Energized Blu (Recommended)", "File": "energized_blu.txt", "URL": "https://block.energized.pro/blu/formats/hosts","Tip":"A large, quite complete list (231K entries).", "Type":"Hostlist"],
@@ -38,4 +42,7 @@ struct Config {
 	static let blockListName = "blocklist.dat"
 	static let whiteListName = "whitelist.dat"
 	static let dnsConnListName = "dns_connlist.dat"
+	
+	static let appDelegateRefreshTime : Double = 10 // check state every 10s
+	static let viewRefreshTime : Double = 1 // check for window uodate every 1s
 }

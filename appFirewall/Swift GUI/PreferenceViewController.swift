@@ -33,7 +33,7 @@ class PreferenceViewController: NSViewController {
 		
 		lists_lastUpdated = UserDefaults.standard.string(forKey: "lists_lastUpdated") ?? String("")
 		refreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
-		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
+		timer = Timer.scheduledTimer(timeInterval: Config.viewRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 	}
   
   func updateAvailableLists() {
@@ -50,9 +50,7 @@ class PreferenceViewController: NSViewController {
 		// on changes to set of enabled lists
 		
 		// set default host list(s) to use
-		UserDefaults.standard.register(defaults: [
-			"host_lists":["Energized Blu (Recommended)"],
-		])
+		UserDefaults.standard.register(defaults: Config.defaultNameList)
 		// reload enabled lists, persistent across runs of app
 		// and wil default to above if not previously set
 		EnabledLists = UserDefaults.standard.array(forKey: "host_lists") as? [String] ?? []

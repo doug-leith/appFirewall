@@ -49,7 +49,7 @@ class LogViewController: NSViewController {
 		ConnsColumn.headerCell.title="Connections ("+String(Int(get_num_conns_blocked()))+" blocked)"
 		
 		// schedule refresh of connections list every 1s
-		timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
+		timer = Timer.scheduledTimer(timeInterval: Config.viewRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		refresh(timer: nil) // refresh the table when it is redisplayed
 	}

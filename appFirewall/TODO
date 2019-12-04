@@ -3,9 +3,7 @@ TO DO
 short term:
 - check operation with SIPS enabled, will fall back to not using dtrace
 - UI remove dock item, but need to create menu when open window from status bar.  main problem is how to let user control statusbar vs dock -- another pref pane just for this ?
-- distribute baseline dns_conn_cache (covering apple apps etc) with app 
-- move constants out of code e.g. into Info.plist.  e.g. URL for uploading crash reports, URL for uploading log samples, URL for checking for updates, maybe some key program parameters (timeouts etc) >?
-
+- distribute baseline dns_conn_cache (covering apple apps etc) with app
 
 longer term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  only for cataline onwards though

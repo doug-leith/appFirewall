@@ -203,7 +203,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		redirect_stdout(Config.appLogName)
 
 		// set default logging level, again do this early
-		UserDefaults.standard.register(defaults: ["logging_level":2])
+		UserDefaults.standard.register(defaults: ["logging_level":Config.defaultLoggingLevel])
 		// can change this at command line using "defaults write" command
 		let log_level = UserDefaults.standard.integer(forKey: "logging_level")
 		set_logging_level(Int32(log_level))
@@ -276,13 +276,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		UserDefaults.standard.register(defaults: ["log_show_blocked":3])
 					
 		// set whether to use dtrace assistance or not
-		UserDefaults.standard.register(defaults: ["dtrace":1])
+		UserDefaults.standard.register(defaults: ["dtrace": 1])
 		let sipEnabled = isSIPEnabled()
 		print("SIP enabled: ",sipEnabled)
 		var dtrace = UserDefaults.standard.integer(forKey: "dtrace")
 		if (sipEnabled) { dtrace = 0 } // dtrace doesn't work with SIP
-		dtrace = 0 // testing
-		if (dtrace > 0) {
+		if ((Config.enableDtrace > 0) && (dtrace > 0)) {
 			print("Dtrace enabled")
 		} else {
 			print("Dtrace disabled")
@@ -299,9 +298,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		}
 		
 		// schedule house-keeping ...
-		timer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
+		timer = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
-		timer_stats = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
+		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 	}
 
