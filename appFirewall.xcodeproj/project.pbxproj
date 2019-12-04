@@ -48,6 +48,7 @@
 		9180E17C238D2882007002CB /* installHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17B238D2882007002CB /* installHelper.swift */; };
 		9180E17E238D2D07007002CB /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17D238D2D07007002CB /* Helpers.swift */; };
 		9180E181238DECEB007002CB /* codesign.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.c */; };
+		919074142397B01C00DE49DE /* Screenshot.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 919074132397B01C00DE49DE /* Screenshot.jpg */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91ABB26E237680B7007F8FFE /* table.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB26C237680B7007F8FFE /* table.c */; };
 		91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */; };
@@ -165,6 +166,7 @@
 		9180E17B238D2882007002CB /* installHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = installHelper.swift; sourceTree = "<group>"; };
 		9180E17D238D2D07007002CB /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		9180E17F238DC38C007002CB /* codesign.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = codesign.c; sourceTree = "<group>"; };
+		919074132397B01C00DE49DE /* Screenshot.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Screenshot.jpg; sourceTree = "<group>"; };
 		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
 		91ABB26D237680B7007F8FFE /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceViewController.swift; sourceTree = "<group>"; };
@@ -206,6 +208,7 @@
 			children = (
 				91D96AD5239718CF00AAA73B /* latest release */,
 				9157B04A238FB09E0027457A /* README.md */,
+				919074132397B01C00DE49DE /* Screenshot.jpg */,
 				9180E16A2387FCC9007002CB /* LICENSE.md */,
 				91607BB1236AB280002E50A8 /* appFirewall */,
 				91607C1F2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
@@ -429,6 +432,7 @@
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				9157B04B238FB09E0027457A /* README.md in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
+				919074142397B01C00DE49DE /* Screenshot.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

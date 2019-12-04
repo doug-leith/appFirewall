@@ -1,14 +1,32 @@
 # AppFirewall
 
-A free, fully open-source application firewall for MAC OS Mojave and later.  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists (Energized Blu etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.  
+A free, fully open-source application firewall for macOS 10.14 Mojave and later.  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists (Energized Blu etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.  
+
+<img src="Screenshot.jpg"/>
 
 ## Getting Started
 
-[Download the .dmg](https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg) and open it.  Then just drag the appFirewall icon into your Applications folder and click on it to start, there's nothing more to it.
+* [Download the .dmg](https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg) and open it.  
+* Drag the appFirewall icon into your Applications folder and click on it to start, there's nothing more to it.
 
-## Privacy - What personal data we collect
+## How It Works
 
-The short answer is "none".  No personal data is shared by this app. 
+The firewall sniffs packets to detect TCP network connections. 
+  
+* On spotting a new connection it tries to find the app which is the source of the connection (you can try this yourself using the command "lsof -i | grep -i tcp").   
+* It also tries to resolve the raw IP address from the connection to a domain name, e.g. www.google-analytics.com, by sniffing DNS response packets.  
+* Once it has an (app name, domain name) pair it compares this against the white and black lists to decide whether to block it or not.  
+* If it is to be blocked then the firewall sends TCP RST packets to the connection to force it to close.   
+
+The firewall needs root permissions to sniff packets and send TCP RST packets  so it installs a privileged helper to carry out these actions (you're asked to give a password to allow this helper to be installed when the firewall is first started).
+
+One nice thing about this approach is that the firewall does not lie in the direct path of network packets i.e. network packets do not have to flow via the firewall.  That means if the firewall is stopped abruptly or is misconfigured then no real damage is done, network connectivity will be maintained.  Another is that it keeps things lightweight and non-invasive -- to install /uninstall just copy/delete the firewall app from your Applications folder, there's nothing more to it.
+
+The main downsides of the approach are: (i) apps which start and then stop v quickly may disappear before a link can be made between the network connection and the app (sometimes it can take a few milliseconds to make this link, although usually its sub-millisecond).  Printing short docs on a LAN can do this, for example, but its not usually a problem with internet connections since the latency to connect to the destination is typically several milliseconds.  (ii) a small number of packets can occasionally "leak" on a connection before its shut down, especially when apps make multiple rapid connection attempts in a row (e.g. in response to being blocked).  This doesn't seem like too big a deal though since its "privacy" (severely throttling tracking etc) that we're aiming for rather than strict "security".
+
+## Privacy
+
+No personal data is shared by this app. 
 
 If you refresh the hostname files (with lists of blacklisted domains) then the web site that hosts the file may log the request (and so your IP address etc).  Refresh of hostname files is manual only, i.e. only when you press the "Refresh Lists" button on the app preferences page, so you have complete control over this.  
 
@@ -32,21 +50,6 @@ The app also periodically uploads a sample of the connections made by a randomly
     Dec 03 21:40:21 2019	Dropbox	192.168.1.27:64393 -> 162.125.36.1 (d.dropbox.com):443	
 
 The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see what has been uploaded.  The upload server does not log IP address or other connection details.
-
-## How It Works
-
-The firewall sniffs packets to detect TCP network connections. 
-  
-* On spotting a new connection it tries to find the app which is the source of the connection (you can try this yourself using the command "lsof -i | grep -i tcp").   
-* It also tries to resolve the raw IP address from the connection to a domain name, e.g. www.google-analytics.com, by sniffing DNS response packets.  
-* Once it has an (app name, domain name) pair it compares this against the white and black lists to decide whether to block it or not.  
-* If it is to be blocked then the firewall sends TCP RST packets to the connection to force it to close.   
-
-The firewall needs root permissions to sniff packets and send TCP RST packets  so it installs a privileged helper to carry out these actions (you're asked to give a password to allow this helper to be installed when the firewall is first started).
-
-One nice thing about this approach is that the firewall does not lie in the direct path of network packets i.e. network packets do not have to flow via the firewall.  That means if the firewall is stopped abruptly or is misconfigured then no real damage is done, network connectivity will be maintained.  Another is that it keeps things lightweight and non-invasive -- to install /uninstall just copy/delete the firewall app from your Applications folder, there's nothing more to it.
-
-The main downsides of the approach are: (i) apps which start and then stop v quickly may disappear before a link can be made between the network connection and the app (sometimes it can take a few milliseconds to make this link, although usually its sub-millisecond).  Printing short docs on a LAN can do this, for example, but its not usually a problem with internet connections since the latency to connect to the destination is typically several milliseconds.  (ii) a small number of packets can occasionally "leak" on a connection before its shut down, especially when apps make multiple rapid connection attempts in a row (e.g. in response to being blocked).  This doesn't seem like too big a deal though since its "privacy" (severely throttling tracking etc) that we're aiming for rather than strict "security".
 
 ## Contributing
 
