@@ -49,7 +49,7 @@ The app also periodically uploads a sample of the connections made by a randomly
     Dec 03 21:38:38 2019	Dropbox	192.168.1.27:64389 -> 162.125.19.131 (bolt.dropbox.com):443	
     Dec 03 21:40:21 2019	Dropbox	192.168.1.27:64393 -> 162.125.36.1 (d.dropbox.com):443	
 
-The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see what has been uploaded.  The upload server does not log IP address or other connection details.
+The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see what has been uploaded.  There is no identifier linking a sample to your copy of the app and the upload server does not log IP address or other connection details.
 
 ## Contributing
 

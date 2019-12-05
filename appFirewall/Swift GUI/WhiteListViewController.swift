@@ -10,13 +10,13 @@ import Cocoa
 class WhiteListViewController: NSViewController {
 
 	var asc: Bool = true
-	@IBOutlet weak var tableView: NSTableView!
+	@IBOutlet weak var tableView: NSTableView?
 	
 	override func viewDidLoad() {
 			super.viewDidLoad()
 			// Do view setup here.
-			tableView.delegate = self
-			tableView.dataSource = self
+			tableView!.delegate = self
+			tableView!.dataSource = self
 	}
 
 	override func viewWillAppear() {
@@ -25,11 +25,11 @@ class WhiteListViewController: NSViewController {
 		UserDefaults.standard.set(3, forKey: "tab_index") // record active tab
 		// enable click of column header to call sortDescriptorsDidChange action below
 		asc = UserDefaults.standard.bool(forKey: "whitelist_asc")
-		if (tableView.tableColumns[0].sortDescriptorPrototype==nil) {
-			tableView.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"app_name",ascending:asc)
-			tableView.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
+		if (tableView?.tableColumns[0].sortDescriptorPrototype==nil) {
+			tableView?.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"app_name",ascending:asc)
+			tableView?.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
 		}
-		tableView.reloadData()
+		tableView?.reloadData()
 	}
 	
 	override func viewWillDisappear() {
@@ -40,19 +40,19 @@ class WhiteListViewController: NSViewController {
 	}
 	
 	
-	@IBAction func helpButton(_ sender: helpButton!) {
-		sender.clickButton(msg:"Domains/apps added here will never be blocked.  Use this list when, for example, a connection is mistakenly blocked.")
+	@IBAction func helpButton(_ sender: helpButton?) {
+		sender?.clickButton(msg:"Domains/apps added here will never be blocked.  Use this list when, for example, a connection is mistakenly blocked.")
 	}
 	
-	@IBAction func click(_ sender: NSButton!) {
+	@IBAction func click(_ sender: NSButton?) {
 		BlockBtnAction(sender: sender)
 	}
 	
-	@objc func BlockBtnAction(sender : NSButton!) {
-		let row = sender.tag;
+	@objc func BlockBtnAction(sender : NSButton?) {
+		guard let row = sender?.tag else {print("WARNING: problem in whitelistView BlockBtnAction getting row"); return}
 		let item = get_whitelist_item(Int32(row))
 		del_whiteitem(item)
-		tableView.reloadData() // update the GUI to show the change
+		tableView?.reloadData() // update the GUI to show the change
 	}
 }
 
@@ -64,7 +64,7 @@ extension WhiteListViewController: NSTableViewDataSource {
 	func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
 		var asc1: Int = 1
 		guard let sortDescriptor = tableView.sortDescriptors.first else {
-    return }
+    print("WARNING: problem in whitelistView getting sort descriptor"); return }
     asc = sortDescriptor.ascending
 		UserDefaults.standard.set(asc, forKey: "whitelist_asc")
 		if (!asc) {
@@ -109,19 +109,19 @@ extension WhiteListViewController: NSTableViewDelegate {
 		
 		let cellId = NSUserInterfaceItemIdentifier(rawValue: cellIdentifier)
 		if (cellIdentifier == "ButtonCell") {
-			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSButton else {return nil}
+			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSButton else {print("WARNING: problem in whitelistView making button cell"); return nil}
 			cell.title = "Remove"
 			cell.tag = row
 			cell.action = #selector(self.BlockBtnAction)
 			cell.toolTip = "Remove from white list"
 			return cell
 		}
-		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
+		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in whitelistView making non-button cell"); return nil}
 		cell.textField?.stringValue = content
 		return cell	}
 	
 	func copy(sender: AnyObject?){
-		let indexSet = tableView.selectedRowIndexes
+		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in whitelistView copy getting index set"); return}
 		var text = ""
 		for row in indexSet {
 			text += getRowText(row: row)+"\n"
@@ -132,6 +132,6 @@ extension WhiteListViewController: NSTableViewDelegate {
 	}
 	
 	func selectall(sender: AnyObject?){
-		tableView.selectAll(nil)
+		tableView?.selectAll(nil)
 	}
 }

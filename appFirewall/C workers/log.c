@@ -215,7 +215,7 @@ void filter_log_list(int_sw show_blocked, const char* str) {
 	for (size_t i=0; i< get_log_size(); i++) {
 		log_line_t *l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
-			if ((strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
+			if ((str==NULL) || (strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
 				log_line_t *l_existing = add_item(&filtered_log_list,l,sizeof(log_line_t));
 				if (l_existing) log_repeat(l_existing);
 			}

@@ -17,26 +17,12 @@ class blButton: NSButton {
 	// the row of the log to identify the item may fail
 	// (plus we can only store integers in button tag
 	// property)
-	//var item_ptr: UnsafeMutablePointer<bl_item_t>? = nil
 	var bl_item: bl_item_t? = nil
 	var udp : Bool = false
 	
 	func updateButton() {
 		// refresh the contents based on current data
-		var bl_item = self.bl_item!
-		/*var white: Int = 0
-		if (in_whitelist_htab(&bl_item, 0) != nil) {
-			white = 1
-		}
-		var blocked: Int = 0
-		let domain = String(cString: &bl_item.domain.0)
-		if (in_blocklist_htab(&bl_item, 0) != nil) {
-			blocked = 1
-		} else if (in_hostlist_htab(domain) != nil) {
-			blocked = 2
-		} else if (in_blocklists_htab(&bl_item) != nil) {
-			blocked = 3
-		}*/
+		guard var bl_item = self.bl_item else { print("WARNING: update blButton problem getting bl_item"); return }
 		let blocked = Int(blocked_status(&bl_item))
 		let white = Int(is_white(&bl_item))
 				
@@ -74,7 +60,7 @@ class blButton: NSButton {
 	}
 	
 	func clickButton() {
-		var bl_item = self.bl_item!
+		guard var bl_item = self.bl_item else { print("WARNING: click blButton problem getting bl_item"); return }
 		
 		let name = String(cString: &bl_item.name.0)
 		if ((name.count==0) || name.contains(NOTFOUND) ) {

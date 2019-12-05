@@ -10,6 +10,7 @@ longer term:
 - compress log samples uploaded to server?
 - UI remove dock item, but need to create menu when open window from status bar.  main problem is how to let user control statusbar vs dock -- another pref pane just for this ?
 
+check for mem leak when load URLs e.g. refresh hostlists, check for updates
 
 2019-12-04 13:58:02.681185+0000 appFirewall[51399:2226176] *** Assertion failure in -[NSNibExternalObjectPlaceholder initWithCoder:], /BuildRoot/Library/Caches/com.apple.xbs/Sources/AppKit/AppKit-1671.60.109/AppKit.subproj/Storyboarding/NSNibExternalObjectPlaceholder.m:75
 2019-12-04 13:58:02.683991+0000 appFirewall[51399:2226176] [General] Missing placeholder for identifier 'UpstreamPlaceholder-DdK-NQ-2bC'

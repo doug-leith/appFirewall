@@ -113,7 +113,7 @@ func get_helper_version(Name: String)->Int {
 	let path = "/Library/LaunchDaemons/"+Name+".plist"
 	if let dict = NSDictionary(contentsOfFile: path) as? Dictionary<String, AnyObject> {
 			//print(dict)
-			guard let version:Int = dict["Version"] as? Int else {return -1}
+			let version:Int = dict["Version"] as! Int
 			print(String(format:"helper version is %d",version))
 			return version
 	} else {

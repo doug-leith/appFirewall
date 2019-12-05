@@ -9,16 +9,14 @@ import Cocoa
 
 class PreferenceViewController: NSViewController {
 
-	@IBOutlet weak var tableView: NSTableView!
+	@IBOutlet weak var tableView: NSTableView?
+	@IBOutlet weak var tableSelectedView: NSTableView?
 	
-	@IBOutlet weak var tableSelectedView: NSTableView!
-	
-		var lists_lastUpdated : String = ""
+	var lists_lastUpdated : String = ""
 	var EnabledLists : [String] = []
 	var AvailableLists : [String] = []
 	var changed : Bool = false
-	var timer : Timer!
-	//lazy var session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+	var timer : Timer = Timer()
 	var downloadStartTime :  Double = 0
 	var downloadsInProgress : [Int] = []
 	var downloadsErrors : [String] = []
@@ -26,22 +24,22 @@ class PreferenceViewController: NSViewController {
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		// Do view setup here.
-		tableView.delegate = self as NSTableViewDelegate
-		tableView.dataSource = self as NSTableViewDataSource
-		tableSelectedView.delegate = self as NSTableViewDelegate
-		tableSelectedView.dataSource = self as NSTableViewDataSource
+		tableView!.delegate = self as NSTableViewDelegate
+		tableView!.dataSource = self as NSTableViewDataSource
+		tableSelectedView!.delegate = self as NSTableViewDelegate
+		tableSelectedView!.dataSource = self as NSTableViewDataSource
 		
 		lists_lastUpdated = UserDefaults.standard.string(forKey: "lists_lastUpdated") ?? String("")
-		refreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
+		refreshLabel?.stringValue = "(Last updated:  "+lists_lastUpdated+")"
 		timer = Timer.scheduledTimer(timeInterval: Config.viewRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 	}
   
   func updateAvailableLists() {
 		AvailableLists = []
 		for item in Config.hostNameLists{
-			guard (item["Name"] != nil) else { continue };
-			guard EnabledLists.firstIndex(of: item["Name"]!) == nil else { continue };
-			AvailableLists.append(item["Name"]!);
+			guard let n = item["Name"] else { print("WARNING: problem in preferenceView empty name in host list on update"); continue };
+			guard EnabledLists.firstIndex(of: n) == nil else { continue }
+			AvailableLists.append(n);
 		}
 	}
 	
@@ -63,8 +61,8 @@ class PreferenceViewController: NSViewController {
 		let backupPath = Bundle.main.resourcePath ?? "./"
 		var n = String("")
 		for item in Config.hostNameLists {
-			guard (item["Name"] != nil) else { continue };
-			guard EnabledLists.firstIndex(of: item["Name"]!) != nil else { continue };
+			guard let nn = item["Name"] else { print("WARNING: problem in preferenceView empty name in host list");  continue };
+			guard EnabledLists.firstIndex(of: nn) != nil else { continue };
 			guard let fname = item["File"] else { continue };
 			print("adding ", filePath+fname)
 			if (item["Type"]=="Hostlist") {
@@ -101,7 +99,7 @@ class PreferenceViewController: NSViewController {
 	}
 
 	@IBAction func AddButton(_ sender: Any) {
-		let row = tableView.selectedRow
+		guard let row = tableView?.selectedRow else {print("WARNING: problem in preferenceView addButton getting row");  return}
 		if (row<0 || row > Config.hostNameLists.count) { return }
 		
 		for item in EnabledLists {
@@ -113,23 +111,25 @@ class PreferenceViewController: NSViewController {
 		EnabledLists.append(AvailableLists[row])
 		UserDefaults.standard.set(EnabledLists, forKey: "host_lists")
 		updateAvailableLists()
-		tableSelectedView.reloadData()
-		tableView.reloadData()
+		tableSelectedView?.reloadData()
+		tableView?.reloadData()
 		changed = true
 	}
 	
 	@IBAction func RemoveButton(_ sender: Any) {
-		let row = tableSelectedView.selectedRow
+		guard let row = tableSelectedView?.selectedRow else {print("WARNING: problem in preferenceView removeButton getting row"); return}
 		EnabledLists.remove(at: row)
 		UserDefaults.standard.set(EnabledLists, forKey: "host_lists")
 		updateAvailableLists()
-		tableSelectedView.reloadData()
-		tableView.reloadData()
+		tableSelectedView?.reloadData()
+		tableView?.reloadData()
 		changed = true
 	}
 	
 	@objc func refresh() {
-		refreshLabel.stringValue = "(Last updated:  "+lists_lastUpdated+")"
+		if (!isViewLoaded) { return }
+		
+		refreshLabel?.stringValue = "(Last updated:  "+lists_lastUpdated+")"
 		let elapsedTime = Date().timeIntervalSinceReferenceDate - downloadStartTime
 		if ((downloadsInProgress.count != 0) && (elapsedTime>10.0)) {
 			// one or more downloads is stuck, tell user about any errors anyway and renable button
@@ -137,13 +137,13 @@ class PreferenceViewController: NSViewController {
 		}
 	}
 	
-	@IBOutlet weak var refreshLabel: NSTextField!
+	@IBOutlet weak var refreshLabel: NSTextField?
 	
-	@IBOutlet weak var refreshButton: NSButton!
+	@IBOutlet weak var refreshButton: NSButton?
 	
 	@IBAction func clickRefreshButton(_ sender: NSButton) {
 		let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
-		refreshButton.isEnabled = false
+		refreshButton?.isEnabled = false
 		downloadStartTime = Date().timeIntervalSinceReferenceDate
 		for (index, item) in Config.hostNameLists.enumerated() {
 			let url_string = item["URL"] ?? ""
@@ -151,11 +151,11 @@ class PreferenceViewController: NSViewController {
 			let fname = item["File"] ?? ""
 			if (fname.count == 0){ continue; }
 			
-			let url = URL(string: url_string)
-			let downloadTask = session.downloadTask(with: url!)
+			guard let url = URL(string: url_string) else {print("WARNING: problem in preferenceView getting url");  return}
+			let downloadTask = session.downloadTask(with: url)
 			downloadTask.taskDescription = String(index)
 			downloadTask.resume()
-			print("Download started for ", url ?? "")
+			print("Download started for ", url)
 			downloadsInProgress.append(index)
 			//return
 		}
@@ -166,6 +166,8 @@ class PreferenceViewController: NSViewController {
 extension PreferenceViewController: URLSessionDownloadDelegate {
 
 	func updateDownloadProgess(index: Int, progress: String) {
+		if (!isViewLoaded) { return }
+		
 		// let's find where list is located
 		let name = Config.hostNameLists[index]["Name"]
 		var row: Int = -1
@@ -176,7 +178,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 			}
 		}
 		if (row >= 0) {
-			let cell = tableSelectedView.view(atColumn:0, row:row, makeIfNecessary: true) as! NSTableCellView
+			guard let cell = tableSelectedView?.view(atColumn:0, row:row, makeIfNecessary: true) as? NSTableCellView else {print("WARNING: problem in preferenceView updateDownloadProgess getting tableSelectedView cell"); return}
 			cell.textField?.stringValue = EnabledLists[row]+" "+progress
 		} else {
 			var row:  Int = -1
@@ -190,13 +192,13 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 				print("updateDownloadProgess() problem finding list")
 				return
 			}
-			let cell = tableView.view(atColumn:0, row:row, makeIfNecessary: true) as! NSTableCellView
+			guard let cell = tableView?.view(atColumn:0, row:row, makeIfNecessary: true) as? NSTableCellView else {print("WARNING: problem in preferenceView updateDownloadProgess getting tableView cell");return}
 			cell.textField?.stringValue = AvailableLists[row]+" "+String(progress)
 		}
 	}
 	
 	func getIndex(task: URLSessionTask) -> (Int,Int) {
-		let index = Int(task.taskDescription ?? "-1")!
+		guard let index = Int(task.taskDescription ?? "-1") else {print("WARNING: problem in preferenceView getIndex getting index"); return (-1,-1)}
 		if (index<0) { // shouldn't happen
 			print("Problem with download task, taskDescription:",task.taskDescription ?? "")
 		}
@@ -218,9 +220,12 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 				self.downloadsErrors.removeAll() // only show errors once
 				error_popup(msg: msgs)
 			}
+			// it may happen that view is closed by the time we get here
+			if (!self.isViewLoaded) { return }
+			
 			self.refreshButton?.isEnabled = true
-			self.tableSelectedView.reloadData()
-			self.tableView.reloadData()
+			self.tableSelectedView?.reloadData()
+			self.tableView?.reloadData()
 		}
 	}
 	
@@ -251,7 +256,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 		if (loc >= 0 ) { downloadsInProgress.remove(at: loc) }
 
 		// catch server-side errors
-		let resp = task.response as! HTTPURLResponse
+		guard let resp = task.response as? HTTPURLResponse else {print("WARNING: problem in preferenceView urlSession getting HTTP response");  return}
 		let statusCode = resp.statusCode
 		//print("status:", statusCode)
 		let url = String(task.originalRequest?.url?.absoluteString ?? "<unknown>")
@@ -260,7 +265,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 			downloadsErrors.append(msg)
 			print(msg)
 		} else {
-			let fname = Config.hostNameLists[index]["File"]!
+			guard let fname = Config.hostNameLists[index]["File"] else {print("WARNING: problem in preferenceView urlSession getting filename");  return}
 			let path = String(cString:get_path())+fname
 			do {
 				try FileManager.default.removeItem(atPath: path+".0")
@@ -318,15 +323,17 @@ extension PreferenceViewController: NSTableViewDataSource {
 extension PreferenceViewController: NSTableViewDelegate {
 	
 	func tableView(_ tView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+		if (!self.isViewLoaded) { return nil }
 		
 		if (tView == tableView) {
 			let cellId = NSUserInterfaceItemIdentifier(rawValue: "HostListCell")
 			
-			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
+			guard let cell = tableView?.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in preferenceView tableView making cell"); return nil}
 			cell.textField?.stringValue = AvailableLists[row]
 			var tip = ""
 			for item in Config.hostNameLists {
-				if (item["Name"]! == AvailableLists[row]) {
+				guard let n = item["Name"] else {print("WARNING: in preferenceView empty name in list"); continue}
+				if (n == AvailableLists[row]) {
 						tip = item["Tip"] ?? ""
 						tip += "\nURL:" + (item["URL"] ?? "")
 						break
@@ -338,11 +345,12 @@ extension PreferenceViewController: NSTableViewDelegate {
 		} else {
 			let cellId = NSUserInterfaceItemIdentifier(rawValue: "EnabledListCell")
 			
-			guard let cell = tableSelectedView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {return nil}
+			guard let cell = tableSelectedView?.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in preferenceView making cell"); return nil}
 			cell.textField?.stringValue = EnabledLists[row]
 			var tip = ""
 			for item in Config.hostNameLists {
-				if (item["Name"]! == EnabledLists[row]) {
+				guard let n = item["Name"] else {print("WARNING: problem in preferenceView empty name in host list");  continue}
+				if (n == EnabledLists[row]) {
 							tip = item["Tip"] ?? ""
 						tip += "\nURL:" + (item["URL"] ?? "")
 					break

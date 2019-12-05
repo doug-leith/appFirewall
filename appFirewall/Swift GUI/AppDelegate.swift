@@ -15,8 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	//--------------------------------------------------------
 	// private variables
 	// timer for periodic polling ...
-	var timer : Timer!
-	var timer_stats: Timer!
+	var timer : Timer = Timer()
+	var timer_stats: Timer = Timer()
 	var count_stats: Int = 0
 	// menubar button ...
 	var statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
@@ -48,22 +48,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			let app = NSApplication.shared
 			//print(app.mainWindow, app.isHidden)
 			if (app.mainWindow == nil){ return }
-			guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { return }
+			guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { print("ERROR on copy: problem getting tab view controller"); return }
 			let i = tc.selectedTabViewItemIndex
 			let v = tc.tabViewItems[i] // the currently active TabViewItem
 			//print(tc.tabViewItems)
 			//print(v.label)
 			if (v.label == "Active Connections") {
-				let c = v.viewController as! ActiveConnsViewController
+				guard let c = v.viewController as? ActiveConnsViewController else {print("ERROR on copy: problem getting view controller"); return}
 				c.copy(sender: nil)
 			} else if (v.label == "Black List") {
-				let c = v.viewController as! BlockListViewController
+				guard let c = v.viewController as? BlockListViewController else {print("ERROR on copy: problem getting view controller"); return}
 				c.copy(sender: nil)
 			} else if (v.label == "Connection Log") {
-				let c = v.viewController as! LogViewController
+				guard let c = v.viewController as? LogViewController else {print("ERROR on copy: problem getting view controller"); return}
 				c.copy(sender: nil)
 			} else if (v.label == "White List") {
-				let c = v.viewController as! WhiteListViewController
+				guard let c = v.viewController as? WhiteListViewController else {print("ERROR on copy: problem getting view controller"); return}
 				c.copy(sender: nil)
 			}
 		}
@@ -73,22 +73,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			let app = NSApplication.shared
 			//print(app.mainWindow, app.isHidden)
 			if (app.mainWindow == nil){ return }
-			guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { return }
+			guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { print("ERROR on selectAll: problem getting tabview controller"); return }
 			let i = tc.selectedTabViewItemIndex
 			let v = tc.tabViewItems[i] // the currently active TabViewItem
 			//print(tc.tabViewItems)
 			//print(v.label)
 				if (v.label == "Active Connections") {
-				let c = v.viewController as! ActiveConnsViewController
+				guard let c = v.viewController as? ActiveConnsViewController else {print("ERROR on selectAll: problem getting view controller"); return}
 				c.selectall(sender:nil)
 			} else if (v.label == "Black List") {
-				let c = v.viewController as! BlockListViewController
+				guard let c = v.viewController as? BlockListViewController else {print("ERROR on selectAll: problem getting view controller"); return}
 				c.selectall(sender:nil)
 			} else if (v.label == "Connection Log") {
-				let c = v.viewController as! LogViewController
+				guard let c = v.viewController as? LogViewController else {print("ERROR on selectAll: problem getting view controller"); return}
 				c.selectall(sender:nil)
 			} else if (v.label == "White List") {
-				let c = v.viewController as! LogViewController
+				guard let c = v.viewController as? LogViewController else {print("ERROR on selectAll: problem getting view controller"); return}
 				c.selectall(sender:nil)
 			}
 		}
@@ -113,7 +113,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 					let lines = dataString.components(separatedBy:"\n")
 					let latest_version = lines[0].trimmingCharacters(in: .whitespacesAndNewlines)
 						let msg = lines[1].trimmingCharacters(in: .whitespacesAndNewlines)
-					let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as! String
+					guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {print("WARNING: problem getting version from bundle when checking for updates"); return}
 					print("checking for updates.  our version=",version,", latest_version=",latest_version,", msg=",msg)
 					var result = "Up to date (current version "+version+" matches latest version "+latest_version+")"
 					var extra = ""
@@ -141,7 +141,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		//print(app.mainWindow, app.isHidden)
 		if (app.mainWindow == nil){
 			let storyboard = NSStoryboard(name:"Main", bundle:nil)
-			let controller : NSTabViewController = storyboard.instantiateController(withIdentifier: "TabViewController") as! NSTabViewController
+			guard let controller : NSTabViewController = storyboard.instantiateController(withIdentifier: "TabViewController") as? NSTabViewController else {print("openapp(): problem creating viewcontroller"); return}
 			let myWindow = NSWindow(contentViewController: controller)
 			let vc = NSWindowController(window: myWindow)
 			let tab_index = UserDefaults.standard.integer(forKey: "tab_index") // get tab
@@ -219,35 +219,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		let logcrashes = UserDefaults.standard.integer(forKey: "logcrashes")
 		if ((sig>0) && (logcrashes>0)) {
 			// we had a crash !
-			let backtrace = UserDefaults.standard.object(forKey: "backtrace") as! [String]
-			let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as! String
-			print("had a crash with signal ",sig," for code release ", version)
-			backtrace.forEach{print($0)}
-			print("continuing")
-			// send report to www.leith.ie/logcrash.php.  post "backtrace=<>&version=<>"]
-			var request = URLRequest(url: Config.crashURL); request.httpMethod = "POST"
-			var str: String = ""
-			for s in backtrace {
-				str = str + s + "\n"
-			}
-			let uploadData=("signal="+String(sig)+"&backtrace="+str+"&version="+version).data(using: .ascii)
-			let session = URLSession(configuration: .default)
-			let task = session.uploadTask(with: request, from: uploadData)
-					{ data, response, error in
-					if let error = error {
-							print ("error when sending backtrace: \(error)")
-							return
-					}
-					if let resp = response as? HTTPURLResponse {
-						if !(200...299).contains(resp.statusCode) {
-							print ("server error when sending backtrace: ",resp.statusCode)
+			if let backtrace = UserDefaults.standard.object(forKey: "backtrace") as? [String], let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+				print("had a crash with signal ",sig," for code release ", version)
+				backtrace.forEach{print($0)}
+				print("continuing")
+				// send report to www.leith.ie/logcrash.php.  post "backtrace=<>&version=<>"]
+				var request = URLRequest(url: Config.crashURL); request.httpMethod = "POST"
+				var str: String = ""
+				for s in backtrace {
+					str = str + s + "\n"
+				}
+				let uploadData=("signal="+String(sig)+"&backtrace="+str+"&version="+version).data(using: .ascii)
+				let session = URLSession(configuration: .default)
+				let task = session.uploadTask(with: request, from: uploadData)
+						{ data, response, error in
+						if let error = error {
+								print ("error when sending backtrace: \(error)")
+								return
 						}
-					}
+						if let resp = response as? HTTPURLResponse {
+							if !(200...299).contains(resp.statusCode) {
+								print ("server error when sending backtrace: ",resp.statusCode)
+							}
+						}
+				}
+				task.resume()
+				session.finishTasksAndInvalidate()
+				// and clear, so we don't come back here
+				UserDefaults.standard.set(-1, forKey: "signal")
+			} else {
+				print("problem getting backtrace or version from userdefaults after crash")
 			}
-			task.resume()
-			session.finishTasksAndInvalidate()
-			// and clear, so we don't come back here
-			UserDefaults.standard.set(-1, forKey: "signal")
 		}
 
 		// set up handler to catch errors.
