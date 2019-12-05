@@ -22,7 +22,7 @@ class LogViewController: NSViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		tableView!.delegate = self
+		tableView!.delegate = self // force using ! since shouldn't fail
 		tableView!.dataSource = self
 	}
 	
@@ -79,11 +79,11 @@ class LogViewController: NSViewController {
 	}
 
 	override func viewWillDisappear() {
-		super.viewWillDisappear()
 		//print("saving state")
 		save_state()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 		timer.invalidate()
+		super.viewWillDisappear()
 	}
 	
 	

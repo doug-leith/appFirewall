@@ -14,7 +14,7 @@ class BlockListViewController: NSViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		tableView!.delegate = self
+		tableView!.delegate = self // force using ! since shouldn't fail
 		tableView!.dataSource = self
 	}
 	
@@ -33,9 +33,9 @@ class BlockListViewController: NSViewController {
 	}
 	
 	override func viewWillDisappear() {
-		super.viewWillDisappear()
 		save_state()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
+		super.viewWillDisappear()
 	}
 	
 

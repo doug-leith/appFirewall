@@ -16,7 +16,7 @@ class ActiveConnsViewController: NSViewController {
 	override func viewDidLoad() {
 		// Do any additional setup after loading the view.
 		super.viewDidLoad()
-		tableView!.delegate = self
+		tableView!.delegate = self // force using ! since shouldn't fail
 		tableView!.dataSource = self
 		start_pid_watcher() // start pid monitoring thread, its ok to call this multiple times
 	}
@@ -60,10 +60,10 @@ class ActiveConnsViewController: NSViewController {
 
 	override func viewWillDisappear() {
 		// window is closing, save state
-		super.viewWillDisappear()
 		save_state()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
 		timer.invalidate()
+		super.viewWillDisappear()
 	}
 	
 	@IBAction func helpButton(_ sender: helpButton?) {

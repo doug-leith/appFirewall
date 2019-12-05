@@ -24,10 +24,12 @@ class PreferenceViewController: NSViewController {
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		// Do view setup here.
-		tableView!.delegate = self as NSTableViewDelegate
-		tableView!.dataSource = self as NSTableViewDataSource
-		tableSelectedView!.delegate = self as NSTableViewDelegate
-		tableSelectedView!.dataSource = self as NSTableViewDataSource
+		// force using ! since shouldn't fail unless something really bad
+		// has gone wrong
+		tableView!.delegate = self //as NSTableViewDelegate
+		tableView!.dataSource = self //as NSTableViewDataSource
+		tableSelectedView!.delegate = self //as NSTableViewDelegate
+		tableSelectedView!.dataSource = self //as NSTableViewDataSource
 		
 		lists_lastUpdated = UserDefaults.standard.string(forKey: "lists_lastUpdated") ?? String("")
 		refreshLabel?.stringValue = "(Last updated:  "+lists_lastUpdated+")"
@@ -90,12 +92,12 @@ class PreferenceViewController: NSViewController {
 	
 	override func viewWillDisappear() {
 		// window is closing, save state
-		super.viewWillDisappear()
 		if (changed) {
 			load_hostlists()
 			changed = false
 		}
 		timer.invalidate()
+		super.viewWillDisappear()
 	}
 
 	@IBAction func AddButton(_ sender: Any) {

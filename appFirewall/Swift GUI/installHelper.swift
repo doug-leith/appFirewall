@@ -113,7 +113,7 @@ func get_helper_version(Name: String)->Int {
 	let path = "/Library/LaunchDaemons/"+Name+".plist"
 	if let dict = NSDictionary(contentsOfFile: path) as? Dictionary<String, AnyObject> {
 			//print(dict)
-			let version:Int = dict["Version"] as! Int
+			guard let version:Int = dict["Version"] as? Int else {return -1}
 			print(String(format:"helper version is %d",version))
 			return version
 	} else {
@@ -137,10 +137,9 @@ func start_helper(force: Bool) {
 	
 	let kHelperToolName:String = "com.leith.appFirewall-Helper"
 
-	let REQUIRED_VERSION = 1
 	if ((!force) && (is_helper_running(Name: kHelperToolName))) {
 		let version = get_helper_version(Name: kHelperToolName)
-		if (version == REQUIRED_VERSION) {
+		if (version >= Config.minHelperVersion) {
 			print(String(format:"helper "+kHelperToolName+", version %d already installed.", version))
 			return // right version of helper already installed
 		}

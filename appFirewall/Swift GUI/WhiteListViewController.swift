@@ -15,7 +15,7 @@ class WhiteListViewController: NSViewController {
 	override func viewDidLoad() {
 			super.viewDidLoad()
 			// Do view setup here.
-			tableView!.delegate = self
+			tableView!.delegate = self // force using ! since shouldn't fail
 			tableView!.dataSource = self
 	}
 
@@ -34,9 +34,9 @@ class WhiteListViewController: NSViewController {
 	
 	override func viewWillDisappear() {
 		// window is closing, save state
-		super.viewWillDisappear()
 		save_state()
 		self.view.window?.saveFrame(usingName: "connsView") // record size of window
+		super.viewWillDisappear()
 	}
 	
 	
