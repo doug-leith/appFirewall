@@ -1,6 +1,6 @@
 # AppFirewall
 
-A free, fully open-source application firewall for macOS 10.14 Mojave and later.  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists (Energized Blu etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.  
+A free, fully open-source application firewall for macOS 10.14 Mojave and later (should be fine for High Sierra too, but it's untested).  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists (Energized Blu etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.  
 
 <img src="Screenshot.png" />
 
@@ -39,9 +39,9 @@ If the app crashes (hopefully not !) then it will send a short backtrace to http
     4   appFirewall                         0x000000010dc4fab5 appFirewall   158389<br>
     5   appFirewall                         0x000000010dc5001b appFirewall   159771<br>
 
-Its a list of entry points in the app so that I can see where it crashed, nothing more.  The upload server does not log IP address or other connection details.
+Its a list of entry points in the app so that I can see where it crashed, nothing more.  There is no identifer linking this backtrace to the partricular instance of the app that you are running and the upload server does not log IP address or other connection details.
 
-The app also periodically uploads a sample of the connections made by a randomly selected app.  This is so we can try to learn more about app behaviour in the wild, and use this to develop better approaches for disrupting tracking etc.  We exclude browser apps from this sampling since the connections made by a browser are potentially sensitive (it may reveal some information about browsing history).   An example of such a sample is the following:
+The firewall also periodically uploads a sample of the connections made by a randomly selected app.  This is so we can try to learn more about app behaviour in the wild, and use this to develop better approaches for disrupting tracking etc.  We exclude browser apps from this sampling since the connections made by a browser are potentially sensitive (it may reveal some information about browsing history).   If you think other apps should also be excluded then send me an email.  An example of such a sample is the following:
 
     Dec 03 21:36:13 2019	Dropbox	192.168.1.27:64379 -> 162.125.19.131 (bolt.dropbox.com):443	
     Dec 03 21:36:23 2019	Dropbox	192.168.1.27:64380 -> 162.125.19.130 (telemetry.dropbox.com):443
@@ -49,7 +49,7 @@ The app also periodically uploads a sample of the connections made by a randomly
     Dec 03 21:38:38 2019	Dropbox	192.168.1.27:64389 -> 162.125.19.131 (bolt.dropbox.com):443	
     Dec 03 21:40:21 2019	Dropbox	192.168.1.27:64393 -> 162.125.36.1 (d.dropbox.com):443	
 
-The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see what has been uploaded.  There is no identifier linking a sample to your copy of the app and the upload server does not log IP address or other connection details.
+The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see exactly what has been uploaded.  There is no identifier linking a sample to your copy of the app and the upload server does not log IP address or other connection details.
 
 ## Contributing
 
