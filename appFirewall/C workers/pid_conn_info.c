@@ -12,19 +12,14 @@
 
 //global
 static list_t pid_list=LIST_INITIALISER; // list of active pid's and network conns
-static Hashtable* pid_list_fdtab=NULL; // table for fast lookup of pid_list using socket fd
-#define TABSIZE 1024
-
 static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
 
 static pthread_mutex_t escapee_mutex = MUTEX_INITIALIZER;
 static list_t escapee_list=LIST_INITIALISER; // list of blocked yet active connections
 static int escapee_thread_count=0;
-#define ESCAPEEMAX 10 // max num of escapees we try to catch concurrently
 static int changed = 1; // flag to GUI if pid list has changed
 
 // cache of recent PIDs and their names
-#define PID_CACHE_SIZE 3
 static list_t last_pid_list=LIST_INITIALISER;
 typedef struct last_pid_item_t {
 	int pid;
@@ -55,7 +50,7 @@ static void (*pid_watcher_hook)(void) = NULL;
 void *pid_watcher(void *ptr) {
 	// runs in its own thread to keep pid_list uodated
 	struct timespec ts, now, timeout;
-	# define PID_WATCHER_TIMEOUT 500 // in ms
+	struct timeval last_full_refresh;
 	timeout.tv_sec = 0;
 	#define NSEC_PER_SEC 1000000000
 	timeout.tv_nsec = PID_WATCHER_TIMEOUT*(NSEC_PER_SEC/1000);
@@ -64,7 +59,8 @@ void *pid_watcher(void *ptr) {
 	memset(&t_last,0,sizeof(struct timeval));
 	
 	int res=0;
-	refresh_active_conns(); // takes lock itself as needed
+	refresh_active_conns(1); // takes lock itself as needed
+	gettimeofday(&last_full_refresh, NULL);
 	for(;;) {
 		clock_gettime(CLOCK_REALTIME, &now);
 		ts = timespec_add(now,timeout);
@@ -84,18 +80,34 @@ void *pid_watcher(void *ptr) {
 		// have lock on mutex here.  release it
 		pthread_mutex_unlock(&pid_mutex);
 
-		// this call consumes >85% of execution time
-		refresh_active_conns(); // will take lock as needed
-		
+		int full_refresh = 0;
 		struct timeval t; gettimeofday(&t, NULL);
-		double elapsed = (t.tv_sec - t_last.tv_sec) +(t.tv_usec - t_last.tv_usec)/1000000.0;
+		double elapsed = (t.tv_sec - last_full_refresh.tv_sec) +(t.tv_usec - last_full_refresh.tv_usec)/1000000.0;
+		if (elapsed > REFRESH_TIMEOUT) {
+			// nb: we force a full refresh fairly often so as to correct any temporary
+			// mistakes in find_fds() caused by reuse of file descriptors, even though
+			// these are pretty rare
+			gettimeofday(&last_full_refresh, NULL);;
+			full_refresh=1;
+		}
+		// if we're making many mistakes, fall back to always
+		// doing a full refresh, just to be careful
+		int sum = stats.fdtab_same + stats.fdtab_changed;
+		if ((sum>100) && (stats.fdtab_changed*1.0/stats.fdtab_same > 0.05)) {
+			full_refresh=1;
+		}
+		// this call consumes >85% of execution time
+		refresh_active_conns(full_refresh); // will take lock
+		
+		//struct timeval t;
+		gettimeofday(&t, NULL);
+		elapsed = (t.tv_sec - t_last.tv_sec) +(t.tv_usec - t_last.tv_usec)/1000000.0;
 		// should probably try to tune this timeout
 		// -- if too small then we call escapee_catcher for conns which
 		// have already been killed by RSTs but which we haven't noticed
 		// that yet.  if too large we have to do more work to kill conn
 		// (since ack seq number is stale), but we call escapee_catcher
 		// and create a backlog of work
-		#define ESCAPEE_TIMEOUT 0.05 // 50ms
 		if (elapsed > ESCAPEE_TIMEOUT) {
 			find_escapees();
 			t_last = t;
@@ -272,8 +284,11 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 		last_pid_item_t *it = get_list_item(&last_pid_list,i);
 		if (it->pid<=0) continue; // shouldn't happen
 		
-		// call here to find_fds() consumes >90% of executiomn time of find_pid()
-		if (find_fds(it->pid, it->name, pid_list_fdtab, l, pid_list_fdtab)!=1) {
+		// call here to find_fds() consumes >90% of execution time of find_pid()
+		// to try to save time we don't do a full refresh of conns but instead
+		// reuse conn details of existing file descriptors.  will cause a
+		// mistake if fd has been reused.
+		if (find_fds(it->pid, it->name, l, 0)!=1) {
 			continue; // cached pid is a dud, probably cached process has died
 		} else if (in_list(l,&c,0)) { // list lookup only uses raw
 			pthread_mutex_unlock(&pid_mutex);
@@ -342,16 +357,24 @@ void init_pid_lists() {
 	init_list(&pid_list,conn_hash,NULL,0,-1,"pid_list");
 	init_list(&gui_pid_list,gui_pid_hash,NULL,0,-1,"pid_list");
 	init_list(&last_pid_list,pid_hash,NULL,1,PID_CACHE_SIZE,"last_pid_list");
-	pid_list_fdtab = hashtable_new(TABSIZE);
 	init_list(&escapee_list,conn_hash,NULL,1,-1,"escapee_list");
 }
 
-int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid_list, Hashtable* new_pid_list_fdtab) {
+conn_t * find_conn(int pid, int fd) {
+	// given PID and fd try to find connection in pid_list
+	// -- replace this with a table lookup to speed things up ?
+	for (size_t j = 0; j<get_list_size(&pid_list); j++) {
+		conn_t *it = get_list_item(&pid_list,j);
+		if (it->pid != pid) continue;
+		if (it->fd !=fd) continue;
+		return it;
+	}
+	return NULL;
+}
+
+int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 	// Refresh the list of network connections for process with PID pid.
-	// Updated list of conns is returned in new_pid_list, and a lookup table
-	// in new_pid_list_fdtab.
-	// Old_pid_list_fdtab is current list of conns for this pid -- used so that
-	// we can flag whether conns have changed (and so need to update GUI).
+	// Updated list of conns is returned in new_pid_list.
 	
 	// Figure out the size of the buffer needed to hold the list of open FDs
 	// this call costs about 10% of execution time of find_fds
@@ -390,18 +413,12 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		// if between calls to here a process closes a connection and new one is
 		// opened (to new destination) but has the same fd.
 		int match=0;
-		/*int res=pthread_mutex_trylock(&pid_mutex);
-		char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
-		conn_t* it = hashtable_get(old_pid_list_fdtab, key);
-		free(key);
-		if (it != NULL) { // got a match
-			memcpy(&c,it,sizeof(conn_t));
+		conn_t *prev_c = find_conn(pid, procFDInfo[i].proc_fd);
+		if ((!full_refresh) && (prev_c != NULL)) { // found a match
+			// save time and reuse the old fd details
 			match = 1;
+			memcpy(&c,prev_c,sizeof(conn_t));
 		}
-		if (res != EBUSY) {
-			// we took the lock ourselves, so let's release it
-			pthread_mutex_unlock(&pid_mutex);
-		}*/
 		if (!match) {
 			// we need to call proc_pidfdinfo() to get the connection info
 			// nb: this call is where almost all (>70%) of the time is spent
@@ -460,7 +477,21 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 			
 			DEBUG2("%s(%d): %s:%u -> %s:%u udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
 		}
-		
+
+		// let's log how many times the previous details for an fd
+		// are accurate i.e. the fd has not been reallocated.
+		if ((full_refresh) && (prev_c != NULL)) {
+			char *temp_prev = conn_hash(prev_c);
+			char *temp_c = conn_hash(&c);
+			if (strcmp(temp_prev,temp_c)==0)
+				stats.fdtab_same++; // match is good
+			else {
+				stats.fdtab_changed++; // fd has been reused, bad news
+				printf("FD CHANGED: for %s was %s now %s\n", c.name, temp_prev, temp_c);
+			}
+			free(temp_prev); free(temp_c);
+		}
+
 		// lookup domain name for connection.  do this even for existing connections
 		// as might have sniffed new dns packet since first saw connection
 		char* dns=lookup_dns_name(c.raw.af,c.raw.dst_addr);
@@ -477,12 +508,6 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 		// nb: if new_pid_list=old_pid_list this is fine, will skip duplicates
 		if (!in_list(new_pid_list, &c, 0)) {
 			add_item(new_pid_list,&c,sizeof(conn_t));
-			// get a pointer to new table entry ...
-			conn_t *it = in_list(new_pid_list,&c,0);
-			// and add it to fd lookup table
-			char* key = pid_fdtab_hash(procFDInfo[i].proc_fd,pid);
-			hashtable_put(new_pid_list_fdtab, key, it);
-			free(key);
 			TAKE_LOCK(&gui_pid_mutex,"find_fds() gui_pid_mutex");
 			if (!in_list(&gui_pid_list, &c, 0)) {
 				changed = 1;
@@ -494,7 +519,7 @@ int find_fds(int pid, char* name, Hashtable* old_pid_list_fdtab, list_t* new_pid
 	return 1;
 }
 
-int refresh_active_conns() {
+int refresh_active_conns(int full_refresh) {
 	// called to update list of active process
 	// and network connectionsb(held in conns global var).
 	// returns 1 if set of active connections has changed,
@@ -509,7 +534,6 @@ int refresh_active_conns() {
 	// the GUI etc only ever see a fully updated pis list, not partial updates
 	// (which look nasty)
 	list_t new_pid_list; init_list(&new_pid_list,conn_hash,NULL,0,-1,"pid_list");
-	Hashtable *new_pid_list_fdtab = hashtable_new(TABSIZE);
 	
 	// get list of current processes
 	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
@@ -533,23 +557,24 @@ int refresh_active_conns() {
 			continue;
 		}
 		
-		// this call to find_fds consumes >75% of execution time of
+		// this call to find_fds() consumes >75% of execution time of
 		// refresh_active_conns()
-		if (find_fds(pid, name, pid_list_fdtab, &new_pid_list, new_pid_list_fdtab)<0) {
+		TAKE_LOCK(&pid_mutex,"find_fds pid_mutex");
+		if (find_fds(pid, name, &new_pid_list, full_refresh)<0) {
+			pthread_mutex_unlock(&pid_mutex);
 			free_list(&new_pid_list);
-			hashtable_free(new_pid_list_fdtab);
 			return 0;
 		}
+		pthread_mutex_unlock(&pid_mutex);
 	}
 	// now copy new list over to pid_list
-	TAKE_LOCK(&pid_mutex,"find_fds pid_mutex");
+	TAKE_LOCK(&pid_mutex,"find_fds pid_mutex #2");
 	if (get_list_size(&new_pid_list) != get_list_size(&pid_list)) {
 		// could be that we have only removed some processes from pid list,
 		// in which case changed=0 when get here
 		changed = 1;
 	}
 	free_list(&pid_list); pid_list = new_pid_list;
-	hashtable_free(pid_list_fdtab); pid_list_fdtab = new_pid_list_fdtab;
 	pthread_mutex_unlock(&pid_mutex);
 		
 	return changed;
@@ -590,8 +615,7 @@ void find_escapees() {
 					// we get the seq number from syn-ack in log ...
 					e->raw.seq =l->raw.seq; e->raw.ack =l->raw.ack;
 					struct timeval start; gettimeofday(&start, NULL);
-					#define TIMEOUT 10 // 10secs
-					if (start.tv_sec - l->raw.ts.tv_sec < TIMEOUT) {
+					if (start.tv_sec - l->raw.ts.tv_sec < STALE_ESCAPEE_TIMEOUT) {
 						// keep some stats
 						stats.num_escapees++;
 					} else {
@@ -623,7 +647,6 @@ void find_escapees() {
 	pthread_mutex_unlock(&pid_mutex);
 }
 
-#define CATCHER_PORT 5
 #include "helper.h"
 void *catch_escapee(void *ptr) {
 	TAKE_LOCK(&escapee_mutex,"catch_escapee");

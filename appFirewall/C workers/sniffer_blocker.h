@@ -33,6 +33,10 @@
 #define RST_PORT 2
 #define PCAP_PORT 3
 
+#define WAIT_TIMEOUT 0.02 // 20ms timeout for delayed processing of SYN-ACKS
+#define SYN_TIMEOUT 1 // SYN packets >1s old are dropped (likely due to wakeup after sleep)
+#define CONF_THRESH 0.5 // when confidence in guess of process associated with a connection is less than this then we add a ? next to name in log and disable blocking
+
 void init_sniffer_blocker(char* filter_exp);
 void sniffer_blocker_callback(u_char *args, const struct pcap_pkthdr *pkthdr, 	const 			u_char* pkt);
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn);

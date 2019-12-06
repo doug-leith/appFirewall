@@ -52,6 +52,7 @@ typedef struct {
 	int dtrace_hits, dtrace_misses, dtrace_syn_hits, dtrace_syn_misses;
 	int waitinglist_hits, waitinglist_misses;
 	int num_noguess, num_guesses, num_failed_guesses;
+	int fdtab_same, fdtab_changed;
 	cm_quantile cm_t_notblocked, cm_t_blocked, cm_t_waitinglist_hit, cm_t_waitinglist_miss, cm_t_dns,cm_t_pidinfo_cache_hit, cm_t_pidinfo_cache_miss, cm_t_sniff, cm_t_udp, cm_t_escapees_hits, cm_t_escapees_misses, cm_escapee_thread_count;
 	int num_escapees,escapees_not_in_log,stale_escapees,escapees_hits,escapees_misses;
 } stats_t;

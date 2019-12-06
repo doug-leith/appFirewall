@@ -101,7 +101,6 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 		DEBUG2("%s %s %d\n",c->name,c->addr_name,blocked);
 		// if we're really not sure about process name then don't
 		// block.  can tune aggressiveness by adjusting threshold here
-		#define CONF_THRESH 0.5
 		char* conf_str="";
 		if ((confidence < CONF_THRESH) && (strcmp(c->name,NOTFOUND)!=0)) {
 			blocked = 0;
@@ -200,7 +199,6 @@ void process_conn_waiting_list(void) {
 			bl_item_t c_w = create_blockitem_from_addr(&cr_w, 0);
 
 			if (strcmp(c_w.name,NOTFOUND)==0) {//yet again failed to get PID name
-				#define WAIT_TIMEOUT 0.02 // 20ms
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
 						> WAIT_TIMEOUT) {
 					INFO2("wait timeout for %s %s\n",c_w.name,c_w.addr_name);
@@ -215,7 +213,7 @@ void process_conn_waiting_list(void) {
 						// failed to lookup or guess the process name for conn,
 						// let's log this interesting event
 						INFO("NOT FOUND on dns_conn_list: %s\n", c_w.domain);
-						dump_dns_conn_list();
+						//dump_dns_conn_list();
 						stats.num_failed_guesses++;
 					}
 					
@@ -306,8 +304,8 @@ void *listener(void *ptr) {
 		
 		struct timeval ts = pkthdr.ts;
 		struct timeval start; gettimeofday(&start, NULL);
-		#define TIMEOUT 1 // SYN packets >2s old are dropped (syn timeout), likely due to wakeup after sleep.  Reduced this from 2s to 1s, already v old.
-		if (start.tv_sec - ts.tv_sec > TIMEOUT) {
+		// stale SYN packets are dropped, likely due to wakeup after sleep.  
+		if (start.tv_sec - ts.tv_sec > SYN_TIMEOUT) {
 			INFO("received stale syn-ack, %f old. discard\n",(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
 			continue;
 		}

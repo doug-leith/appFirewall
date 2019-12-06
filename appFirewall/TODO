@@ -1,9 +1,7 @@
 TO DO
 
 short term:
-- check operation with SIPS enabled, will fall back to not using dtrace
-- distribute baseline dns_conn_cache (covering apple apps etc) with app
--vcheck for mem leaks when load URLs e.g. refresh hostlists, check for updates
+- update baseline dns_conn_cache
 
 longer term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  only for cataline onwards though
