@@ -41,6 +41,10 @@ void add_dns_conn(char* domain, char* name) {
 		add_item(&dns_conn_list,&item_new, sizeof(dns_conn_t));
 		return;
 	}
+	if (it->list_size == MAXDNS) {
+		// wrap circular list
+		it->list_start++; it->list_size--;
+	}
 	strlcpy(it->name[(it->list_start+it->list_size)%MAXDNS],name,MAXCOMLEN);
 	it->list_size++;
 }

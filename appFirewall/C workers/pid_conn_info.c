@@ -93,7 +93,7 @@ void *pid_watcher(void *ptr) {
 		// if we're making many mistakes, fall back to always
 		// doing a full refresh, just to be careful
 		int sum = stats.fdtab_same + stats.fdtab_changed;
-		if ((sum>100) && (stats.fdtab_changed*1.0/stats.fdtab_same > 0.05)) {
+		if ((sum>100) && (stats.fdtab_changed*1.0/stats.fdtab_same > REFRESH_THRESH)) {
 			full_refresh=1;
 		}
 		// this call consumes >85% of execution time
