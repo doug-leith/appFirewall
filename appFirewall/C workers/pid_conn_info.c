@@ -588,29 +588,33 @@ int refresh_active_conns(int full_refresh) {
 }
 
 void find_escapees() {
-	TAKE_LOCK(&pid_mutex,"get_conn");
-	// TO DO should force refresh of pid_list here, otherwise it might
-	// be stale ?
+	// this is called after refresh of pid_list, so pid list is up to date
+	TAKE_LOCK(&pid_mutex,"find_escapees");
 	for (size_t j=0; j< get_list_size(&pid_list); j++) {
-		conn_t *c = get_list_item(&pid_list, j);
+		conn_t c;
+		memcpy(&c,get_list_item(&pid_list, j),sizeof(conn_t));
+		pthread_mutex_unlock(&pid_mutex);
 		
 		// is this a connection which ought to have been blocked (an "escapee") ?
 		bl_item_t b;
-		strlcpy(b.name, c->name,MAXCOMLEN);
-		strlcpy(b.domain,c->domain,MAXDOMAINLEN);
-		strlcpy(b.addr_name,c->dst_addr_name,INET6_ADDRSTRLEN);
+		strlcpy(b.name, c.name,MAXCOMLEN);
+		strlcpy(b.domain,c.domain,MAXDOMAINLEN);
+		strlcpy(b.addr_name,c.dst_addr_name,INET6_ADDRSTRLEN);
 		// get log entry for this item, if it exists.
-		log_line_t *l = find_log_by_conn(c->name,&c->raw,0);
-		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c->raw.udp==0)) {
+		log_line_t *l = find_log_by_conn(c.name,&c.raw,0);
+		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c.raw.udp==0)) {
 			// its an active connection that is supposed to have been blocked
-			TAKE_LOCK(&escapee_mutex,"find_fds escape_mutex");
-			if ( (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX)) {
+			TAKE_LOCK(&escapee_mutex,"find_fds escapee_mutex");
+			int is_escapee = (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX);
+			pthread_mutex_unlock(&escapee_mutex);
+			if (is_escapee) {
 				// a new escapee, add to the active list ...
-				add_item(&escapee_list,c,sizeof(conn_t));
-				INFO("escapee added %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c->name, c->pid, c->src_addr_name,c->raw.sport, c->domain, c->dst_addr_name, c->raw.dport, c->raw.udp,l==NULL);
+				TAKE_LOCK(&escapee_mutex,"find_fds escapee_mutex");
+				add_item(&escapee_list,&c,sizeof(conn_t));
 				pthread_mutex_unlock(&escapee_mutex);
+				INFO("escapee added %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp, l==NULL);
 				conn_t *e = malloc(sizeof(conn_t));
-				memcpy(e,c,sizeof(conn_t));
+				memcpy(e,&c,sizeof(conn_t));
 				// get the initial seq number of conn from log, if possible.
 				if (l==NULL) {
 					//INFO("escapee not in log %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
@@ -641,17 +645,16 @@ void find_escapees() {
 				
 				// if process name was unknown/unsure we can now update it in log,
 				// and also update the blocked status
-					double prev_conf = update_log_by_conn(c->name,&c->raw,is_blocked(&b));
-					if ((prev_conf>0) && (prev_conf < 1.0-1.0e-6)) {
-						// log entry was a guess, now that we're sure let's add
-						// that new info to the dns_conn cache
-						add_dns_conn(c->domain, c->name);
-					}
-			} else { //not on list
-				pthread_mutex_unlock(&escapee_mutex);
+				double prev_conf = update_log_by_conn(c.name,&c.raw,is_blocked(&b));
+				if ((prev_conf>0) && (prev_conf < 1.0-1.0e-6)) {
+					// log entry was a guess, now that we're sure let's add
+					// that new info to the dns_conn cache
+					add_dns_conn(c.domain, c.name);
+				}
 			}
 		}
 		if (l!=NULL) free(l);
+		TAKE_LOCK(&pid_mutex,"find_escapees #2");
 	}
 	pthread_mutex_unlock(&pid_mutex);
 }
@@ -709,24 +712,23 @@ void *catch_escapee(void *ptr) {
 		cm_add_sample_lock(&stats.cm_t_escapees_misses,t);
 	}
 	INFO("escapee %s(%d) fd=%d %s:%u -> %s(%s):%u ack=%u,udp=%d: %s. t=%fs\n", e->name, e->pid, e->fd,e->src_addr_name, e->raw.sport, e->domain, e->dst_addr_name, e->raw.dport, e->raw.ack,e->raw.udp,result,t);
-	del_item(&escapee_list,e);
-	print_escapees();
-	free(e);
 	close(c_sock);
-
 	TAKE_LOCK(&escapee_mutex,"catch_escapee #2");
+	del_item(&escapee_list,e);
 	escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
+	print_escapees(); // takes its own lock
+	free(e);
 	return NULL;
 	
 err:
 	WARN("write escapee: %s", strerror(errno));
-	del_item(&escapee_list,e);
-	free(e);
 	close(c_sock);
 	TAKE_LOCK(&escapee_mutex,"catch_escapee #3");
+	del_item(&escapee_list,e);
 	escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
+	free(e);
 	return NULL;
 }
 
