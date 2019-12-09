@@ -9,7 +9,7 @@
 // globals
 static pthread_t dtrace_thread; // handle to dtrace thread
 static pthread_cond_t dtrace_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t dtrace_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t dtrace_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
 static int wakeup = 0;
 static int dtrace_init_firsttime=1;
 

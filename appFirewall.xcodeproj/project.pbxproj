@@ -166,6 +166,7 @@
 		919074152397B59100DE49DE /* Screenshot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Screenshot.png; sourceTree = "<group>"; };
 		919074172397BA7900DE49DE /* configData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = configData.swift; sourceTree = "<group>"; };
 		919074192399072500DE49DE /* dns_connlist.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = dns_connlist.dat; sourceTree = "<group>"; };
+		9190741C239B9FD000DE49DE /* KNOWN_ISSUES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = KNOWN_ISSUES.md; sourceTree = "<group>"; };
 		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
 		91ABB26D237680B7007F8FFE /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceViewController.swift; sourceTree = "<group>"; };
@@ -207,6 +208,7 @@
 			children = (
 				91D96AD5239718CF00AAA73B /* latest release */,
 				9157B04A238FB09E0027457A /* README.md */,
+				9190741C239B9FD000DE49DE /* KNOWN_ISSUES.md */,
 				919074152397B59100DE49DE /* Screenshot.png */,
 				9180E16A2387FCC9007002CB /* LICENSE.md */,
 				91607BB1236AB280002E50A8 /* appFirewall */,

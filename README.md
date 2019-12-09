@@ -53,7 +53,7 @@ The app stores a time-stamped copy of any such samples in the ~/Library/Applicat
 
 ## Contributing
 
-New ideas and help with development always welcome !   The way to do it is to fork your own branch from the repository here, then send me an email with proposed changes and a link to the branch.
+New ideas and help with development always welcome !   The way to do propose code changes is to fork your own branch from the repository here, then send me an email with proposed changes and a link to the branch. 
 
 ## Authors
 

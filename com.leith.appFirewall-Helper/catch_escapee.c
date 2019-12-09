@@ -22,7 +22,7 @@ static pthread_t catcher_thread; // handle to catcher thread
 static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
 static pthread_cond_t catcher_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t catcher_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t catcher_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
 static int wakeup = 0;
 
 static libnet_data_t ld, ld_prompt;
@@ -333,7 +333,7 @@ void *catcher_listener(void *ptr) {
 }
 
 void start_catcher_listener() {
-	c_sock = bind_to_port(CATCHER_PORT,25);
+	c_sock = bind_to_port(CATCHER_PORT,2);
 	INFO("Now listening on localhost port %u (catch_escapee)\n", CATCHER_PORT);
 	pthread_create(&catcher_listener_thread, NULL, catcher_listener, NULL);
 }

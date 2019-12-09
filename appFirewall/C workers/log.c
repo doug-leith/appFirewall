@@ -308,7 +308,6 @@ void load_log(const char* logName, const char* logTxtName) {
 	} else {
 		clear_list(&log_list); clear_list(&filtered_log_list);
 	}
-	//return;
 	load_list(&log_list, path, sizeof(log_line_t));
 	pthread_mutex_unlock(&log_list_mutex);
 }

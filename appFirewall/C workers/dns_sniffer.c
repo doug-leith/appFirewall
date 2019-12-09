@@ -51,6 +51,7 @@ char* lookup_dns_name(int af, struct in6_addr addr) {
 	}
 }
 
+static FILE* dns_fp=NULL;
 void append_dns(int af, struct in6_addr addr, char* name) {
 	dns_item_t d;
 	d.af=af;
@@ -58,8 +59,19 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	strlcpy(d.name,name,MAXDOMAINLEN);
 	//printf("adding %s/'%s'\n",d.name,dns_hash(&d));
 	TAKE_LOCK(&dns_mutex,"append_dns()");
-	add_item(&dns_cache,&d,sizeof(dns_item_t));
+	dns_item_t *prev = add_item(&dns_cache,&d,sizeof(dns_item_t));
 	pthread_mutex_unlock(&dns_mutex);
+	if (prev != NULL) {
+		// dns entry already exists
+		if (dns_fp == NULL) {
+			char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+			strlcat(path,"dns_log.txt",STR_SIZE);
+			dns_fp = fopen (path,"a");
+		}
+		char addr_name[INET6_ADDRSTRLEN];
+		inet_ntop(af,&addr,addr_name,INET6_ADDRSTRLEN);
+		fprintf(dns_fp,"%s %s exists (%s)\n", d.name, addr_name, prev->name);
+	}
 }
 
 void save_dns_cache(const char* fname) {

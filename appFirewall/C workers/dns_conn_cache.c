@@ -41,6 +41,12 @@ void add_dns_conn(char* domain, char* name) {
 		add_item(&dns_conn_list,&item_new, sizeof(dns_conn_t));
 		return;
 	}
+	if (it->list_size > MAXDNS) { // shouldn't happen
+		WARN("add_dns_conn() list_size %zu > %d\n",it->list_size,MAXDNS);
+		while (it->list_size > MAXDNS) {
+			it->list_start++; it->list_size--;
+		}
+	}
 	if (it->list_size == MAXDNS) {
 		// wrap circular list
 		it->list_start++; it->list_size--;
@@ -72,8 +78,9 @@ char* guess_name(char* domain, double* confidence) {
 		return NULL;
 	}
 	// get a count for each process name that has connected to domain ...
-	char *name[MAXDNS] = {0};
-	size_t count[MAXDNS] = {0};
+	char *name[MAXDNS];
+	size_t count[MAXDNS];
+	memset(count,0,sizeof(size_t)*MAXDNS);
 	size_t num=0;
 	for (size_t i=0; i<it->list_size; i++) {
 		size_t index = (it->list_start+i)%MAXDNS;
@@ -135,6 +142,18 @@ int load_dns_conn_list(const char* dir, const char* fname) {
 	if (fp == NULL) return -1; // problem opening file
 
 	load_list(&dns_conn_list, path, sizeof(dns_conn_t));
+	
+	// just being careful
+	for (size_t i=0; i<get_list_size(&dns_conn_list); i++) {
+		dns_conn_t *it = get_list_item(&dns_conn_list,i);
+		if (it->list_size > MAXDNS) { // shouldn't happen
+			WARN("add_dns_conn() list_size %zu > %d\n",it->list_size,MAXDNS);
+			while (it->list_size > MAXDNS) {
+				it->list_start++; it->list_size--;
+			}
+		}
+	}
+	
 	//dump_dns_conn_list();
 	return 0;
 }

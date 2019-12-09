@@ -2,7 +2,13 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:../appFirewall/dns_connlist.dat">
+      location = "group:../KNOWN_ISSUES.md">
+   </FileRef>
+   <FileRef
+      location = "absolute:../KNOWN_ISSUES">
+   </FileRef>
+   <FileRef
+      location = "absolute:../appFirewall/dns_connlist.dat">
    </FileRef>
    <FileRef
       location = "self:">

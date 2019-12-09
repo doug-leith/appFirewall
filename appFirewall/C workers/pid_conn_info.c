@@ -13,11 +13,10 @@
 //global
 static list_t pid_list=LIST_INITIALISER; // list of active pid's and network conns
 static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
+static int changed = 1; // flag to GUI if pid list has changed
 
-static pthread_mutex_t escapee_mutex = MUTEX_INITIALIZER;
 static list_t escapee_list=LIST_INITIALISER; // list of blocked yet active connections
 static int escapee_thread_count=0;
-static int changed = 1; // flag to GUI if pid list has changed
 
 // cache of recent PIDs and their names
 static list_t last_pid_list=LIST_INITIALISER;
@@ -28,8 +27,11 @@ typedef struct last_pid_item_t {
 
 // thread globals
 static pthread_cond_t pid_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t pid_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t gui_pid_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t pid_mutex = MUTEX_INITIALIZER;
+static pthread_mutex_t gui_pid_mutex = MUTEX_INITIALIZER;
+static pthread_mutex_t escapee_mutex = MUTEX_INITIALIZER;
+// always take pid_mutex lock before gui_pid_mutex to avoid deadlocks,
+// also pid_mutex lock before escapee_mutex
 static pthread_t pid_thread; // handle to pid watcher thread
 static int pid_thread_started = 0; // indicates whether pid watcher thread already running
 static int wakeup = 0;
@@ -93,7 +95,7 @@ void *pid_watcher(void *ptr) {
 		// if we're making many mistakes, fall back to always
 		// doing a full refresh, just to be careful
 		int sum = stats.fdtab_same + stats.fdtab_changed;
-		if ((sum>100) && (stats.fdtab_changed*1.0/stats.fdtab_same > REFRESH_THRESH)) {
+		if ((sum>100) && (stats.fdtab_destchanged*1.0/sum > REFRESH_THRESH)) {
 			full_refresh=1;
 		}
 		// this call consumes >85% of execution time
@@ -161,6 +163,8 @@ void update_gui_pid_list() {
 	TAKE_LOCK(&gui_pid_mutex,"update_gui_pid_list");
 	free_list(&gui_pid_list);
 	init_list(&gui_pid_list, gui_pid_hash,NULL,0,-1,"gui_pid_list");
+	pthread_mutex_unlock(&gui_pid_mutex);
+
 	// we take lock for full loop so that we don't show
 	// partial updates in GUI.
 	TAKE_LOCK(&pid_mutex,"get_conn");
@@ -170,12 +174,13 @@ void update_gui_pid_list() {
 		// connections to same domain (differing only in src port) then hash
 		// for gui_pid_list treats these as same so we just log first one in GUI
 		// pid list (to keep GUI clean)
+		TAKE_LOCK(&gui_pid_mutex,"update_gui_pid_list");
 		if (!in_list(&gui_pid_list, c, 0)) {
 			add_item(&gui_pid_list,c,sizeof(conn_t));
 		}
+		pthread_mutex_unlock(&gui_pid_mutex);
 	}
 	pthread_mutex_unlock(&pid_mutex);
-	pthread_mutex_unlock(&gui_pid_mutex);
 }
 
 conn_t get_gui_conn(int_sw row) {
@@ -219,12 +224,12 @@ void clear_pid_changed() {
 
 void print_escapees() {
 	// called by swift GUI
-	TAKE_LOCK(&pid_mutex,"print_escapees");
+	TAKE_LOCK(&escapee_mutex,"print_escapees");
 	if (get_list_size(&escapee_list)>0) {
 		INFO2("Escapees:\n");
 		dump_connlist(&escapee_list);
 	}
-	pthread_mutex_unlock(&pid_mutex);
+	pthread_mutex_unlock(&escapee_mutex);
 }
 
 void cache_pid(int pid, char* name) {
@@ -488,6 +493,8 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 			else {
 				stats.fdtab_changed++; // fd has been reused, bad news
 				printf("FD CHANGED: for %s was %s now %s\n", c.name, temp_prev, temp_c);
+				if (!are_addr_same(c.raw.af, &c.raw.dst_addr, &prev_c->raw.dst_addr))
+					stats.fdtab_destchanged++;
 			}
 			free(temp_prev); free(temp_c);
 		}
@@ -582,10 +589,12 @@ int refresh_active_conns(int full_refresh) {
 
 void find_escapees() {
 	TAKE_LOCK(&pid_mutex,"get_conn");
+	// TO DO should force refresh of pid_list here, otherwise it might
+	// be stale ?
 	for (size_t j=0; j< get_list_size(&pid_list); j++) {
 		conn_t *c = get_list_item(&pid_list, j);
 		
-		// is this a connection which outght to have been blocked (an "escapee") ?
+		// is this a connection which ought to have been blocked (an "escapee") ?
 		bl_item_t b;
 		strlcpy(b.name, c->name,MAXCOMLEN);
 		strlcpy(b.domain,c->domain,MAXDOMAINLEN);
@@ -638,7 +647,7 @@ void find_escapees() {
 						// that new info to the dns_conn cache
 						add_dns_conn(c->domain, c->name);
 					}
-			} else {
+			} else { //not on list
 				pthread_mutex_unlock(&escapee_mutex);
 			}
 		}
@@ -664,6 +673,9 @@ void *catch_escapee(void *ptr) {
 		// either helper has gone away or listen queue for escapees is full.
 		// if former, fatal error ?  just now we just muddle through, will
 		// mean that don't catch escapees
+		TAKE_LOCK(&escapee_mutex,"catch_escapee");
+		escapee_thread_count--;
+		pthread_mutex_unlock(&escapee_mutex);
 		return NULL;
 	}
 	//struct timeval end0; gettimeofday(&end0, NULL);
