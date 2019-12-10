@@ -73,7 +73,7 @@ char* guess_name(char* domain, double* confidence) {
 	dns_conn_t item_new;
 	strlcpy(item_new.domain, domain, MAXDOMAINLEN);
 	dns_conn_t* it = in_list(&dns_conn_list, &item_new, 0);
-	if (it == NULL) {
+	if ((it == NULL) || (it->list_size==0)) {
 		// no entry for domain in dns_conn list
 		*confidence = 0.0;
 		return NULL;

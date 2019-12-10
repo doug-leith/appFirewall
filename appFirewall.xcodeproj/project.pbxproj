@@ -116,6 +116,9 @@
 		9139F68D2381E3FF00600D37 /* blButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = blButton.swift; sourceTree = "<group>"; };
 		9139F68F2382890700600D37 /* helpButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpButton.swift; sourceTree = "<group>"; };
 		91494780239F6CA800C01432 /* appTabViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = appTabViewController.swift; sourceTree = "<group>"; };
+		91494782239F8DC400C01432 /* previous releases */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "previous releases"; sourceTree = "<group>"; };
+		91494783239F907700C01432 /* libSystem_asan.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem_asan.tbd; path = usr/lib/libSystem_asan.tbd; sourceTree = SDKROOT; };
+		91494786239F909F00C01432 /* libSystem.B_asan.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B_asan.tbd; path = usr/lib/libSystem.B_asan.tbd; sourceTree = SDKROOT; };
 		9157B04A238FB09E0027457A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9157B051238FC2290027457A /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = icons; sourceTree = "<group>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -208,6 +211,7 @@
 		91607BA6236AB280002E50A8 = {
 			isa = PBXGroup;
 			children = (
+				91494782239F8DC400C01432 /* previous releases */,
 				91D96AD5239718CF00AAA73B /* latest release */,
 				9157B04A238FB09E0027457A /* README.md */,
 				9190741C239B9FD000DE49DE /* KNOWN_ISSUES.md */,
@@ -251,6 +255,8 @@
 		91607BCB236AD6BA002E50A8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				91494786239F909F00C01432 /* libSystem.B_asan.tbd */,
+				91494783239F907700C01432 /* libSystem_asan.tbd */,
 				91B5909923925620000F418D /* libdtrace.tbd */,
 				91607C3723741D65002E50A8 /* OSLog.framework */,
 				91607C0B2372AC51002E50A8 /* libnet.a */,
@@ -627,6 +633,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ADDRESS_SANITIZER_CONTAINER_OVERFLOW = YES;
 				CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_INTEGER = YES;
@@ -665,6 +672,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ADDRESS_SANITIZER_CONTAINER_OVERFLOW = NO;
 				CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_INTEGER = YES;
