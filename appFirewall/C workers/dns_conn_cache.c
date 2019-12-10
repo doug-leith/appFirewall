@@ -17,6 +17,7 @@ typedef struct dns_conn_t {
 	char name[MAXDNS][MAXCOMLEN];
 	size_t list_start, list_size;
 } dns_conn_t;
+
 static list_t dns_conn_list = LIST_INITIALISER;
 
 char* dns_conn_hash(const void* it) {

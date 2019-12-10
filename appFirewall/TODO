@@ -2,10 +2,10 @@ TO DO
 
 short term:
 - update baseline dns_conn_cache
-- append_dns: log when multiple domains share same IP
 
 longer term:
-- try use of network extensions - avoid tcp RSTs on new connections ?  only for cataline onwards though
+- use of network extensions - avoid tcp RSTs on new connections ?  only for cataline onwards though
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - compress log samples uploaded to server?
 - UI remove dock item, but need to create menu when open window from status bar.  main problem is how to let user control statusbar vs dock -- another pref pane just for this ?
+- handle multiple domains sharing same IP, in first instance using dtrace.

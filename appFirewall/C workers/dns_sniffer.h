@@ -15,11 +15,19 @@
 #include "circular_list.h"
 #include "connection.h"
 
+#define MAXDNS 21
 typedef struct dns_item_t {
 	struct in6_addr addr;
 	int af;
 	char name[MAXDOMAINLEN];
+	size_t list_size, list_start;
+	char names[MAXDNS][MAXDOMAINLEN]; 
 } dns_item_t;
+
+typedef struct dns_count_t {
+	char name[MAXDNS][MAXDOMAINLEN];
+	size_t num, count[MAXDNS];
+} dns_count_t;
 
 void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* pkt);
 void append_dns(int af, struct in6_addr addr, char* name);
@@ -28,5 +36,7 @@ char* lookup_dns_name(int af, struct in6_addr addr);
 // swift
 void load_dns_cache(const char* fname);
 void save_dns_cache(const char* fname);
+char* get_dns_count_str(int af, struct in6_addr addr);
+void dump_dns_cache(void);
 
 #endif /* dns_sniffer_h */

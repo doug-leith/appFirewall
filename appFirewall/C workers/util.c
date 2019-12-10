@@ -300,9 +300,3 @@ char* get_file_modify_time(const char *path) {
     strftime(date_temp,STR_SIZE,"%d %b %H:%M:%S %Y",localtime(&attr.st_mtime));
     return date_temp;
 }
-
-/*pthread_mutexattr_t attr;
-pthread_mutexattr_init(&attr);
-pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_ERRORCHECK);
-pthread_mutex_init(&mutex,&attr);
-*/

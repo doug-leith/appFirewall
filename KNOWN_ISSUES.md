@@ -13,3 +13,11 @@ If we'd used HTTPS rather than HTTP then there is a crypto handshake at the star
 and note the connection is now https, but the setup is otherwise the same as before.  You should see that all of the connections are now blocked during the crypto handshake (an error message "OpenSSL SSL_connect: SSL_ERROR_SYSCALL" is shown).
 
 ### Multiple domains can share the same IP address
+
+The firewall observes the IP address of each network connection, and then tries to figure out the domain name (e.g. www.google-analytics.com) corresponding to that IP address in order to decide whether to block the connection or not.  However, it is possible for one IP address to be shared by multiple domains. 
+
+Often the domains are closely related, in which case things are fine.  For example, api.dropbox.com and api.dropboxapi.com are both associated with IP address 162.125.64.7.
+
+Otherwise some care is needed.  Since the firewall can block connections on a per app basis, if different apps connect to different domains sharing the same IP address then we can still block/pass connections as usual since we can use the app to distinguish between the domains.  However, if the same app connects to domains sharing the same IP address and we'd like to block one domain but pass the other then that's not possible just now.  But this seems already a strange situation since domains sharing the same IP address can obviously easily share information and so it seems sensible to either block both or pass both.
+
+You can see information on the domains sharing an IP address by hovering your mouse over a connection - the tool tip gives connection details, including domains.

@@ -31,6 +31,71 @@ char* dns_hash(const void* it) {
 	return temp;
 }
 
+dns_count_t* get_dns_count(int af, struct in6_addr addr) {
+	// get a count for each domain name that associated with IP
+	dns_item_t d;
+	d.af=af;
+	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
+	TAKE_LOCK(&dns_mutex,"get_dns_count()");
+	dns_item_t* it = in_list(&dns_cache,&d,0);
+	if (it == NULL) {
+		pthread_mutex_unlock(&dns_mutex);
+		return NULL;
+	}
+	dns_count_t* c = malloc(sizeof(dns_count_t));
+	memset(c,0,sizeof(dns_count_t));
+	c->num=0;
+	//printf("%d:",it->list_size);
+	for (size_t i=0; i<it->list_size; i++) {
+		size_t index = (it->list_start+i)%MAXDNS;
+		//printf("%s ",it->names[index]);
+		int found = 0; size_t j;
+		for (j = 0; j< c->num; j++) {
+			if (strcmp(c->name[j],it->names[index])==0) {
+				found = 1; break;
+			}
+		}
+		if (found) {
+			c->count[j]++;
+		} else {
+			strlcpy(c->name[c->num], it->names[index], MAXDOMAINLEN);
+			c->count[c->num] = 1;
+			c->num++;
+		}
+	}
+	//printf("num=%d\n",c->num);
+	pthread_mutex_unlock(&dns_mutex);
+	return c;
+}
+
+static char res[(MAXDOMAINLEN+32)*MAXDNS+2];
+char* get_dns_count_str(int af, struct in6_addr addr){
+	dns_count_t* c = get_dns_count(af,addr);
+	memset(res,0,sizeof(res));
+	if (c == NULL) return res;
+	for (size_t j = 0; j< c->num; j++) {
+		char temp[MAXDOMAINLEN+32];
+		sprintf(temp,"%s(%zu) ", c->name[j], c->count[j]);
+		strlcat(res,temp,sizeof(res));
+	}
+	return res;
+}
+
+void dump_dns_cache() {
+	list_t *l = &dns_cache;
+	printf("dns_cache start/size: %zu/%zu\n", l->list_start, l->list_size);
+	for (size_t i=0; i<get_list_size(l); i++) {
+		dns_item_t *b = get_list_item(l,i);
+		char addr_name[INET6_ADDRSTRLEN];
+		inet_ntop(b->af,&b->addr,addr_name,INET6_ADDRSTRLEN);
+		printf("%s: ",addr_name);
+		dns_count_t* c = get_dns_count(b->af, b->addr);
+		for (size_t j = 0; j< c->num; j++) {
+			printf("%s(%zu) ", c->name[j], c->count[j]);
+		}
+		printf("\n");
+	}
+}
 
 char* lookup_dns_name(int af, struct in6_addr addr) {
 	dns_item_t d;
@@ -51,27 +116,46 @@ char* lookup_dns_name(int af, struct in6_addr addr) {
 	}
 }
 
-static FILE* dns_fp=NULL;
+//static FILE* dns_fp=NULL;
 void append_dns(int af, struct in6_addr addr, char* name) {
 	dns_item_t d;
 	d.af=af;
 	memcpy(&d.addr,&addr,sizeof(struct in6_addr));
 	strlcpy(d.name,name,MAXDOMAINLEN);
-	//printf("adding %s/'%s'\n",d.name,dns_hash(&d));
+	d.list_start = 0; d.list_size = 1;
+	strlcpy(d.names[0],name,MAXDOMAINLEN);
+	
 	TAKE_LOCK(&dns_mutex,"append_dns()");
-	dns_item_t *prev = add_item(&dns_cache,&d,sizeof(dns_item_t));
-	pthread_mutex_unlock(&dns_mutex);
-	if (prev != NULL) {
-		// dns entry already exists
-		if (dns_fp == NULL) {
-			char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
-			strlcat(path,"dns_log.txt",STR_SIZE);
-			dns_fp = fopen (path,"a");
-		}
-		char addr_name[INET6_ADDRSTRLEN];
-		inet_ntop(af,&addr,addr_name,INET6_ADDRSTRLEN);
-		fprintf(dns_fp,"%s %s exists (%s)\n", d.name, addr_name, prev->name);
+	dns_item_t* it = in_list(&dns_cache, &d, 0);
+	if (it == NULL) {
+		// a new domain, add initial entry to list
+		add_item(&dns_cache,&d,sizeof(dns_item_t));
+		pthread_mutex_unlock(&dns_mutex);
+		printf("adding new domain %s\n",name);
+		return;
 	}
+	
+	// dns entry already exists, we keep a list of
+	// domain names associated with this IP address.
+	// duplicates are ok as they give an idea of the
+	// domain which occurs most frequently
+	if (it->list_size == MAXDNS) {
+		// wrap circular list
+		it->list_start++; it->list_size--;
+	}
+	strlcpy(it->names[(it->list_start+it->list_size)%MAXDNS],name,MAXDOMAINLEN);
+	it->list_size++;
+	pthread_mutex_unlock(&dns_mutex);
+	printf("appending domain %s: %s\n",name, get_dns_count_str(af,addr));
+	
+	/*if (dns_fp == NULL) {
+		char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
+		strlcat(path,"dns_log.txt",STR_SIZE);
+		dns_fp = fopen (path,"a");
+	}
+	char addr_name[INET6_ADDRSTRLEN];
+	inet_ntop(af,&addr,addr_name,INET6_ADDRSTRLEN);
+	fprintf(dns_fp,"%s %s exists (%s)\n", d.name, addr_name, prev->name);*/
 }
 
 void save_dns_cache(const char* fname) {

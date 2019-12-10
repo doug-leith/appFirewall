@@ -147,6 +147,8 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 				tip = "Domain "+domain+" ("+ip+":"+port+") is blocked for application '"+name+"' by hosts file."
 				//print("active blocked conn:",String(cString: &item.name.0),":",domain,"/",ip)
 			}
+			// add some info on whether IP is shared by multiple domains
+			tip += " Domains associated with this IP address: "+String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr))
 			content = domain
 			if (Int(item.raw.udp)==1) {
 				content = content + " (UDP/QUIC)"

@@ -200,7 +200,9 @@ extension LogViewController: NSTableViewDelegate {
 				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for all applications by hosts file."
 			} else {
 				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for application '"+name+"' by hosts file."
-			}			
+			}
+			// add some info on whether IP is shared by multiple domains
+			tip += " Domains associated with this IP address: "+String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr))
 		} else {
 			cellIdentifier = "ButtonCell"
 		}
