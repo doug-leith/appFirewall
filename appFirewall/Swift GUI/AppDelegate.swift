@@ -138,15 +138,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// reopen active connections window
 		// surely there is a nicer way to do this !
 		let app = NSApplication.shared
-		//print(app.mainWindow, app.isHidden)
 		if (app.mainWindow == nil){
 			let storyboard = NSStoryboard(name:"Main", bundle:nil)
+			print("openapp(): got storyboard")
 			guard let controller : NSTabViewController = storyboard.instantiateController(withIdentifier: "TabViewController") as? NSTabViewController else {print("openapp(): problem creating viewcontroller"); return}
-			let myWindow = NSWindow(contentViewController: controller) 
+			print("openapp(): got controller")
+			let myWindow = NSWindow(contentViewController: controller)
+			print("openapp(): got window")
 			let vc = NSWindowController(window: myWindow)
+			print("openapp(): got window controller")
+			vc.showWindow(self)
+			print("openapp(): show window")
 			let tab_index = UserDefaults.standard.integer(forKey: "tab_index") // get tab
 			controller.tabView.selectTabViewItem(at:tab_index)
-			vc.showWindow(self)
+			print("openapp(): set tab")
 			NSApp.activate(ignoringOtherApps: true) // bring window to front of other apps
 		}
 	}

@@ -23,7 +23,7 @@ static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
 static pthread_cond_t catcher_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t catcher_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
-static int wakeup = 0;
+static int wakeup = 0, pcap_stopped=0;
 
 static libnet_data_t ld, ld_prompt;
 
@@ -103,6 +103,11 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t port, conn_raw_t *cr
 }
 
 void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
+
+	if (pcap_stopped) {
+		pcap_breakloop(pd_esc);
+	}
+	
 	// we got a pkt, let's process it ...
 	catcher_callback_args_t *a=(catcher_callback_args_t*)args;
 	uint16_t target_dport = a->target_dport;
@@ -185,8 +190,9 @@ void *catcher(void *ptr) {
 		pthread_mutex_unlock(&catcher_mutex);
 		
 		if (pcap_loop(pd_esc, -1,	catcher_callback, (u_char*)ptr)==PCAP_ERROR){	// this blocks
-			ERR("catche_escapee pcap_loop: %s\n", pcap_geterr(pd_esc));
+			ERR("catcher_escapee pcap_loop: %s\n", pcap_geterr(pd_esc));
 		}
+		INFO("catcher exited pcap_loop()\n");
 		// catcher_listener calls pcap_breakloop() when connection is
 		// stopped or timeout occurs
 	}
@@ -267,13 +273,12 @@ void *catcher_listener(void *ptr) {
 		}
 		if (pcap_setfilter(pd_esc, &fp) == -1) {
 			ERR("Couldn't install pcap filter %s (catch_escapee): %s\n", filter, pcap_geterr(pd_esc));
-			//exit(EXIT_FAILURE);
 			continue;
 		}
 		//restart pcap listener thread
 		a.target_dport = target_dport; a.pkt_count=0;
 		pthread_mutex_lock(&catcher_mutex);
-		wakeup = 1;
+		wakeup = 1; pcap_stopped = 0;
 		pthread_cond_signal(&catcher_cond);
 		pthread_mutex_unlock(&catcher_mutex);
 
@@ -327,13 +332,15 @@ void *catcher_listener(void *ptr) {
 		// tell GUI we're done ...
 		//fcntl(c_sock2, F_SETFL, O_NONBLOCK); // make non-blocking
 		send(c_sock2, &ok, 1, 0);
-		// stop pcal listener
+		// stop pcap listener
+		pcap_stopped = 1;
 		pcap_breakloop(pd_esc);
 		// and tidy up
 		close(c_sock2);
 		continue;
 	err:
 		INFO("Connection on port %u for %d %s ended (catch_escapee): %s\n", prev_pid, CATCHER_PORT, dn, strerror(errno));
+		pcap_stopped = 1;
 		pcap_breakloop(pd_esc);
 		close(c_sock2);
 	}
