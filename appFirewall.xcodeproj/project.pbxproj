@@ -20,6 +20,7 @@
 		9139F68C2380936800600D37 /* helpViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68B2380936800600D37 /* helpViewController.swift */; };
 		9139F68E2381E3FF00600D37 /* blButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68D2381E3FF00600D37 /* blButton.swift */; };
 		9139F6902382890700600D37 /* helpButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9139F68F2382890700600D37 /* helpButton.swift */; };
+		91494781239F6CA800C01432 /* appTabViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91494780239F6CA800C01432 /* appTabViewController.swift */; };
 		9157B052238FC2290027457A /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 9157B051238FC2290027457A /* icons */; };
 		91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB2236AB280002E50A8 /* AppDelegate.swift */; };
 		91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */; };
@@ -114,6 +115,7 @@
 		9139F68B2380936800600D37 /* helpViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpViewController.swift; sourceTree = "<group>"; };
 		9139F68D2381E3FF00600D37 /* blButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = blButton.swift; sourceTree = "<group>"; };
 		9139F68F2382890700600D37 /* helpButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpButton.swift; sourceTree = "<group>"; };
+		91494780239F6CA800C01432 /* appTabViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = appTabViewController.swift; sourceTree = "<group>"; };
 		9157B04A238FB09E0027457A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9157B051238FC2290027457A /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = icons; sourceTree = "<group>"; };
 		91607BAF236AB280002E50A8 /* appFirewall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = appFirewall.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -288,6 +290,7 @@
 				9139F68F2382890700600D37 /* helpButton.swift */,
 				9139F68B2380936800600D37 /* helpViewController.swift */,
 				91607BB2236AB280002E50A8 /* AppDelegate.swift */,
+				91494780239F6CA800C01432 /* appTabViewController.swift */,
 				91607BB4236AB280002E50A8 /* ActiveConnsViewController.swift */,
 				91607BC7236AB7CA002E50A8 /* LogViewController.swift */,
 				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
@@ -454,6 +457,7 @@
 				9139F68A237FE9A800600D37 /* whitelist.c in Sources */,
 				9180E1732388ABB7007002CB /* is_blocked.c in Sources */,
 				91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */,
+				91494781239F6CA800C01432 /* appTabViewController.swift in Sources */,
 				91607BC4236AB2D1002E50A8 /* pid_conn_info.c in Sources */,
 				9139F682237D355600600D37 /* circular_list.c in Sources */,
 				9180E1692387F4BB007002CB /* heap.c in Sources */,

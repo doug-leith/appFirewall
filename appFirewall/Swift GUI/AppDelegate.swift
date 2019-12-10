@@ -141,7 +141,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if (app.mainWindow == nil){
 			let storyboard = NSStoryboard(name:"Main", bundle:nil)
 			print("openapp(): got storyboard")
-			guard let controller : NSTabViewController = storyboard.instantiateController(withIdentifier: "TabViewController") as? NSTabViewController else {print("openapp(): problem creating viewcontroller"); return}
+			guard let controller : appTabViewController = storyboard.instantiateController(withIdentifier: "TabViewController") as? appTabViewController else {print("openapp(): problem creating viewcontroller"); return}
 			print("openapp(): got controller")
 			let myWindow = NSWindow(contentViewController: controller)
 			print("openapp(): got window")
@@ -149,9 +149,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			print("openapp(): got window controller")
 			vc.showWindow(self)
 			print("openapp(): show window")
-			let tab_index = UserDefaults.standard.integer(forKey: "tab_index") // get tab
-			controller.tabView.selectTabViewItem(at:tab_index)
-			print("openapp(): set tab")
 			NSApp.activate(ignoringOtherApps: true) // bring window to front of other apps
 		}
 	}

@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:../appFirewall/Swift GUI/appTabViewController.swift">
+   </FileRef>
+   <FileRef
       location = "group:../KNOWN_ISSUES.md">
    </FileRef>
    <FileRef
