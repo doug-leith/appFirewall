@@ -30,12 +30,19 @@
                                             </connections>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="oCx-mk-EFw"/>
+                                        <menuItem title="Restart appFirewall Helper" id="5G3-GQ-gAe">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="restartHelper:" target="Voe-Tx-rLC" id="RVV-Xy-GZH"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem isSeparatorItem="YES" id="wFC-TO-SCJ"/>
                                         <menuItem title="Preferences…" keyEquivalent="," id="BOF-NM-1cW">
                                             <connections>
                                                 <action selector="PreferencesMenu:" target="Voe-Tx-rLC" id="7tc-BL-rrB"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem isSeparatorItem="YES" id="wFC-TO-SCJ"/>
+                                        <menuItem isSeparatorItem="YES" id="H0K-fN-pyH"/>
                                         <menuItem title="Hide appFirewall" keyEquivalent="h" id="Olw-nP-bQN">
                                             <connections>
                                                 <action selector="hide:" target="Ady-hI-5gd" id="PnN-Uc-m68"/>
@@ -346,7 +353,7 @@
         <!--appFirewall-->
         <scene sceneID="J5c-Sh-upX">
             <objects>
-                <tabViewController title="appFirewall" storyboardIdentifier="TabViewController" selectedTabViewItemIndex="0" id="8mD-Zi-8hb" sceneMemberID="viewController">
+                <tabViewController title="appFirewall" storyboardIdentifier="TabViewController" selectedTabViewItemIndex="0" id="8mD-Zi-8hb" customClass="appTabViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
                     <tabViewItems>
                         <tabViewItem label="Active Connections" id="z0e-ma-B5d"/>
                         <tabViewItem label="Connection Log" id="MXf-ns-AgR"/>
@@ -706,18 +713,18 @@
         <scene sceneID="Cfc-gk-3nP">
             <objects>
                 <viewController title="Log" id="0NI-P3-O8z" customClass="LogViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
-                    <customView key="view" id="n8h-bI-efk">
-                        <rect key="frame" x="0.0" y="0.0" width="587" height="238"/>
+                    <customView key="view" misplaced="YES" id="n8h-bI-efk">
+                        <rect key="frame" x="0.0" y="0.0" width="587" height="213"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
                             <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zql-6r-CwW">
-                                <rect key="frame" x="0.0" y="0.0" width="587" height="238"/>
+                                <rect key="frame" x="0.0" y="0.0" width="587" height="188"/>
                                 <clipView key="contentView" id="2D7-H0-xKw">
-                                    <rect key="frame" x="1" y="0.0" width="585" height="237"/>
+                                    <rect key="frame" x="1" y="0.0" width="585" height="187"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="VF7-ky-Vo1" viewBased="YES" id="yku-Jn-JpS">
-                                            <rect key="frame" x="0.0" y="0.0" width="585" height="212"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="585" height="162"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <size key="intercellSpacing" width="3" height="2"/>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -847,7 +854,7 @@
                                 </tableHeaderView>
                             </scrollView>
                             <button horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="7A1-Hy-mPv" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
-                                <rect key="frame" x="524" y="211" width="25" height="25"/>
+                                <rect key="frame" x="524" y="161" width="25" height="25"/>
                                 <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Yp7-dI-FyF">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -857,7 +864,7 @@
                                 </connections>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Lnk-5Q-xmV">
-                                <rect key="frame" x="382" y="216" width="96" height="18"/>
+                                <rect key="frame" x="382" y="166" width="96" height="18"/>
                                 <buttonCell key="cell" type="check" title="Show Blocked" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="IQa-4s-LLy">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="smallSystem"/>
@@ -867,7 +874,7 @@
                                 </connections>
                             </button>
                             <searchField wantsLayer="YES" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8qx-1F-b8z">
-                                <rect key="frame" x="249" y="215" width="125" height="22"/>
+                                <rect key="frame" x="249" y="165" width="125" height="22"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="125" id="EeH-wu-1FT"/>
                                 </constraints>

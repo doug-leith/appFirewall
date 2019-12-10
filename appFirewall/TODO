@@ -2,9 +2,7 @@ TO DO
 
 short term:
 - update baseline dns_conn_cache
-- compatible with hostname blocking ?  multiple domains resolve to local host or 0.0.0.0
 - append_dns: log when multiple domains share same IP
-- allow user to force restart of helper
 
 longer term:
 - try use of network extensions - avoid tcp RSTs on new connections ?  only for cataline onwards though

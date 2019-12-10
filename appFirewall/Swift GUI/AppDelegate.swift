@@ -133,6 +133,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	 session.finishTasksAndInvalidate()
 	}
 	
+	
+	@IBAction func restartHelper(_ sender: Any) {
+		UserDefaults.standard.set(true, forKey: "force_helper_restart")
+		restart_app() 
+	}
+	
 	// handle click on menubar item
 	@objc func openapp(_ sender: Any?) {
 		// reopen active connections window
