@@ -440,7 +440,7 @@ void *listener(void *ptr) {
 			// cache we trigger a refresh here.  the hope is that by the time the
 			// synack arrives the connection will be in the cache and we'll avoid
 			// waiting.
-			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher(1);
+			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher(0);
 			continue; // nothing more to do for a syn.
 		}
 		

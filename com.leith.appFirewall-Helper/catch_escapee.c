@@ -277,10 +277,10 @@ void *catcher_listener(void *ptr) {
 		pthread_cond_signal(&catcher_cond);
 		pthread_mutex_unlock(&catcher_mutex);
 
-		// if connection is actively sending pkts then catcher thread will sniff them
-		// and use the info to send RSTs.
-		// but if the connection is side the catcher thread has no packets to work with,
-		// so we try to prompt the connection to come back to life by sending some RSTs.
+		// if connection is actively sending pkts then catcher thread will sniff
+		// them and use the info to send RSTs.
+		// but if the connection is side the catcher thread has no packets to work
+		// with, so prompt the connection to come back to life by sending some RSTs.
 		// ack is the seq number from the remote.  we need to use a value that lies
 		// in current window for RST to provoke a response
 		c.seq = 0; c.ack = ack;
@@ -290,29 +290,37 @@ void *catcher_listener(void *ptr) {
 		uint32_t win = 65536/4;
 		// sit here and keep an eye on procinfo.  when connection goes away we can
 		// stop.
-		#define WAITTIME 1000 // 1ms
+		//#define WAITTIME 1000 // 1ms
 		#define TRIES 33 // 32 plus 1 for initial probe with only INIT_RSTs rst's
 		#define INIT_RSTs 5
 		#define MAXSEQ 0xFFFFFFFF // 2^32-1
 		uint32_t tries_per_round = MAXSEQ/win/(TRIES-1);
-		int i, n=INIT_RSTs;
-		for (i=0; i<TRIES; i++) {
-			for (int j=0; j<n; j++){
-				snd_rst(0,&c,1,&ld_prompt); // just send RSTs to self, so don't flood internet
-				c.ack += win; // ack might be stale, so advance it by a few windows
+		int n=INIT_RSTs;  // initial number of RSTs, enough if seq is right
+		// we send RSTs as two inter-leaved sequences shifted by win/2,
+		// that way if the window size is large enough we catch it on
+		// first round i.e. quicker, otherwise on second round
+		for (int k=0; k<2; k++) {
+			c.ack = ack + k*win/2;
+			for (int i=0; i<TRIES; i++) {
+				for (int j=0; j<n; j++){
+					snd_rst(0,&c,1,&ld_prompt); // just send RSTs to self, so don't flood internet
+					c.ack += win; // ack might be stale, so advance it by a few windows
+				}
+				conn_raw_t c_temp;
+				if (find_fds(pid, af, dst, target_dport, &c_temp)<0) {
+					struct timeval end; gettimeofday(&end, NULL);
+					INFO("connection %d %s:%u has STOPPED, pkts sniffed=%d, count %d, time taken %fs.\n",pid,dn,target_dport,a.pkt_count,i,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+					ok=1;
+					goto done; // connection has gone away
+				}
+				// suspend, so that target connection gets a chance to react to
+				// our RSTs - is this necessary ?
+				//usleep(WAITTIME);
+				n = tries_per_round; // let's try a bit harder !
 			}
-			conn_raw_t c_temp;
-			int res = find_fds(pid, af, dst, target_dport, &c_temp);
-			if (res<0) {
-				struct timeval end; gettimeofday(&end, NULL);
-				INFO("connection %d %s:%u has STOPPED, pkts sniffed=%d, count %d, time taken %fs.\n",pid,dn,target_dport,a.pkt_count,i,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
-				ok=1;
-				break; // connection has gone away
-			}
-			usleep(WAITTIME);
-			n = tries_per_round; // let's try a bit harder !
 		}
-		if (i==TRIES) {
+	done:
+		if (ok != 1) {
 			struct timeval end; gettimeofday(&end, NULL);
 			INFO("FAILED to stop connection %d %s:%u, pkts sniffed=%d, time taken %fs\n",pid,dn,target_dport,a.pkt_count,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
 		}

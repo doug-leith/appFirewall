@@ -142,7 +142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if (app.mainWindow == nil){
 			let storyboard = NSStoryboard(name:"Main", bundle:nil)
 			guard let controller : NSTabViewController = storyboard.instantiateController(withIdentifier: "TabViewController") as? NSTabViewController else {print("openapp(): problem creating viewcontroller"); return}
-			let myWindow = NSWindow(contentViewController: controller)
+			let myWindow = NSWindow(contentViewController: controller) 
 			let vc = NSWindowController(window: myWindow)
 			let tab_index = UserDefaults.standard.integer(forKey: "tab_index") // get tab
 			controller.tabView.selectTabViewItem(at:tab_index)

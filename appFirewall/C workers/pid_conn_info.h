@@ -28,8 +28,8 @@
 // algorithm parameters
 #define PID_CACHE_SIZE 3 // size of cache of recent PIDs and their names.
 # define PID_WATCHER_TIMEOUT 500 // in ms, after which we force refresh of list of active processes and their connections.  GUI refreshes every 1s, so data displayed to user at most 0.5s old
-#define REFRESH_TIMEOUT 0.05 // 50ms, after which we force full refresh in find_fds() (so correcting any errors caused by reused of file descriptors).  since reuse is rare, we could make this timeout longer e.g. 100ms ?
-#define REFRESH_THRESH 0.05 // if more than 5% of fd's are observed to change due to file descriptor reuse then we fall back to always doing a full refresh in find_fds().
+#define REFRESH_TIMEOUT 0.1 // 100ms, after which we force full refresh in find_fds() (so correcting any errors caused by reused of file descriptors).  since reuse is rare, we could make this timeout longer e.g. 100ms ?
+#define REFRESH_THRESH 0.05 // if more than 5% of fd's are observed to be incorrect due to file descriptor reuse then we fall back to always doing a full refresh in find_fds().
 #define ESCAPEE_TIMEOUT 0.05 // 50ms, after which we check for escapees.  we leave a delay so as to give time to kill connections via sending TCP RSTs on SYN-ACK before invoking escapee catcher process (which is relatively slow/expensive).
 #define STALE_ESCAPEE_TIMEOUT 10 // 10secs. for keeping stats on stale escapees
 #define ESCAPEEMAX 1 // max num of escapees we try to catch concurrently
@@ -44,7 +44,7 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh);
 int refresh_active_conns(int full_refresh);
 
 void start_pid_watcher(void);
-void signal_pid_watcher(int syn);
+void signal_pid_watcher(int force);
 void set_pid_watcher_hook(void (*hook)(void));
 int get_pid_changed(void);
 void clear_pid_changed(void);

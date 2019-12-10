@@ -10,7 +10,7 @@
 
 #include "pid_conn_info.h"
 
-//global
+//globals
 static list_t pid_list=LIST_INITIALISER; // list of active pid's and network conns
 static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
 static int changed = 1; // flag to GUI if pid list has changed
@@ -34,7 +34,7 @@ static pthread_mutex_t escapee_mutex = MUTEX_INITIALIZER;
 // also pid_mutex lock before escapee_mutex
 static pthread_t pid_thread; // handle to pid watcher thread
 static int pid_thread_started = 0; // indicates whether pid watcher thread already running
-static int wakeup = 0;
+static int wakeup = 0, force = 0;
 static void (*pid_watcher_hook)(void) = NULL;
 
 //--------------------------------------------------------
@@ -109,10 +109,15 @@ void *pid_watcher(void *ptr) {
 		// have already been killed by RSTs but which we haven't noticed
 		// that yet.  if too large we have to do more work to kill conn
 		// (since ack seq number is stale), but we call escapee_catcher
-		// and create a backlog of work
-		if (elapsed > ESCAPEE_TIMEOUT) {
+		// and create a backlog of work.
+		// force=1 when we've just stopped an escapee and so want to
+		// check if there are any others without adding delay
+		if (force || (elapsed > ESCAPEE_TIMEOUT)) {
 			find_escapees();
 			t_last = t;
+			TAKE_LOCK(&pid_mutex,"pid_watcher #2");
+			force = 0;
+			pthread_mutex_unlock(&pid_mutex);
 		}
 		
 		// handle waiting list, will take lock as needed
@@ -129,10 +134,10 @@ void start_pid_watcher() {
 	}
 }
 
-void signal_pid_watcher(syn) {
+void signal_pid_watcher(force_find_escapee) {
 	// ask watcher to refresh pid_list
 	TAKE_LOCK(&pid_mutex,"signal_pid_watcher");
-	wakeup = 1;
+	wakeup = 1; force = force_find_escapee;
 	pthread_cond_signal(&pid_cond);
 	pthread_mutex_unlock(&pid_mutex);
 	//printf("signal sent\n");
@@ -719,6 +724,7 @@ void *catch_escapee(void *ptr) {
 	pthread_mutex_unlock(&escapee_mutex);
 	print_escapees(); // takes its own lock
 	free(e);
+	signal_pid_watcher(1); // refresh pid list and check for more escapees
 	return NULL;
 	
 err:
@@ -729,6 +735,7 @@ err:
 	escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
 	free(e);
+	signal_pid_watcher(1); // refresh pid list and check for more escapees
 	return NULL;
 }
 
