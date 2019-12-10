@@ -78,6 +78,7 @@ char* get_dns_count_str(int af, struct in6_addr addr){
 		sprintf(temp,"%s(%zu) ", c->name[j], c->count[j]);
 		strlcat(res,temp,sizeof(res));
 	}
+	free(c);
 	return res;
 }
 

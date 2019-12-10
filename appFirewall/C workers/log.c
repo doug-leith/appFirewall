@@ -303,10 +303,10 @@ void load_log(const char* logName, const char* logTxtName) {
 	changed = 2; // record fact that log has been updated
 	if (first_load) {
 		init_list(&log_list,log_hash,NULL,1,-1,"log_list");
-		init_list(&filtered_log_list, filtered_log_hash, NULL,1,-1, "filtered_log_list");
+		//init_list(&filtered_log_list, filtered_log_hash, NULL,1,-1, "filtered_log_list");
 		first_load = 0;
 	} else {
-		clear_list(&log_list); clear_list(&filtered_log_list);
+		clear_list(&log_list); //clear_list(&filtered_log_list);
 	}
 	load_list(&log_list, path, sizeof(log_line_t));
 	pthread_mutex_unlock(&log_list_mutex);
