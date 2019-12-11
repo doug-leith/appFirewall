@@ -296,7 +296,7 @@ char* get_date() {
 
 char* get_file_modify_time(const char *path) {
     struct stat attr;
-    stat(path, &attr);
+    lstat(path, &attr);
     strftime(date_temp,STR_SIZE,"%d %b %H:%M:%S %Y",localtime(&attr.st_mtime));
     return date_temp;
 }
