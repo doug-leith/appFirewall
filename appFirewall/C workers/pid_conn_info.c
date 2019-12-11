@@ -478,6 +478,11 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
 				continue; // ignore IPv6 link local addresses
 			}
+			mask="::";
+			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
+				continue; // null IPv6 address, happens with Skype
+			}
+
 			c.raw.sport =  ntohs(sockinfo->insi_lport);
 			c.raw.dport = ntohs(sockinfo->insi_fport);
 			

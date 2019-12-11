@@ -12,7 +12,7 @@ struct Config {
 	static let defaultLoggingLevel = 2 // more verbose, for testing
 	static let enableDtrace = 1 // disable for SIP testing
 	
-	static let minHelperVersion = 2 // required helper version, must be an Int
+	static let minHelperVersion = 3 // required helper version, must be an Int
 	
 	static let crashURL = URL(string: "https://leith.ie/logcrash.php")!
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!

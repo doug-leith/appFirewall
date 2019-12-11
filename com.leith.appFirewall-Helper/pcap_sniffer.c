@@ -82,7 +82,7 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 		pclose(fp);
 	}
 	if (interface) {
-		printf("found default route interface: %s\n",interface);
+		INFO("found default route interface: %s\n",interface);
 		intf = interface;
 	} else {
   // try using getifaddrs().  this will likely fail too if
@@ -120,8 +120,11 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 	}
 	freeifaddrs(ifap);
 	}
-	
-	//INFO("Listening on device: %s\n", intf);
+	if (intf == NULL) {
+		ERR("No suitable interface found %s\n","");
+	} else {
+		INFO("Using interface: %s\n", intf);
+	}
 	bpf_u_int32 mask, net;
 	if (pcap_lookupnet(intf, &net, &mask, ebuf) == -1) {
 		WARN("Can't get netmask for pcap device %s: %s\n", intf, ebuf);
