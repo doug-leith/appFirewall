@@ -58,16 +58,18 @@ int check_signature(int sock, int port){
 	CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
 	INFO("signing status on port %d: %s\n",port,CFStringGetCStringPtr(err_str,ASCII));
 	CFRelease(err_str);
-	if (status != errSecSuccess) {
+	if (1) {//}(status != errSecSuccess) {
 		// get some extra debug info
 		SecCSFlags flags = kSecCSInternalInformation
 		| kSecCSSigningInformation
 		| kSecCSRequirementInformation
 		| kSecCSInternalInformation;
-		CFDictionaryRef api; // not mutable, no need to release
+		CFDictionaryRef api;
 		SecCodeCopySigningInformation(codeRef, flags, &api);
 		CFStringRef id = CFDictionaryGetValue(api, kSecCodeInfoIdentifier);
 		INFO("signature identifier on port %d: %s\n",port,CFStringGetCStringPtr(id,ASCII));
+		//CFRelease(id); // releasing api releases id string
+		CFRelease(api);
 		
 		SecRequirementRef req;
 		SecCodeCopyDesignatedRequirement(codeRef, kSecCSDefaultFlags, &req);
@@ -79,7 +81,8 @@ int check_signature(int sock, int port){
 		#ifdef DEBUG
 		// appFirewall will fail sign check when compiled for testing/debugging, but its ok
 		INFO("DEBUG enabled, passed anyway\n");
-		return pid;
+		//return pid;
+		return -1;
 		#else
 		return -1;
 		#endif
