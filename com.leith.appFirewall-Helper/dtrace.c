@@ -218,7 +218,7 @@ int init_dtrace() {
 	}
 	int flag = DTRACE_C_PSPEC;
 	if (dtrace_init_firsttime) {
-		flag |= DTRACE_C_DIFV; // dump out dtrace code to help with debugging
+		//flag |= DTRACE_C_DIFV; // dump out dtrace code to help with debugging
 		dtrace_init_firsttime=0;
 	}
 	if ((prog = dtrace_program_strcompile(g_dtp, dtrace_script2, DTRACE_PROBESPEC_NAME, flag, 0, NULL)) == NULL) {

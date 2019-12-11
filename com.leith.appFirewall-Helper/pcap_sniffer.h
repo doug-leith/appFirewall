@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <pcap.h>
 #include <pthread.h>
+#include <ifaddrs.h>
 #include "util.h"
 #include "dtrace.h"
 

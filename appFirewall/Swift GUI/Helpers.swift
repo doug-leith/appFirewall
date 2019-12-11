@@ -152,7 +152,7 @@ func exit_popup(msg: String, force:Int) {
 	alert.messageText = "Error"
 	alert.informativeText = msg
 	alert.alertStyle = .critical
-	alert.addButton(withTitle: "Restart")
+	alert.addButton(withTitle: "Restart App")
 	alert.addButton(withTitle: "OK")
 	let response = alert.runModal()
 	if (force > 0) {

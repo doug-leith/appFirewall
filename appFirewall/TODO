@@ -2,6 +2,8 @@ TO DO
 
 short term:
 - update baseline dns_conn_cache
+- try out sandbox on gui
+- move to using container to store files ?
 
 longer term:
 - use of network extensions, only for cataline onwards though

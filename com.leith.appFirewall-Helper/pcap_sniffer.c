@@ -21,14 +21,106 @@ void close_sniffer_sock() {
 bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 	// fire up pcap listener ...
 	
-	char *intf, ebuf[PCAP_ERRBUF_SIZE];
+	char *intf=NULL, ebuf[PCAP_ERRBUF_SIZE];
 	
 	// get network device
-	if ((intf = pcap_lookupdev(ebuf)) == NULL) {
-		ERR("Couldn't find default pcap device: %s", ebuf);
+	/*if ((intf = pcap_lookupdev(ebuf)) == NULL) {
+		ERR("Couldn't find default pcap device: %s\n", ebuf);
+		//EXITFAIL("Problem listening to network: pcap couldn't find default device: %s", ebuf);
+		exit(EXIT_FAILURE);
+	}*/
+	/*pcap_if_t *alldevsp;
+	if (pcap_findalldevs(&alldevsp,ebuf) !=0) {
+		ERR("Problem calling pcap_findalldevs(): %s\n", ebuf);
 		//EXITFAIL("Problem listening to network: pcap couldn't find default device: %s", ebuf);
 		exit(EXIT_FAILURE);
 	}
+	if (alldevsp==NULL) {
+		ERR("Couldn't find any pcap devices %s\n","");
+		exit(EXIT_FAILURE);
+	}
+	pcap_if_t *dev = alldevsp;
+	for (dev = alldevsp; dev != NULL; dev = dev->next) {
+		printf("interface %s ...",dev->name);
+		if (dev-> flags & PCAP_IF_LOOPBACK) {printf("loopback\n"); continue;}
+		if ((dev-> flags & PCAP_IF_UP) == 0) {printf("not up\n"); continue;}
+		if (dev->addresses == NULL) {printf("no addresses\n"); continue;}
+		int found = 0;
+		pcap_addr_t* dev_addr;
+		for (dev_addr = dev->addresses; dev_addr != NULL; dev_addr = dev_addr->next) {
+				// ignore interfaces without a broadcast addr
+				// and which are point to point
+				if (dev_addr->broadaddr == NULL) {printf("no broadcast address "); continue;}
+				if (dev_addr->dstaddr != NULL) {printf("point to point "); continue;}
+				// ignore non-IP interfaces
+				if ((dev_addr->addr->sa_family == AF_INET) || (dev_addr->addr->sa_family == AF_INET6)) {
+				    if (dev_addr->addr && dev_addr->netmask)
+				    found = 1;
+				 }
+		 }
+		 if (found) {
+		 		// we have a non-loopback interface that is up and
+		 		// has an IPv4 or IPv6 address
+		 		printf("good\n");
+		 		intf = dev->name;
+		 		//break; // we take the first one
+		 } else {
+		 	printf("\n");
+		 }
+	};
+	*/
+	
+	FILE *fp = popen("/sbin/route get default default | /usr/bin/grep interface","r");
+	char* interface=NULL, buf[1024];
+	if (fp != NULL) {
+  	if (fgets(buf, sizeof(buf), fp)!=NULL) {
+  		char* c = strstr(buf,":");
+  		if (c!= NULL) {
+  			interface = trimwhitespace(c+1);
+			}
+		}
+		pclose(fp);
+	}
+	if (interface) {
+		printf("found default route interface: %s\n",interface);
+		intf = interface;
+	} else {
+  // try using getifaddrs().  this will likely fail too if
+  // call to route didn't work
+	struct ifaddrs *ifap;
+	if (getifaddrs(&ifap)<0) {
+		ERR("Couldn't get list of interfaces: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	struct ifaddrs *dev;
+	for(dev=ifap; dev; dev=dev->ifa_next) {
+		printf("interface %s ...",dev->ifa_name);
+		if (dev-> ifa_flags & IFF_LOOPBACK) {printf("loopback\n"); continue;}
+		if (dev-> ifa_flags & IFF_POINTOPOINT) {printf("point to point\n"); continue;}
+		if (dev->ifa_flags&IFF_NOARP) {printf("no ARP\n"); continue;}
+		if ((dev->ifa_flags&IFF_UP)==0) {printf("point to point\n"); continue;}
+		if ((dev->ifa_flags&IFF_BROADCAST)==0) {printf("no valid broadcast addr\n"); continue;}
+		//if (!dev->ifa_netmask) {printf("no valid netmask\n"); continue;}
+		struct sockaddr *addr = dev->ifa_addr;
+		char addr_name[INET6_ADDRSTRLEN];
+		if (addr->sa_family == AF_INET) {
+			inet_ntop(addr->sa_family, &((struct sockaddr_in*)addr)->sin_addr, addr_name, INET6_ADDRSTRLEN);
+		} else if (addr->sa_family == AF_INET6) {
+			inet_ntop(addr->sa_family, &((struct sockaddr_in6*)addr)->sin6_addr, addr_name, INET6_ADDRSTRLEN);
+		} else {printf("not IPv4/IPv6\n"); continue;}
+		char* mask="fe80:";
+		if (strncmp(mask, addr_name, strlen(mask)) == 0) {
+			printf("link local addr\n");
+			continue; // ignore IPv6 link local addresses
+		}
+		printf("addr %s found\n",addr_name);
+		strlcpy(buf,dev->ifa_name,1024);
+		intf = buf;
+		break; // we take the first valid interface
+	}
+	freeifaddrs(ifap);
+	}
+	
 	//INFO("Listening on device: %s\n", intf);
 	bpf_u_int32 mask, net;
 	if (pcap_lookupnet(intf, &net, &mask, ebuf) == -1) {
@@ -42,6 +134,8 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 		ERR("Couldn't create pcap sniffer %s\n",ebuf);
 		exit(EXIT_FAILURE);
 	}
+	//pcap_freealldevs(alldevsp);
+
 	#define SNAPLEN 512 // needs to be big enough to capture dns payload
 	if (pcap_set_snaplen(*pd,SNAPLEN)!=0) {
 		WARN("Couldn't set snaplen on pcap sniffer: %s\n",pcap_geterr(*pd));

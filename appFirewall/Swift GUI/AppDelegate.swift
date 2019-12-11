@@ -305,7 +305,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// this can be slow since it blocks while making network connection to helper
     DispatchQueue.global(qos: .background).async {
 			start_helper_listeners(Int32(dtrace))
-			//start_helper_listeners(Int32(0))
 		}
 		
 		// schedule house-keeping ...
