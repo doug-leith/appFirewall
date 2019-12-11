@@ -12,3 +12,11 @@ longer term:
 - UI remove dock item, but need to create menu when open window from status bar.  main problem is how to let user control statusbar vs dock -- another pref pane just for this ?
 - handle multiple domains sharing same IP, in first instance using dtrace to catch calls to mDNSResponder.
 - support for multiple active interfaces (need to fire up a separate pcap sniffer thread for each)
+
+
+Wed Dec 11 22:59:44 2019: Started new connection on port 3 (pcap)
+Wed Dec 11 22:59:44 2019: client pid=14943 for port 3
+Wed Dec 11 22:59:44 2019: signing status on port 3: code failed to satisfy specified code requirement(s)
+Wed Dec 11 22:59:44 2019: signature identifier on port 3: com.leith.appFirewall
+Wed Dec 11 22:59:44 2019: requirements on port 3: anchor apple generic and identifier "com.leith.appFirewall" and (certificate leaf[field.1.2.840.113635.100.6.1.9] / exists / or certificate 1[field.1.2.840.113635.100.6.2.6] / exists / and certificate leaf[field.1.2.840.113635.100.6.1.13] / exists / and certificate leaf[subject.OU] = Z4G8Q5Z5LN)
+Wed Dec 11 22:59:44 2019: Waiting to accept connection on localhost port 3 (pcap) ...
