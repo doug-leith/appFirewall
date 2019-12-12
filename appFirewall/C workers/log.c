@@ -235,14 +235,14 @@ void filter_log_list(int_sw show_blocked, const char* str) {
 					// its a repeat line of previous line
 					log_repeat(l_filtered);
 				} else {
-					log_line_t *l_prev = add_item(&filtered_log_list,l,sizeof(log_line_t));
-					if (l_prev != NULL) WARN("filter_log_list() unexpected repeat log entry: %s %s",l->time_str, l->log_line);
+					add_item(&filtered_log_list,l,sizeof(log_line_t));
 					l_filtered = in_list(&filtered_log_list,l,0); // keep a pointer to the new entry
-					if (l_filtered == NULL) WARN("filter_log_list() couldn't find just added log entry: %s %s",l->time_str, l->log_line);
+					if (l_filtered == NULL) WARN("filter_log_list() couldn't find just added log entry: %s %s\n",l->time_str, l->log_line);
 				}
 			}
 		}
 	}
+	if (h!=NULL) free(h); if (h_prev!=NULL) free(h_prev);
 	pthread_mutex_unlock(&log_list_mutex);
 }
 

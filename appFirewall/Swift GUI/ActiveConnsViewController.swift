@@ -57,6 +57,7 @@ class ActiveConnsViewController: appViewController {
 		//let changed = refresh_active_conns(0)
 		if (force || ((firstVisibleRow==0) && (Int(get_pid_changed()) != 0)) ) {
 			clear_pid_changed()
+			//let indexSet = tableView?.selectedRowIndexes
 			update_gui_pid_list()
 			tableView?.reloadData()
 		}
