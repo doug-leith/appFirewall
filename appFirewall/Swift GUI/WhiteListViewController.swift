@@ -17,6 +17,9 @@ class WhiteListViewController: appViewController {
 			// Do view setup here.
 			tableView!.delegate = self // force using ! since shouldn't fail
 			tableView!.dataSource = self
+			let menu = NSMenu()
+			menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
+			tableView?.menu = menu
 	}
 
 	override func viewWillAppear() {

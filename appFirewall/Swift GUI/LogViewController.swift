@@ -24,6 +24,9 @@ class LogViewController: appViewController {
 		super.viewDidLoad()
 		tableView!.delegate = self // force using ! since shouldn't fail
 		tableView!.dataSource = self
+		let menu = NSMenu()
+		menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
+		tableView?.menu = menu
 	}
 	
 	override func viewWillAppear() {
@@ -131,7 +134,7 @@ class LogViewController: appViewController {
 			guard let cell1 = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {continue}
 			let str1 = cell1.textField?.stringValue ?? ""
 			let tip = cell1.textField?.toolTip ?? ""
-			text += str0+" "+str1+"["+tip+"]\n"
+			text += str0+" "+str1+" ["+tip+"]\n"
 		}
 		let pasteBoard = NSPasteboard.general
 		pasteBoard.clearContents()
