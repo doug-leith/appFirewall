@@ -467,9 +467,14 @@ void *listener(void *ptr) {
 		
 	err_p:
 		if (errno==0) {
-			WARN("recv sniffed pkt: connection closed.");
+			WARN("recv sniffed pkt: connection closed.\n");
+		} else if (errno == EOPNOTSUPP) {
+			// get this error when code sign check on helper fails, we won't recover from this so tell
+			// the user
+			set_error_msg("Problem receiving packet data from helper, likely a code signing issue.  Try reinstalling helper.",1);
+			is_running=0; pthread_exit(NULL);
 		} else {
-			WARN("recv sniffed pkt: %s", strerror(errno));
+			WARN("recv sniffed pkt: %s (%d)\n", strerror(errno), errno);
 		}
 		// likely helper has shut down sniffing connection for some reason, reopen it
 		close(p_sock); // if don't close and reopen sock we get error

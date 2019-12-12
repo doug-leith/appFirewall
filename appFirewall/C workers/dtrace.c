@@ -118,6 +118,10 @@ void *dtrace_listener(void *ptr) {
 	err:
 		if (errno==0) {
 			WARN("dtrace connection closed.\n");
+		} else if (errno == EOPNOTSUPP) {
+			// get this error when code sign check on helper fails, we won't recover from this
+			WARN("dtrace: Problem receiving data from helper, likely a code signing issue.\n");
+			is_running=0; pthread_exit(NULL);
 		} else {
 			WARN("dtrace: %s\n", strerror(errno));
 		}

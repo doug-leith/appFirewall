@@ -82,7 +82,7 @@ int check_signature(int sock, int port){
 		// appFirewall will fail sign check when compiled for testing/debugging, but its ok
 		INFO("DEBUG enabled, passed anyway\n");
 		return pid;
-		//return -1;
+	  //return -1;
 		#else
 		return -1;
 		#endif
