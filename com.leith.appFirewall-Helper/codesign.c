@@ -11,7 +11,7 @@
 #include "util.h"
 
 #define identifier "com.leith.appFirewall"
-#define cert_cn "Apple Development: doug.leith@tcd.ie (8JB83FAF5R)"
+#define cert_ou "Z4G8Q5Z5LN"
 #define ASCII 1536 //CFString ascii encoding
 
 int get_sock_pid(int sock, int port) {
@@ -46,7 +46,7 @@ int check_signature(int sock, int port){
 	
 	// check code signature is valid and meets our requirements
 	char str[1024];
-	//sprintf(str,"identifier %s and anchor apple generic and certificate leaf[subject.CN] = \"%s\"", identifier, cert_cn);
+	//sprintf(str,"identifier %s and anchor apple generic and certificate leaf[subject.OU] = \"%s\"", identifier, cert_ou);
 	sprintf(str,"identifier %s and anchor apple generic", identifier);
 	CFStringRef req_str = CFStringCreateWithCString(NULL,str,ASCII);
 	SecRequirementRef req;

@@ -26,6 +26,7 @@ class LogViewController: appViewController {
 		tableView!.dataSource = self
 		let menu = NSMenu()
 		menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
+		menu.addItem(NSMenuItem(title: "Get Info", action: #selector(getInfo), keyEquivalent: ""))
 		tableView?.menu = menu
 	}
 	

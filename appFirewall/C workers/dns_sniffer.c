@@ -238,13 +238,15 @@ static u_char *skip_dns_label(u_char *label){
 	u_char *tmp;
 
 	if (!label) return NULL;
-	if (*label & 0xc0)
-		return label + 2;
-
-	tmp = label;
+	
 	while (*label) {
-		tmp += *label + 1;
-		label = tmp;
+		// a pointer
+		if (*label & 0xc0)
+			label = label + 2; // pointer is 2 bytes long
+		else {
+			tmp = label + *label + 1; // first byte gives length of label
+			label = tmp;
+		}
 	}
 	return label + 1;
 }
@@ -259,13 +261,15 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	struct dnshdr* dns = (struct dnshdr*)(dnsh);
 	int an = ntohs(dns->ancount);
 	int qd = ntohs(dns->qdcount);
+	uint16_t sport=ntohs(udp->uh_sport);
+	int mDNS = (sport == 5353);
 	uint16_t len = ntohs(udp->uh_ulen)-LIBNET_UDP_H-LIBNET_UDP_DNSV4_H;
 	if (len > pkthdr->caplen-LIBNET_IPV4_H-LIBNET_UDP_H-LIBNET_UDP_DNSV4_H) {
-		WARN("dns_sniffer() snaplen looks too short: %d/%d", ntohs(udp->uh_ulen), 	pkthdr->caplen-LIBNET_IPV4_H);
+		WARN("dns_sniffer() snaplen looks too short: %d/%d\n", ntohs(udp->uh_ulen), 	pkthdr->caplen-LIBNET_IPV4_H);
 	}
 	const u_char* payload = udph+LIBNET_UDP_H+LIBNET_UDP_DNSV4_H;
 	const u_char *end = payload + len ;
-	//printf("DNS flags=%d/%d qd=%d an=%d, len=%d\n", dns->flags, dns->flags&0x80, qd, an, len);
+	//printf("DNS flags=%d/%d qd=%d an=%d, len=%d, sport=%d\n", dns->flags, dns->flags&0x80, qd, an, len, sport);
 	if ((dns->flags&0x80)==0) return; // DNS query, we only want responses.
 	if (!an) return; // response is empty, probably responding with an error
 	
@@ -294,24 +298,61 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	}
 	
 	/* Output the answer corresponding to the question */
+	if (!qtype && !mDNS) return;
 	//printf("qtype %d, an %d\n", qtype, an);
-	if (!qtype) return;
-	
+
+	u_char* t = tmp, *last_t=tmp;
 	for (i=0;i< an; i++) {
+		last_t = t; t = tmp;
 		tmp = skip_dns_label(tmp);
 		if (tmp + 10 > end) return;
 
+		if (tmp == t+1) {
+			// empty label
+			printf("empty label. qd=%d, i=%d: prev:",qd,i );
+			for (int j = 0; j< tmp-last_t+8; j++) {
+				printf("%u ", *(last_t+j));
+				if (last_t+j == t) printf("\ncurr:");
+			}
+			printf("\n");
+			return;
+		}
 		/* Get the type, and skip class and ttl */
 		len = ntohs(*(uint16_t *)tmp); tmp += 8;
-		if (len == qtype) break;
+		/* // dump out raw bytes ...
+		printf("qtype=%d/%d, i=%d: ",len, qtype,i);
+		for (int j =0; j<tmp-t+2; j++) {
+			printf("%u ", *(t+j));
+		}
+		printf("\n");*/
+		if (!mDNS) {
+			if (len == qtype) break;
+		} else {
+			// mDNS responses don't have a question section, so let's grab any IPv4 or IPv6
+			// responses
+			if (len == 1 || len == 28) {qtype = len; break;}
+		}
 
 		/* Skip ahead to the next answer */
 		tmp += ntohs(*(uint16_t *)tmp) + 2;
 		if (tmp > end) return;
 	}
-	
+	if (len != qtype) {
+		// didn't find a match, only really happens with mDNS where may have no IP addresses in response
+		return;
+	}
 	/* Get the data field length */
-	//len = ntohs(*(uint16_t *)tmp);
+	len = ntohs(*(uint16_t *)tmp);
+	if (qd == 0) label = dns_label_to_str(&t, buf, BUFSIZE, payload, end);
+	if (label==NULL || strlen((char*)label)==0) {
+		printf("i=%d, label=%s, len=%d, qtype=%d\n", i,label,len,qtype);
+		for (int i =0; i< tmp-t+8; i++) {
+			printf("%u ", *(t+i));
+		}
+		printf("\n");
+		return;
+	}
+
 	tmp += 2;
 
 	/* Now, handle the data based on type */
@@ -321,9 +362,11 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	if(qtype==1) {// A
 			memcpy(&addr,tmp,sizeof(struct in_addr));
 			af=AF_INET;
+			if (!addr.s6_addr) return; // 0.0.0.0
 	} else if (qtype==28) { // AAAA
 			memcpy(&addr,tmp,sizeof(struct in6_addr));
 			af=AF_INET6;
+		if (!addr.s6_addr) return; // ::
 	} else {
 		return;
 	}

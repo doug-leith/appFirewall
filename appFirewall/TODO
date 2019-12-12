@@ -2,6 +2,7 @@ TO DO
 
 short term:
 - update baseline dns_conn_cache
+- helper: filter out DNS queries and truncated pkts - reduce "noise"
 
 longer term:
 - use of network extensions, only for cataline onwards though

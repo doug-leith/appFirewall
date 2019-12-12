@@ -24,6 +24,6 @@ func infoPopup(msg: String, sender: NSView) {
 	
 func selectall(sender: AnyObject?){}
 @objc func copyLine(sender: AnyObject?){}
-func getInfo(sender: AnyObject?){}
+@objc func getInfo(sender: AnyObject?){}
 
 }

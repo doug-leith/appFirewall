@@ -293,7 +293,7 @@ void *listener(void *ptr) {
 		DEBUG2("waiting to read sniffed pkt ... %d\n",p_sock);
 		if ( (res=readn(p_sock, &pkthdr, sizeof(struct pcap_pkthdr)) )<=0) goto err_p;
 		if (pkthdr.caplen>SNAPLEN) {
-			WARN("Sniffer listener: our snaplen %d is too small for received pkt len %d ",SNAPLEN,pkthdr.caplen);
+			WARN("Sniffer listener: our snaplen %d is too small for received pkt len %d\n",SNAPLEN,pkthdr.caplen);
 			pkthdr.caplen=SNAPLEN; // we truncate packet and hope for the best !
 		}
 		DEBUG2("waiting to read pkt ...\n");
@@ -336,10 +336,10 @@ void *listener(void *ptr) {
 			struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
 			uint16_t sport=ntohs(udp->uh_sport);
 			uint16_t dport=ntohs(udp->uh_dport);
-			if (sport == 53 || dport == 53) {
+			if (sport == 53 || dport == 53 || sport == 5353 || dport == 5353) {
 				// pass to DNS sniffer
 				double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
-				INFO2("t (sniffed dns) %f\n", t);
+				//INFO2("t (sniffed dns) %f\n", t);
 				dns_sniffer(&pkthdr,nexth);
 				cm_add_sample_lock(&stats.cm_t_dns,t);
 				continue;

@@ -282,19 +282,10 @@ void start_listener() {
 	p_sock = bind_to_port(PCAP_PORT,2);
 	INFO("Now listening on localhost port %d (pcap)\n", PCAP_PORT);
 
+	// syns and syn-acks, DNS and mDNS, UDP on ports 443 likely to be quic
 	// tcpflags doesn't work for ipv6, sigh.
-	// UDP on ports 443 likely to be quic
-	//start_sniffer("(udp and port 53) or (tcp and (tcp[tcpflags]&tcp-syn!=0) || (ip6[6] == 6 && ip6[53]&tcp-syn!=0)) or (udp and port 443)");
-	
-	// just syn-acks
-	/*start_sniffer(&pd, "\
-	(udp and port 53) \
-	or (tcp and (tcp[tcpflags]&tcp-syn!=0) and (tcp[tcpflags]&tcp-ack!=0)) \
-	or (ip6[6] == 6 and (ip6[53]&tcp-syn!=0) and (tcp[tcpflags]&tcp-ack!=0)) \
-	or (udp and port 443)");*/
-	// syns and syn-acks
 	start_sniffer(&pd, "\
-	(udp and port 53) \
+	(udp and port 53) or (udp and port 5353) \
 	or (tcp and (tcp[tcpflags]&tcp-syn!=0)) \
 	or (ip6[6] == 6 and (ip6[53]&tcp-syn!=0)) \
 	or (udp and port 443)");
