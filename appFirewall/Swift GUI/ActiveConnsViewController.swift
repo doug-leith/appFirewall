@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class ActiveConnsViewController: NSViewController {
+class ActiveConnsViewController: appViewController {
 	
 	@IBOutlet weak var tableView: NSTableView?
 	var timer : Timer = Timer()
@@ -77,6 +77,33 @@ class ActiveConnsViewController: NSViewController {
 	@objc func BlockBtnAction(sender : blButton?) {
 		sender?.clickButton()
 		tableView?.reloadData()
+	}
+	
+	override func copyLine(sender: AnyObject?){
+		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in activeConns getting copy index set"); return}
+		var text = ""
+		for row in indexSet {
+			guard let cell0 = tableView?.view(atColumn:0, row:row,makeIfNecessary: true) as? NSTableCellView else { continue }
+			guard let str0 = cell0.textField?.stringValue else {continue}
+			guard let cell1 = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {continue}
+			let str1 = cell1.textField?.stringValue ?? ""
+			let tip = cell1.textField?.toolTip ?? ""
+			text += str0+" "+str1+"["+tip+"]\n"
+		}
+		let pasteBoard = NSPasteboard.general
+		pasteBoard.clearContents()
+		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
+	}
+	
+	override func selectall(sender: AnyObject?){
+		tableView?.selectAll(nil)
+	}
+	
+	override func getInfo(sender: AnyObject?){
+		guard let row = tableView?.selectedRow else {print("WARNING: problem in logView getInfo getting selected row"); return}
+		guard let cell = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {return}
+		let str = cell.textField?.toolTip ?? ""
+		infoPopup(msg: str, sender: cell)
 	}
 }
 
@@ -172,25 +199,6 @@ extension ActiveConnsViewController: NSTableViewDelegate {
 			setColor(cell: cell, udp: (Int(item.raw.udp)==1), white: white, blocked: blocked)
 			return cell
 		}
-	}
-		
-	func copy(sender: AnyObject?){
-		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in activeConns getting copy index set"); return}
-		var text = ""
-		for row in indexSet {
-			guard let cell0 = tableView?.view(atColumn:0, row:row,makeIfNecessary: true) as? NSTableCellView else { continue }
-			guard let str0 = cell0.textField?.stringValue else {continue}
-			guard let cell1 = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {continue}
-			let str1 = cell1.textField?.stringValue ?? ""
-			text += str0+" "+str1+"\n"
-		}
-		let pasteBoard = NSPasteboard.general
-		pasteBoard.clearContents()
-		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
-	}
-	
-	func selectall(sender: AnyObject?){
-		tableView?.selectAll(nil)
 	}
 }
 

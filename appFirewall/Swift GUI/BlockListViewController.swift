@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class BlockListViewController: NSViewController {
+class BlockListViewController: appViewController {
 
 	var asc: Bool = true
 	@IBOutlet weak var tableView: NSTableView?
@@ -54,6 +54,22 @@ class BlockListViewController: NSViewController {
 		del_blockitem(item)
 		tableView?.reloadData() // update the GUI to show the change
 	}
+	
+	override func copyLine(sender: AnyObject?){
+		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in blocklistView copy getting index set"); return}
+		var text = ""
+		for row in indexSet {
+			text += getRowText(row: row)+"\n"
+		}
+		let pasteBoard = NSPasteboard.general
+		pasteBoard.clearContents()
+		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
+	}
+	
+	override func selectall(sender: AnyObject?){
+		tableView?.selectAll(nil)
+	}
+	
 }
 
 extension BlockListViewController: NSTableViewDataSource {
@@ -124,20 +140,5 @@ extension BlockListViewController: NSTableViewDelegate {
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in blocklistView making non-button cell"); return nil}
 		cell.textField?.stringValue = content
 		return cell
-	}
-	
-	func copy(sender: AnyObject?){
-		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in blocklistView copy getting index set"); return}
-		var text = ""
-		for row in indexSet {
-			text += getRowText(row: row)+"\n"
-		}
-		let pasteBoard = NSPasteboard.general
-		pasteBoard.clearContents()
-		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
-	}
-	
-	func selectall(sender: AnyObject?){
-		tableView?.selectAll(nil)
 	}
 }

@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class LogViewController: NSViewController {
+class LogViewController: appViewController {
 	
 	@IBOutlet weak var tableView: NSTableView?
 	var timer : Timer = Timer()
@@ -52,6 +52,7 @@ class LogViewController: NSViewController {
 		timer = Timer.scheduledTimer(timeInterval: Config.viewRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		refresh(timer: nil) // refresh the table when it is redisplayed
+		
 	}
 	
 	@objc func refresh(timer:Timer?) {
@@ -120,6 +121,33 @@ class LogViewController: NSViewController {
 		// update (without scrolling)...
 		tableView?.enumerateAvailableRowViews(updateTable)
 		}
+		
+	override func copyLine(sender: AnyObject?){
+		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in logView copy getting index set"); return}
+		var text = ""
+		for row in indexSet {
+			guard let cell0 = tableView?.view(atColumn:0, row:row,makeIfNecessary: true) as? NSTableCellView else {continue}
+			guard let str0 = cell0.textField?.stringValue else {continue}
+			guard let cell1 = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {continue}
+			let str1 = cell1.textField?.stringValue ?? ""
+			let tip = cell1.textField?.toolTip ?? ""
+			text += str0+" "+str1+"["+tip+"]\n"
+		}
+		let pasteBoard = NSPasteboard.general
+		pasteBoard.clearContents()
+		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
+	}
+	
+	override func selectall(sender: AnyObject?){
+		tableView?.selectAll(nil)
+	}
+	
+	override func getInfo(sender: AnyObject?){
+		guard let row = tableView?.selectedRow else {print("WARNING: problem in logView getInfo getting selected row"); return}
+		guard let cell = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {return}
+		let str = cell.textField?.toolTip ?? ""
+		infoPopup(msg: str, sender: cell)
+	}
 }
 
 extension LogViewController: NSTableViewDataSource {
@@ -226,24 +254,5 @@ extension LogViewController: NSTableViewDelegate {
 		return cell
 	}
 	
-	
-	func copy(sender: AnyObject?){
-		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in logView copy getting index set"); return}
-		var text = ""
-		for row in indexSet {
-			guard let cell0 = tableView?.view(atColumn:0, row:row,makeIfNecessary: true) as? NSTableCellView else {continue}
-			guard let str0 = cell0.textField?.stringValue else {continue}
-			guard let cell1 = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {continue}
-			let str1 = cell1.textField?.stringValue ?? ""
-			text += str0+" "+str1+"\n"
-		}
-		let pasteBoard = NSPasteboard.general
-		pasteBoard.clearContents()
-		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
-	}
-	
-	func selectall(sender: AnyObject?){
-		tableView?.selectAll(nil)
-	}
-	
+
 }

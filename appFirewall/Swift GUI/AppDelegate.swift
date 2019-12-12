@@ -40,7 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		//print("clear log")
 		clear_log()
 	}
-		
+	
 	@IBAction func copy(_ sender: Any) {
 			// handle Copy menu item by passing on to relevant view
 			// (automated handling doesn't work for some reason)
@@ -53,20 +53,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			let v = tc.tabViewItems[i] // the currently active TabViewItem
 			//print(tc.tabViewItems)
 			//print(v.label)
-			if (v.label == "Active Connections") {
-				guard let c = v.viewController as? ActiveConnsViewController else {print("ERROR on copy: problem getting view controller"); return}
-				c.copy(sender: nil)
-			} else if (v.label == "Black List") {
-				guard let c = v.viewController as? BlockListViewController else {print("ERROR on copy: problem getting view controller"); return}
-				c.copy(sender: nil)
-			} else if (v.label == "Connection Log") {
-				guard let c = v.viewController as? LogViewController else {print("ERROR on copy: problem getting view controller"); return}
-				c.copy(sender: nil)
-			} else if (v.label == "White List") {
-				guard let c = v.viewController as? WhiteListViewController else {print("ERROR on copy: problem getting view controller"); return}
-				c.copy(sender: nil)
-			}
+			guard let c = v.viewController as? appViewController else {print("ERROR on copy: problem getting view controller"); return}
+			c.copyLine(sender: nil)
 		}
+	
+	
+	@IBAction func getInfo(_ sender: Any) {
+		let app = NSApplication.shared
+		if (app.mainWindow == nil){ return }
+		guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { print("ERROR on selectAll: problem getting tabview controller"); return }
+		let i = tc.selectedTabViewItemIndex
+		let v = tc.tabViewItems[i] // the currently active TabViewItem
+		guard let c = v.viewController as? appViewController else {print("ERROR on selectAll: problem getting view controller"); return}
+		c.getInfo(sender:nil)
+	}
 	
 	@IBAction func SelectAll(_ sender: Any) {
 		// handle click on "Select All" menu entry
@@ -78,19 +78,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			let v = tc.tabViewItems[i] // the currently active TabViewItem
 			//print(tc.tabViewItems)
 			//print(v.label)
-				if (v.label == "Active Connections") {
-				guard let c = v.viewController as? ActiveConnsViewController else {print("ERROR on selectAll: problem getting view controller"); return}
-				c.selectall(sender:nil)
-			} else if (v.label == "Black List") {
-				guard let c = v.viewController as? BlockListViewController else {print("ERROR on selectAll: problem getting view controller"); return}
-				c.selectall(sender:nil)
-			} else if (v.label == "Connection Log") {
-				guard let c = v.viewController as? LogViewController else {print("ERROR on selectAll: problem getting view controller"); return}
-				c.selectall(sender:nil)
-			} else if (v.label == "White List") {
-				guard let c = v.viewController as? LogViewController else {print("ERROR on selectAll: problem getting view controller"); return}
-				c.selectall(sender:nil)
-			}
+			guard let c = v.viewController as? appViewController else {print("ERROR on selectAll: problem getting view controller"); return}
+			c.selectall(sender:nil)
 		}
 	
 	

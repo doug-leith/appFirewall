@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class WhiteListViewController: NSViewController {
+class WhiteListViewController: appViewController {
 
 	var asc: Bool = true
 	@IBOutlet weak var tableView: NSTableView?
@@ -53,6 +53,21 @@ class WhiteListViewController: NSViewController {
 		let item = get_whitelist_item(Int32(row))
 		del_whiteitem(item)
 		tableView?.reloadData() // update the GUI to show the change
+	}
+	
+	override func copyLine(sender: AnyObject?){
+		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in whitelistView copy getting index set"); return}
+		var text = ""
+		for row in indexSet {
+			text += getRowText(row: row)+"\n"
+		}
+		let pasteBoard = NSPasteboard.general
+		pasteBoard.clearContents()
+		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
+	}
+	
+	override func selectall(sender: AnyObject?){
+		tableView?.selectAll(nil)
 	}
 }
 
@@ -119,19 +134,4 @@ extension WhiteListViewController: NSTableViewDelegate {
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in whitelistView making non-button cell"); return nil}
 		cell.textField?.stringValue = content
 		return cell	}
-	
-	func copy(sender: AnyObject?){
-		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in whitelistView copy getting index set"); return}
-		var text = ""
-		for row in indexSet {
-			text += getRowText(row: row)+"\n"
-		}
-		let pasteBoard = NSPasteboard.general
-		pasteBoard.clearContents()
-		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
-	}
-	
-	func selectall(sender: AnyObject?){
-		tableView?.selectAll(nil)
-	}
 }
