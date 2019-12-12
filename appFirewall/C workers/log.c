@@ -206,18 +206,40 @@ void clear_log() {
 	pthread_mutex_unlock(&log_list_mutex);
 }
 
+char* log_conn_str(const void* it) {
+	log_line_t* l = (log_line_t*)it;
+	char dn[INET6_ADDRSTRLEN];
+	robust_inet_ntop(&l->raw.af,&l->raw.dst_addr,dn,INET6_ADDRSTRLEN);
+	size_t len = INET6_ADDRSTRLEN+strlen(l->bl_item.name)+8u;
+	if (len>STR_SIZE) len = STR_SIZE;
+	char* temp = malloc(len);
+	sprintf(temp,"%s:%s:%u",l->bl_item.name,dn,l->raw.dport);
+	return temp;
+}
+
 void filter_log_list(int_sw show_blocked, const char* str) {
 	// no need for lock on filtered_log_list, only called by GUI thread
 	free_list(&filtered_log_list);
 	init_list(&filtered_log_list,filtered_log_hash,NULL,1,-1,"filtered_log_list");
 	// hold lock for full loop so that no partial updates are displayed to user
 	TAKE_LOCK(&log_list_mutex,"filter_log_list()");
+	log_line_t *l=NULL, *l_filtered=NULL;
+	char *h=NULL, *h_prev=NULL;
 	for (size_t i=0; i< get_log_size(); i++) {
-		log_line_t *l = get_log_row(i);
+		l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
 			if ((str==NULL) || (strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
-				log_line_t *l_existing = add_item(&filtered_log_list,l,sizeof(log_line_t));
-				if (l_existing) log_repeat(l_existing);
+				if (h_prev!=NULL) free(h_prev);
+				h_prev=h; h = log_conn_str(l);
+				if ((h_prev!=NULL) && (l_filtered!=NULL) && (strcmp(h_prev,h)==0)) {
+					// its a repeat line of previous line
+					log_repeat(l_filtered);
+				} else {
+					log_line_t *l_prev = add_item(&filtered_log_list,l,sizeof(log_line_t));
+					if (l_prev != NULL) WARN("filter_log_list() unexpected repeat log entry: %s %s",l->time_str, l->log_line);
+					l_filtered = in_list(&filtered_log_list,l,0); // keep a pointer to the new entry
+					if (l_filtered == NULL) WARN("filter_log_list() couldn't find just added log entry: %s %s",l->time_str, l->log_line);
+				}
 			}
 		}
 	}
