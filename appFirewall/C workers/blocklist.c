@@ -40,8 +40,17 @@ int bl_sort_cmp(const void* it1, const void* it2){
 }
 
 void sort_block_list(int asc1, int col1) {
-	if ((asc1 == -1) || (asc1==1)) asc = asc1;
-	if ((col1==0) || (col1==1)) col=col1;
+	if ((asc1 != -1) && (asc1!=1)) {
+		WARN("sort_block_list() called with asc1=%d\n",asc1);
+		return;
+	}
+	if ((col1!=0) && (col1!=1)) {
+		WARN("sort_block_list() called with col1=%d\n",col1);
+		return;
+	}
+	if ((asc1 == asc) && (col1 == col)) return; // nothing to do
+	asc = asc1; col=col1;
+	printf("sort_block_list: %d/%d col=%d/%d\n",asc,asc1,col,col1);
 	TAKE_LOCK(&block_mutex,"sort_block_list()");
 	sort_list(&block_list, bl_sort_cmp);
 	pthread_mutex_unlock(&block_mutex);

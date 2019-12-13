@@ -82,13 +82,32 @@ char* get_whitelist_item_addrname(bl_item_t *item) {
 }
 
 static int asc=1, col=0;
+int wl_sort_cmp(const void* it1, const void* it2){
+	bl_item_t **item1 = (bl_item_t**) it1;
+	bl_item_t **item2 = (bl_item_t**) it2;
+	//printf("%s %s %d\n",(*item1)->name,(*item2)->name,strcasecmp((*item1)->name,(*item2)->name));
+	if (col == 0)
+		return asc*strcasecmp((*item1)->name,(*item2)->name);
+	else
+		return asc*strcasecmp((*item1)->domain,(*item2)->domain);
+}
+
 void sort_white_list(int asc1, int col1) {
-	if ((asc1 == -1) || (asc1==1)) asc = asc1;
-	if ((col1==0) || (col1==1)) col=col1;
+	if ((asc1 != -1) && (asc1!=1)) {
+		WARN("sort_white_list() called with asc1=%d\n",asc1);
+		return;
+	}
+	if ((col1!=0) && (col1!=1)) {
+		WARN("sort_white_list() called with col1=%d\n",col1);
+		return;
+	}
+	if ((asc1 == asc) && (col1 == col)) return; // nothing to do
+	asc = asc1; col=col1;
 	TAKE_LOCK(&white_mutex,"sort_white_list()");
-	sort_list(&white_list, bl_sort_cmp);
+	sort_list(&white_list, wl_sort_cmp);
 	pthread_mutex_unlock(&white_mutex);
 }
+
 
 void save_whitelist(const char* fname) {
 	//printf("saving white_list\n");

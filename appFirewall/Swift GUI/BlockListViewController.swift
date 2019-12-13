@@ -9,114 +9,68 @@ import Cocoa
 
 class BlockListViewController: appViewController {
 
-	var asc: Bool = true
 	@IBOutlet weak var tableView: NSTableView?
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
+		self.tab = 2
+		self.ascKey = "blocklist_asc"
+		self.sortKeys = ["app_name","domain"]
+		
 		tableView!.delegate = self // force using ! since shouldn't fail
-		tableView!.dataSource = self
-		let menu = NSMenu()
-		menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
-		tableView?.menu = menu
+		appViewDidLoad(tableView: tableView!)
 	}
 	
 	override func viewWillAppear() {
 		super.viewWillAppear()
-		self.view.window?.setFrameUsingName("connsView") // restore to previous size
-		UserDefaults.standard.set(2, forKey: "tab_index") // record active tab
-
-		// enable click of column header to call sortDescriptorsDidChange action below
-		asc = UserDefaults.standard.bool(forKey: "blocklist_asc")
-		if (tableView?.tableColumns[0].sortDescriptorPrototype==nil) {
-			tableView?.tableColumns[0].sortDescriptorPrototype = NSSortDescriptor(key:"app_name",ascending:asc)
-			tableView?.tableColumns[1].sortDescriptorPrototype = NSSortDescriptor(key:"domain",ascending:asc)
+		appViewWillAppear()
+	}
+	
+	@objc override func refresh(timer:Timer?) {
+    var asc1: Int = 1
+		if (!asc) { asc1 = -1 }
+		if (sortKey == sortKeys[0]) {
+			sort_block_list(Int32(asc1), 0)
+		} else {
+			sort_block_list(Int32(asc1), 1)
 		}
 		tableView?.reloadData() // refresh the table when it is redisplayed
+		if (timer != nil) { timer?.invalidate() } // don't need regular refreshes
 	}
 	
-	override func viewWillDisappear() {
-		save_state()
-		self.view.window?.saveFrame(usingName: "connsView") // record size of window
-		super.viewWillDisappear()
-	}
-	
-
 	@IBAction func clickHelpButton(_ sender: helpButton?) {
 		sender?.clickButton(msg:"Domains/apps added here will always be blocked.  For example, you can use this to block domains for an app that are not blocked by the standard lists but which should be.")
 	}
 	
 	@IBAction func Click(_ sender: NSButton?) {
 		// table button to remove from blocklist
-		AllowBtnAction(sender: sender)
-	}
-	
-	@objc func AllowBtnAction(sender : NSButton?) {
 		guard let row = sender?.tag else {print("WARNING: problem in blocklistView AllowBtnAction getting row");  return}
 		let item = get_blocklist_item(Int32(row))
 		del_blockitem(item)
-		tableView?.reloadData() // update the GUI to show the change
+		refresh(timer:nil) // update the GUI to show the change
 	}
 	
-	override func copyLine(sender: AnyObject?){
-		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in blocklistView copy getting index set"); return}
-		var text = ""
-		for row in indexSet {
-			text += getRowText(row: row)+"\n"
-		}
-		let pasteBoard = NSPasteboard.general
-		pasteBoard.clearContents()
-		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
-	}
-	
-	override func selectall(sender: AnyObject?){
-		tableView?.selectAll(nil)
-	}
-	
-}
-
-extension BlockListViewController: NSTableViewDataSource {
-	func numberOfRows(in tableView: NSTableView) -> Int {
-		return Int(get_blocklist_size())
-	}
-	
-	func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
-		var asc1: Int = 1
-		guard let sortDescriptor = tableView.sortDescriptors.first else {
-    print("WARNING: problem in blocklistView getting sort descriptor");  return }
-    asc = sortDescriptor.ascending
-		UserDefaults.standard.set(asc, forKey: "blocklist_asc")
-		if (!asc) {
-			asc1 = -1
-		}
-		if (sortDescriptor.key == "app_name") {
-			sort_block_list(Int32(asc1), 0)
-		} else {
-			sort_block_list(Int32(asc1), 1)
-		}
-		tableView.reloadData()
-	}
-}
-
-extension BlockListViewController: NSTableViewDelegate {
-	
-	func getRowText(row: Int) -> String {
+	override func getRowText(row: Int) -> String {
 		let item = get_blocklist_item(Int32(row))
 		let name = String(cString: get_blocklist_item_name(item))
 		let addr_name = String(cString: get_blocklist_item_domain(item))
 		return name+", "+addr_name
 	}
 	
+	override func numTableRows()->Int {return Int(get_blocklist_size())}
+}
+
+extension BlockListViewController: NSTableViewDelegate {
+		
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-		
-		var cellIdentifier: String = ""
-		var content: String = ""
-		
+				
 		let item = get_blocklist_item(Int32(row))
 		let name = String(cString: get_blocklist_item_name(item))
 		let addr_name = String(cString: get_blocklist_item_addrname(item))
 		let domain = String(cString: get_blocklist_item_domain(item))
 		
+		var cellIdentifier: String = ""
+		var content: String = ""
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "ProcessCell"
 			content=name
@@ -136,12 +90,13 @@ extension BlockListViewController: NSTableViewDelegate {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSButton else {print("WARNING: problem in blocklistView making button cell");  return nil}
 			cell.title = "Allow"
 			cell.tag = row
-			cell.action = #selector(self.AllowBtnAction)
+			cell.action = #selector(self.Click)
 			cell.toolTip = "Remove from black list"
 			return cell
 		}
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in blocklistView making non-button cell"); return nil}
 		cell.textField?.stringValue = content
+		cell.textField?.toolTip = name+": "+domain
 		return cell
 	}
 }
