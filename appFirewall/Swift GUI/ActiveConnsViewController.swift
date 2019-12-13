@@ -108,7 +108,7 @@ class ActiveConnsViewController: appViewController {
 		guard let row = tableView?.selectedRow else {print("WARNING: problem in logView getInfo getting selected row"); return}
 		guard let cell = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {return}
 		let str = cell.textField?.toolTip ?? ""
-		infoPopup(msg: str, sender: cell)
+		infoPopup(msg: str, sender: cell, row: row)
 	}
 }
 

@@ -15,6 +15,9 @@ class LogViewController: appViewController {
 	@IBOutlet weak var showBlockedButton: NSButton?
 	var asc: Bool = false // whether log is shown in ascending/descending order
 	var show_blocked: Int = 3
+	var selectedRowHashes : [String] = []
+	var popoverHash : String = ""
+	var toolTipsEnabled : Bool = true
 
 	@IBOutlet weak var tableHeader: NSTableHeaderView?
 
@@ -69,11 +72,37 @@ class LogViewController: appViewController {
 		}
 		guard let rect = tableView?.visibleRect else {print("WARNING: problem in logView getting visible rect"); return}
 		guard let firstVisibleRow = tableView?.rows(in: rect).location else {print("WARNING: problem in logView getting first visible row"); return}
+		//print("refresh ",firstVisibleRow," ",has_log_changed() )
 		if (force || (has_log_changed() == 2) // force or log cleared
 			  || ((firstVisibleRow==0) && (has_log_changed() != 0)) ) {
+			// save set of currently selected rows
+			let indexSet = tableView?.selectedRowIndexes ?? []
+			selectedRowHashes = []; popoverHash=""
+			for row in indexSet {
+				guard let cell = tableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {continue}
+				selectedRowHashes.append(cell.hashStr)
+				if (popover.isShown && popoverRow == row) {
+					print("popover active for row ", row)
+					popoverHash = cell.hashStr
+				}
+			}
 			clear_log_changed()
 			filter_log_list(Int32(show_blocked),searchField?.stringValue)
 			tableView?.reloadData()
+			
+			// if needed, redraw getInfo popover once row has been displayed
+			DispatchQueue.main.async {
+				while ((self.tableView!.selectedRowIndexes.count>0) && (self.popoverHash != "")) {
+					guard let row = self.tableView?.selectedRow else {print("WARNING: problem in logView getInfo getting selected row"); return}
+					guard let cell = self.tableView?.view(atColumn:1, row:row, makeIfNecessary: false) as? NSTableCellView else {return}
+					let str = cell.textField?.toolTip ?? ""
+					if (cell.window != nil) {
+						self.infoPopup(msg: str, sender: cell, row:row)
+						self.popoverHash=""
+					}
+					usleep(250000) // 250ms
+				}
+			}
 		} else if (has_log_changed() == 1){
 			// update scrollbars but leave rest of view alone.
 			// shouldn't be used with view-based tables, see
@@ -81,6 +110,7 @@ class LogViewController: appViewController {
 			//tableView.noteNumberOfRowsChanged()
 		}
 		ConnsColumn?.headerCell.title="Connections ("+String(Int(get_num_conns_blocked()))+" blocked)"
+	
 	}
 
 	override func viewWillDisappear() {
@@ -107,7 +137,6 @@ class LogViewController: appViewController {
 		refresh(timer:nil)
 	}
 	
-	
 	@IBAction func searchFieldChanged(_ sender: NSSearchField) {
 		//print("search: ",sender.stringValue)
 		refresh(timer:nil)
@@ -116,16 +145,36 @@ class LogViewController: appViewController {
 	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {
 		// update all of the buttons in table (called after
 		// pressing a button changes blacklist state etc)
-		guard let cell = rowView.view(atColumn:2) as? blButton else {print("WARNING: problem in logView updateTable getting cell"); return}
-		cell.updateButton()
+		guard let cell2 = rowView.view(atColumn:2) as? blButton else {print("WARNING: problem in logView updateTable getting cell 2"); return}
+		cell2.updateButton()
+
+		guard let cell1 = rowView.view(atColumn:1) as? NSTableCellView else {print("WARNING: problem in logView updateTable getting cell 1"); return}
+		if (!toolTipsEnabled) {
+			cell1.textField?.toolTip = ""
+		} else {
+			cell1.textField?.toolTip = cell2.tip
+		}
 	}
 	
 	@objc func BlockBtnAction(sender : blButton?) {
+		// called when block/allow button clicked
 		sender?.clickButton()
 		// update (without scrolling)...
 		tableView?.enumerateAvailableRowViews(updateTable)
 		}
-		
+	
+	override func enableTooltips() {
+		// called when getInfo() popover closes
+		toolTipsEnabled = true
+		tableView?.enumerateAvailableRowViews(updateTable)
+	}
+	
+	override func disableTooltips() {
+		// called when getInfo() popover opens
+		toolTipsEnabled = false
+		tableView?.enumerateAvailableRowViews(updateTable)
+	}
+	
 	override func copyLine(sender: AnyObject?){
 		guard let indexSet = tableView?.selectedRowIndexes else {print("WARNING: problem in logView copy getting index set"); return}
 		var text = ""
@@ -148,9 +197,9 @@ class LogViewController: appViewController {
 	
 	override func getInfo(sender: AnyObject?){
 		guard let row = tableView?.selectedRow else {print("WARNING: problem in logView getInfo getting selected row"); return}
-		guard let cell = tableView?.view(atColumn:1, row:row,makeIfNecessary: true) as? NSTableCellView else {return}
+		guard let cell = tableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
 		let str = cell.textField?.toolTip ?? ""
-		infoPopup(msg: str, sender: cell)
+		infoPopup(msg: str, sender: cell, row:row)
 	}
 }
 
@@ -195,7 +244,7 @@ extension LogViewController: NSTableViewDelegate {
 			return log_last-r
 		}
 	}
-		
+	
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		
 		var cellIdentifier: String = ""
@@ -210,6 +259,26 @@ extension LogViewController: NSTableViewDelegate {
 		let time_str = String(cString: &item.time_str.0)
 		let log_line = String(cString: &item.log_line.0)
 		let blocked_log = Int(item.blocked)
+		let hashStr = String(cString:filtered_log_hash(item_ptr));
+
+		let ip = String(cString:get_filter_log_addr_name(Int32(r)))
+		var domain = String(cString: &item.bl_item.domain.0)
+		if (domain.count == 0) {
+			domain = ip
+		}
+		let name = String(cString: &item.bl_item.name.0)
+		let port = String(Int(item.raw.dport))
+		if (blocked_log == 0) {
+			tip = "This connection to "+domain+" ("+ip+":"+port+") was not blocked."
+		} else if (blocked_log == 1) {
+			tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for application '"+name+"' by user black list."
+		} else if (blocked_log == 2) {
+			tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for all applications by hosts file."
+		} else {
+			tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for application '"+name+"' by hosts file."
+		}
+		// add some info on whether IP is shared by multiple domains
+		tip += " Domains associated with this IP address: "+String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr))
 
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "TimeCell"
@@ -217,24 +286,6 @@ extension LogViewController: NSTableViewDelegate {
 		} else if tableColumn == tableView.tableColumns[1] {
 			cellIdentifier = "ConnCell"
 			content=log_line
-			let ip = String(cString:get_filter_log_addr_name(Int32(r)))
-			var domain = String(cString: &item.bl_item.domain.0)
-			if (domain.count == 0) {
-				domain = ip
-			}
-			let name = String(cString: &item.bl_item.name.0)
-			let port = String(Int(item.raw.dport))
-			if (blocked_log == 0) {
-				tip = "This connection to "+domain+" ("+ip+":"+port+") was not blocked."
-			} else if (blocked_log == 1) {
-				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for application '"+name+"' by user black list."
-			} else if (blocked_log == 2) {
-				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for all applications by hosts file."
-			} else {
-				tip = "This connection to "+domain+" ("+ip+":"+port+") was blocked for application '"+name+"' by hosts file."
-			}
-			// add some info on whether IP is shared by multiple domains
-			tip += " Domains associated with this IP address: "+String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr))
 		} else {
 			cellIdentifier = "ButtonCell"
 		}
@@ -247,8 +298,21 @@ extension LogViewController: NSTableViewDelegate {
 			let log_line = String(cString: &item.log_line.0)
 			cell.udp = log_line.contains("QUIC")
 			cell.bl_item = item.bl_item
+			cell.hashStr = hashStr;
+			cell.tip = tip;
 			cell.updateButton()
 			cell.action = #selector(BlockBtnAction)
+			
+			// if row was selected before reload, we make it selected again
+			for h in selectedRowHashes {
+				if (hashStr == h) {
+					print("cell found selected match ", h)
+					tableView.selectRowIndexes([row], byExtendingSelection: true)
+					let i = selectedRowHashes.firstIndex(of: h)!
+					selectedRowHashes.remove(at: i) // only restore selected state once
+					break
+				}
+			}
 			return cell
 		}
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in logView getting making non-button cell"); return nil}

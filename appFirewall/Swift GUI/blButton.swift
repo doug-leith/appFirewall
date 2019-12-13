@@ -19,6 +19,8 @@ class blButton: NSButton {
 	// property)
 	var bl_item: bl_item_t? = nil
 	var udp : Bool = false
+	var hashStr: String = ""
+	var tip: String = ""
 	
 	func updateButton() {
 		// refresh the contents based on current data

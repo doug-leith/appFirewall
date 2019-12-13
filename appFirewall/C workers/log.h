@@ -41,6 +41,7 @@ void filter_log_list(int_sw show_blocked, const char* str);
 int_sw get_filter_log_size(void);
 log_line_t* get_filter_log_row(int_sw row);
 char*  get_filter_log_addr_name(int_sw row);
+char* filtered_log_hash(const void *it);
 void save_log(const char* logName);
 void load_log(const char* logName, const char* logTxtName);
 void clear_log(void);
