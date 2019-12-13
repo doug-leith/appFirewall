@@ -57,6 +57,8 @@ class WhiteListViewController: appViewController {
 		return name+", "+addr_name
 	}
 	
+	override func updateTable (rowView: NSTableRowView, row:Int) {}
+
 	override func numTableRows()->Int {return Int(get_whitelist_size())}
 }
 

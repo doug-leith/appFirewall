@@ -148,6 +148,7 @@ class appViewController: NSViewController {
 		
 	@objc func getInfo(sender: AnyObject?){
 		guard let row = appTableView?.selectedRow else {print("WARNING: problem in getInfo getting selected row"); return}
+		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
 		let str = cell.textField?.toolTip ?? ""
 		infoPopup(msg: str, sender: cell, row:row)
@@ -156,7 +157,7 @@ class appViewController: NSViewController {
 	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {
 		// update all of the buttons in table (called after
 		// pressing a button changes blacklist state etc)
-		guard let cell2 = rowView.view(atColumn:2) as? blButton else {print("WARNING: problem in updateTable getting cell 2"); return}
+		guard let cell2 = rowView.view(atColumn:2) as? blButton else {print("WARNING: problem in updateTable getting cell 2 for row ", row); return}
 		cell2.updateButton()
 
 		guard let cell1 = rowView.view(atColumn:1) as? NSTableCellView else {print("WARNING: problem in updateTable getting cell 1"); return}
