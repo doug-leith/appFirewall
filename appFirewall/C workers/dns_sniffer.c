@@ -191,6 +191,10 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
 		if (**label & 0xc0) { /* Pointer */
 			tmp = (u_char *)payload;
 			tmp += ntohs(*(uint16_t *)(*label)) & 0x3fff;
+			/*printf("ptr size=%d, offset %u ",*tmp, ntohs(*(uint16_t *)(*label)) & 0x3fff);
+			for (int j = 0; j< tmp-payload+8; j++) {
+				printf("%u ", *(payload+j));
+			}*/
 			while (tmp < end && *tmp) {
 				if (dst + *tmp >= dest + dest_size)
 					goto err;
@@ -201,6 +205,7 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
 			};
 			*label += 2;
 		} else { /* Label */
+			//printf("label ");
 			if ((*label + **label) >= end) {
 				printf("dns_label_to_str() err 1\n");
 				goto err;
@@ -258,14 +263,16 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	/* Get the data field length */
 	#define BUFSIZE 1024 // needs to be big enough to hold pkt payload
 	u_char buf[BUFSIZE];
-
-	if (label==NULL) label = dns_label_to_str(&t, buf, BUFSIZE, payload, end);
 	u_char *tmp = t;
-	tmp = skip_dns_label(tmp);
+	u_char* l = label;
+	if (l==NULL) {
+		l = dns_label_to_str(&tmp, buf, BUFSIZE, payload, end);
+	}
+	tmp = skip_dns_label(t);
 	// debugging check, shouldn't happen
-	if (label==NULL || strlen((char*)label)==0) {
-		printf("empty label !\n");
-		for (int i =0; i< tmp-t+8; i++) {
+	if (l==NULL || strlen((char*)l)==0) {
+		printf("empty label '%s' !\n", l);
+		for (int i =0; i< tmp-t+16; i++) {
 			printf("%u ", *(t+i));
 		}
 		printf("\n");
@@ -287,10 +294,10 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	} else {
 		return;
 	}
-	append_dns(af,addr,(char*)label);
+	append_dns(af,addr,(char*)l);
 	char n[INET6_ADDRSTRLEN];
 	inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
-	INFO2("DNS %d %s %s\n",af,label,n);
+	INFO2("DNS %d %s %s\n",af,l,n);
 }
 
 u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
@@ -305,7 +312,7 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 		if (tmp + 10 > end) return NULL;
 
 		// debugging check
-		if (tmp == t+1) {
+		if (tmp < t+1) {
 			// empty label, shouldn't happen
 			printf("empty label. i=%d: prev:",i );
 			for (int j = 0; j< tmp-last_t+8; j++) {
@@ -318,7 +325,7 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 		/* Get the type, and skip class and ttl */
 		uint16_t len = ntohs(*(uint16_t *)tmp);
 		/*printf("i=%d, len=%d, tmp-t=%ld\n",i,len,tmp-t);
-		/// dump out raw bytes ...
+		// debugging: dump out raw bytes ...
 		printf("qtype=%d/%d, i=%d: ",len, qtype,i);
 		for (int j =0; j<tmp-t+2; j++) {
 			printf("%u ", *(t+j));
@@ -354,11 +361,11 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	int ar = ntohs(dns->arcount);
 	uint16_t sport=ntohs(udp->uh_sport);
 	int mDNS = (sport == 5353);
-	uint16_t len = ntohs(udp->uh_ulen)-LIBNET_UDP_H-LIBNET_UDP_DNSV4_H;
-	if (len > pkthdr->caplen-LIBNET_IPV4_H-LIBNET_UDP_H-LIBNET_UDP_DNSV4_H) {
+	uint16_t len = ntohs(udp->uh_ulen)-LIBNET_UDP_H;
+	if (len > pkthdr->caplen-LIBNET_IPV4_H-LIBNET_UDP_H) {
 		WARN("dns_sniffer() snaplen looks too short: %d/%d\n", ntohs(udp->uh_ulen), 	pkthdr->caplen-LIBNET_IPV4_H);
 	}
-	const u_char* payload = udph+LIBNET_UDP_H+LIBNET_UDP_DNSV4_H;
+	const u_char* payload = udph+LIBNET_UDP_H; // includes DNS header
 	const u_char *end = payload + len ;
 	printf("DNS flags=%d/%d qd=%d an=%d, len=%d, sport=%d\n", dns->flags, dns->flags&0x80, qd, an, len, sport);
 	if ((dns->flags&0x80)==0) return; // DNS query, we only want responses.
@@ -369,7 +376,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	u_char *tmp, *label=NULL, buf[BUFSIZE];
 	uint16_t qtype = 0;
 
-	tmp = (u_char *)payload;
+	tmp = (u_char *)payload+LIBNET_UDP_DNSV4_H; // step past the DNS header to get the question section
 	int i;
 	for (i=0;i<qd;i++) {
 		/* Get the first question's label and question type */
@@ -390,7 +397,9 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	
 	if (mDNS) {
 		qtype = 0; // no question for mDNS
-	} else if (!qtype) return; // not mDNS and no question
+		label = NULL;
+	} else if (!qtype)
+		return; // not mDNS and no question
 	//printf("qtype %d, an %d\n", qtype, an);
 
 	// find any answering records, or for mDNS any IPv4 or IPv6 records
@@ -409,7 +418,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	RR = parse_RRs(&tmp, end, 0, ar);
 	if (RR!=NULL) {
 		// now parse out info from record and append to dns cache
-  	parse_RR(RR, label, payload, end);
+  	parse_RR(RR, NULL, payload, end);
   }
 }
 
@@ -519,7 +528,7 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 
 	tmp += 2;
 
-	// Now, handle the data based on type 
+	// Now, handle the data based on type
 	struct in6_addr addr;
 	memset(&addr,0,sizeof(addr));
 	int af=0;
