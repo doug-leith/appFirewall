@@ -147,7 +147,7 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	strlcpy(it->names[(it->list_start+it->list_size)%MAXDNS],name,MAXDOMAINLEN);
 	it->list_size++;
 	pthread_mutex_unlock(&dns_mutex);
-	printf("appending domain %s: %s\n",name, get_dns_count_str(af,addr));
+	//printf("appending domain %s: %s\n",name, get_dns_count_str(af,addr));
 	
 	/*if (dns_fp == NULL) {
 		char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
@@ -327,7 +327,7 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 	
 	u_char* RR = NULL;
 	
-	u_char* t = tmp, *last_t=tmp;
+	u_char* t = tmp, *last_t;
 	for (int i=0;i< n; i++) {
 		last_t = t; t = tmp;
 		tmp = skip_dns_label(tmp);
