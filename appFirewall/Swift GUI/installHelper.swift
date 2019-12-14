@@ -42,8 +42,12 @@ func isSIPEnabled()->Bool {
 
 
 func pgrep(Name: String)->Int {
-	// get number of running processing matching Name
-	let task = Process();
+	// return whether any running processing match Name
+	let res = Int(find_proc(Name))
+	print("pgrep for ",Name,": ",res)
+	return res
+	
+	/*let task = Process();
 	task.launchPath = Config.pgrep
 		task.arguments = ["-x",Name]
 	let pipe = Pipe()
@@ -70,15 +74,16 @@ func pgrep(Name: String)->Int {
 		pids.append(pid)
 	}
 	//print(pids)
-	return pids.count
+	return pids.count*/
 }
 
 func is_app_already_running()->Bool {
 	let pid_count = pgrep(Name : "appFirewall")
+	//print("is_app_already_running(): ", pid_count)
 	if (pid_count < 0) {
 		print("pgrep error, halt.")
 		return true // or could continue ?
-	} else if (pid_count == 0) {
+	} else if (pid_count == 1) { // just our copy is running
 		print("appFirewall is not already running, continue.")
 		return false
 	} else {

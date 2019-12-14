@@ -48,6 +48,7 @@
 		9180E17E238D2D07007002CB /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17D238D2D07007002CB /* Helpers.swift */; };
 		9180E181238DECEB007002CB /* codesign.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.c */; };
 		9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9183583623A1BF81008FDBB4 /* appViewController.swift */; };
+		9183583A23A4B86B008FDBB4 /* pgrep.c in Sources */ = {isa = PBXBuildFile; fileRef = 9183583923A4B86B008FDBB4 /* pgrep.c */; };
 		919074182397BA7900DE49DE /* configData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919074172397BA7900DE49DE /* configData.swift */; };
 		9190741A2399077100DE49DE /* dns_connlist.dat in Resources */ = {isa = PBXBuildFile; fileRef = 919074192399072500DE49DE /* dns_connlist.dat */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
@@ -170,6 +171,8 @@
 		9180E17D238D2D07007002CB /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		9180E17F238DC38C007002CB /* codesign.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = codesign.c; sourceTree = "<group>"; };
 		9183583623A1BF81008FDBB4 /* appViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appViewController.swift; sourceTree = "<group>"; };
+		9183583823A4B86B008FDBB4 /* pgrep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pgrep.h; sourceTree = "<group>"; };
+		9183583923A4B86B008FDBB4 /* pgrep.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pgrep.c; sourceTree = "<group>"; };
 		919074152397B59100DE49DE /* Screenshot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Screenshot.png; sourceTree = "<group>"; };
 		919074172397BA7900DE49DE /* configData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = configData.swift; sourceTree = "<group>"; };
 		919074192399072500DE49DE /* dns_connlist.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = dns_connlist.dat; sourceTree = "<group>"; };
@@ -320,6 +323,8 @@
 				9180E16F2388A91F007002CB /* connection.c */,
 				91607BEA236B8D73002E50A8 /* pid_conn_info.h */,
 				91607BC3236AB2D1002E50A8 /* pid_conn_info.c */,
+				9183583823A4B86B008FDBB4 /* pgrep.h */,
+				9183583923A4B86B008FDBB4 /* pgrep.c */,
 				91607BEB236B8F0A002E50A8 /* sniffer_blocker.h */,
 				91607BC9236AD08F002E50A8 /* sniffer_blocker.c */,
 				91D96AD1239648D400AAA73B /* dns_conn_cache.h */,
@@ -480,6 +485,7 @@
 				9180E1662387F407007002CB /* percentile.c in Sources */,
 				91607BB5236AB280002E50A8 /* ActiveConnsViewController.swift in Sources */,
 				9139F6902382890700600D37 /* helpButton.swift in Sources */,
+				9183583A23A4B86B008FDBB4 /* pgrep.c in Sources */,
 				91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */,
 				91607C312374080C002E50A8 /* util.c in Sources */,
 				9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */,
