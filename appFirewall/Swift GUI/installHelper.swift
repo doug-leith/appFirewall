@@ -47,6 +47,16 @@ func pgrep(Name: String)->Int {
 	print("pgrep for ",Name,": ",res)
 	return res
 	
+	/*import AppKit
+	let res = NSWorkspace.shared.runningApplications
+	var count = 0
+	for r in res {
+		print(r.localizedName," ",r.processIdentifier)
+		if (r.localizedName == Name) { print("match"); count += 1 }
+	}
+	print(count)
+	return count*/
+	
 	/*let task = Process();
 	task.launchPath = Config.pgrep
 		task.arguments = ["-x",Name]

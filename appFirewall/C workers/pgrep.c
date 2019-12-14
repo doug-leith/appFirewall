@@ -40,6 +40,14 @@ int find_proc(const char* target) {
 	bufsize =  proc_listpids(PROC_ALL_PIDS, 0, pids, (int) sizeof(pids));
 	size_t num_pids = (size_t)bufsize / sizeof(pid_t);
 
+	if (bufsize == 0) {
+		WARN("find_proc() problem getting list if PIDS: %s\n",strerror(errno));
+		if (errno == EPERM) {
+			// don't have permission to list PIDs
+		}
+		return -1;
+	}
+	
 	// now walk through them
 	int j;
 	for (j=0; j< num_pids; j++) {

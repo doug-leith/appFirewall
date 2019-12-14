@@ -55,7 +55,7 @@ func setup_sig_handlers() {
 // -------------------------------------
 // C helpers
 func make_data_dir() {
-	// create ~/Library/Application Support/appFirewall directory if
+	// create Library/Application Support/appFirewall directory if
 	// it doesn't already exist, and pass path on to C routines
 	let paths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true);
 	let appname = Bundle.main.infoDictionary!["CFBundleName"] as! String
