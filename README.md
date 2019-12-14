@@ -51,6 +51,10 @@ The firewall also periodically uploads a sample of the connections made by a ran
 
 The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see exactly what has been uploaded.  There is no identifier linking a sample to your copy of the app and the upload server does not log IP address or other connection details.
 
+## App store
+
+The app isn't on the app store because the sandbox that app store apps must use prevents linking of network connections to apps (specifically, it blocks access to the proc_listpids() and proc_pidfdinfo() syscalls).   I've put in a request to Apple to enable this access, we'll see how they respond.  The app sandbox also blocks sniffing of network packets and sending of TCP RST packets, although app Network Extensions should provide a workaround to this in Catalina and later.
+
 ## Contributing
 
 New ideas and help with development always welcome !   The way to do propose code changes is to fork your own branch from the repository here, then send me an email with proposed changes and a link to the branch. 
