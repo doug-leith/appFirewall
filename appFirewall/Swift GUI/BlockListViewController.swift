@@ -13,12 +13,7 @@ class BlockListViewController: appViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		self.tab = 2
-		self.ascKey = "blocklist_asc"
-		self.sortKeys = ["app_name","domain"]
-		
-		tableView!.delegate = self // force using ! since shouldn't fail
-		appViewDidLoad(tableView: tableView!)
+		appViewDidLoad(tableView: tableView, tab: 2, ascKey: "blocklist_asc", sortKeys:["app_name","domain"])
 	}
 	
 	override func viewWillAppear() {
@@ -60,12 +55,9 @@ class BlockListViewController: appViewController {
 	override func updateTable (rowView: NSTableRowView, row:Int) {}
 	
 	override func numTableRows()->Int {return Int(get_blocklist_size())}
-}
-
-extension BlockListViewController: NSTableViewDelegate {
-		
-	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-				
+	
+	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
+		// decide on table contents at specified col and row
 		let item = get_blocklist_item(Int32(row))
 		let name = String(cString: get_blocklist_item_name(item))
 		let addr_name = String(cString: get_blocklist_item_addrname(item))

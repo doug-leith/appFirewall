@@ -14,12 +14,7 @@ class ActiveConnsViewController: appViewController {
 	override func viewDidLoad() {
 		// Do any additional setup after loading the view.
 		super.viewDidLoad()
-		self.tab = 0
-		self.ascKey = "active_asc"
-		self.sortKeys = ["pid","domain"]
-		
-		tableView!.delegate = self // force using ! since shouldn't fail
-		appViewDidLoad(tableView: tableView!)
+		appViewDidLoad(tableView: tableView, tab: 0, ascKey: "active_asc", sortKeys:["pid","domain"])
 		start_pid_watcher() // start pid monitoring thread, its ok to call this multiple times
 	}
 
@@ -39,7 +34,6 @@ class ActiveConnsViewController: appViewController {
 		}
 		guard let rect = tableView?.visibleRect else {print("WARNING: activeConns problem getting visible rectangle in refresh"); return}
 		guard let firstVisibleRow = tableView?.rows(in: rect).location else {print("WARNING: activeConns problem getting first visible row in refresh"); return}
-		//let changed = refresh_active_conns(0)
 		if (force || ((firstVisibleRow==0) && (Int(get_pid_changed()) != 0)) ) {
 			saveSelected() // save set of currently selected rows
 			clear_pid_changed()
@@ -58,12 +52,9 @@ class ActiveConnsViewController: appViewController {
 	}
 	
 	override func numTableRows()->Int {return Int(get_num_gui_conns())}
-}
-
-extension ActiveConnsViewController: NSTableViewDelegate {
-
-	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-			
+	
+	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
+		// decide on table contents at specified col and row
 		let r = mapRow(row: row)
 		var item = get_gui_conn(Int32(r))
 		var bl_item = conn_to_bl_item(&item)

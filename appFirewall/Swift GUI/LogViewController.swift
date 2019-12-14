@@ -20,12 +20,7 @@ class LogViewController: appViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		self.tab = 1
-		self.ascKey = "log_asc"
-		self.sortKeys = ["time","conn"]
-
-		tableView!.delegate = self // force using ! since shouldn't fail
-		appViewDidLoad(tableView: tableView!)
+		appViewDidLoad(tableView: tableView, tab: 1, ascKey: "log_asc", sortKeys:["time","conn"])
 	}
 	
 	override func viewWillAppear() {
@@ -52,7 +47,6 @@ class LogViewController: appViewController {
 		}
 		guard let rect = tableView?.visibleRect else {print("WARNING: problem in logView getting visible rect"); return}
 		guard let firstVisibleRow = tableView?.rows(in: rect).location else {print("WARNING: problem in logView getting first visible row"); return}
-		//print("refresh ",firstVisibleRow," ",has_log_changed() )
 		if (force || (has_log_changed() == 2) // force or log cleared
 			  || ((firstVisibleRow==0) && (has_log_changed() != 0)) ) {
 			saveSelected() // save set of currently selected rows
@@ -60,12 +54,7 @@ class LogViewController: appViewController {
 			filter_log_list(Int32(show_blocked),searchField?.stringValue)
 			tableView?.reloadData()
 			restorePopover() //redraw getInfo popover if needed
-		} else if (has_log_changed() == 1){
-			// update scrollbars but leave rest of view alone.
-			// shouldn't be used with view-based tables, see
-			// https://developer.apple.com/documentation/appkit/nstableview/1534147-notenumberofrowschanged
-			//tableView.noteNumberOfRowsChanged()
-		}
+		} 
 		ConnsColumn?.headerCell.title="Connections ("+String(Int(get_num_conns_blocked()))+" blocked)"	
 	}
 	
@@ -84,17 +73,13 @@ class LogViewController: appViewController {
 	}
 	
 	@IBAction func searchFieldChanged(_ sender: NSSearchField) {
-		//print("search: ",sender.stringValue)
 		refresh(timer:nil)
 	}
 	
 	override func numTableRows()->Int {return Int(get_filter_log_size())}
-}
-
-extension LogViewController: NSTableViewDelegate {
 	
-	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-		
+	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
+		// decide on table contents at specified col and row
 		// we display log in reverse order, i.e. youngest first
 		let r = mapRow(row: row)
 		if (r<0) { return nil }
@@ -141,6 +126,4 @@ extension LogViewController: NSTableViewDelegate {
 		setColor(cell: cell, udp: false, white: 0, blocked: blocked_log)
 		return cell
 	}
-	
-
 }

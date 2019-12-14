@@ -13,13 +13,7 @@ class WhiteListViewController: appViewController {
 	
 	override func viewDidLoad() {
 			super.viewDidLoad()
-			// Do view setup here.
-			self.tab = 3
-			self.ascKey = "whitelist_asc"
-			self.sortKeys = ["app_name","domain"]
-					
-			tableView!.delegate = self // force using ! since shouldn't fail
-			appViewDidLoad(tableView: tableView!)
+			appViewDidLoad(tableView: tableView,tab: 3, ascKey: "whitelist_asc", sortKeys:["app_name","domain"])
 	}
 
 	override func viewWillAppear() {
@@ -60,12 +54,9 @@ class WhiteListViewController: appViewController {
 	override func updateTable (rowView: NSTableRowView, row:Int) {}
 
 	override func numTableRows()->Int {return Int(get_whitelist_size())}
-}
 
-extension WhiteListViewController: NSTableViewDelegate {
-	
-	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-		
+	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
+		// decide on table contents at specified col and row
 		let item = get_whitelist_item(Int32(row))
 		let name = String(cString: get_whitelist_item_name(item))
 		let domain = String(cString: get_whitelist_item_domain(item))

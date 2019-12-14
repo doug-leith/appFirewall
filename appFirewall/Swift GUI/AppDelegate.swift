@@ -140,11 +140,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			print("openapp(): got controller")
 			let myWindow = NSWindow(contentViewController: controller)
 			print("openapp(): got window")
+			myWindow.delegate = self
 			let vc = NSWindowController(window: myWindow)
 			print("openapp(): got window controller")
 			vc.showWindow(self)
 			print("openapp(): show window")
 			NSApp.activate(ignoringOtherApps: true) // bring window to front of other apps
+			// enable main menu etc
+			NSApp.setActivationPolicy(.regular)
 		}
 	}
 		
@@ -198,7 +201,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// redirect C logging from stdout to logfile.  do this early but
 		// important to call make_data_dir() first so that logfile has somewhere to live
 		redirect_stdout(Config.appLogName)
-
+		
+		// catch window close events
+		NSApp.mainWindow?.delegate = self
+		
 		// set default logging level, again do this early
 		UserDefaults.standard.register(defaults: ["logging_level":Config.defaultLoggingLevel])
 		// can change this at command line using "defaults write" command
@@ -301,6 +307,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
+		
 	}
 
 	func applicationWillTerminate(_ aNotification: Notification) {
@@ -316,6 +323,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// NB: don't think this function is *ever* called
 		print("going into background")
 	}
-
 }
 
+extension AppDelegate: NSWindowDelegate {
+	func windowWillClose(_ notification: Notification) {
+		print("window close")
+		NSApp.setActivationPolicy(.accessory)
+	}
+}

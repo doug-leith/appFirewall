@@ -23,14 +23,20 @@ class appViewController: NSViewController {
 	var sortKey: String? = ""
 	var sortKeys: [String] = []
 
-	func appViewDidLoad(tableView: NSTableView) {
+	func appViewDidLoad(tableView: NSTableView?, tab: Int, ascKey: String, sortKeys:[String]) {
 	// Do basic setup after loading the view.
+		self.tab = tab
+		self.ascKey = ascKey
+		self.sortKeys = sortKeys
 		let menu = NSMenu()
 		menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Get Info", action: #selector(getInfo), keyEquivalent: ""))
+		// force using ! since shouldn't fail here and its serious if it does
+		guard tableView != nil else {print("ERROR: appViewDidLoad() tableView is nil!"); return}
 		appTableView = tableView
 		appTableView?.menu = menu
 		appTableView!.dataSource = self
+		appTableView!.delegate = self
 	}
 
 	func appViewWillAppear() {
@@ -90,7 +96,8 @@ class appViewController: NSViewController {
 	func restorePopover() {
 		// if needed, redraw getInfo popover once row has been displayed
 		DispatchQueue.main.async {
-			while ((self.appTableView!.selectedRowIndexes.count>0) && (self.popoverHash != "")) {
+			guard let sel = self.appTableView?.selectedRowIndexes else {return}
+			while ((sel.count>0) && (self.popoverHash != "")) {
 				guard let row = self.appTableView?.selectedRow else {print("WARNING: problem in logView getInfo getting selected row"); return}
 				guard let cell = self.appTableView?.view(atColumn:1, row:row, makeIfNecessary: false) as? NSTableCellView else {return}
 				let str = cell.textField?.toolTip ?? ""
@@ -109,8 +116,12 @@ class appViewController: NSViewController {
 			if (hashStr == h) {
 				print("cell found selected match ", h)
 				appTableView?.selectRowIndexes([row], byExtendingSelection: true)
-				let i = selectedRowHashes.firstIndex(of: h)!
-				selectedRowHashes.remove(at: i) // only restore selected state once
+				let i = selectedRowHashes.firstIndex(of: h) ?? -1
+				if (i<0) { // shouldn't happen
+					print("ERROR: restoreSelected() firstIndex failed!")
+				} else {
+					selectedRowHashes.remove(at: i) // only restore selected state once
+				}
 				break
 			}
 		}
@@ -225,6 +236,9 @@ class appViewController: NSViewController {
 			return log_last-r
 		}
 	}
+	
+	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {return nil}
+	
 }
 
 extension appViewController: NSPopoverDelegate {
@@ -255,3 +269,9 @@ extension appViewController: NSTableViewDataSource {
 	}
 }
 
+extension appViewController: NSTableViewDelegate {
+
+	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+		return getTableCell(tableView: tableView, tableColumn: tableColumn, row:row)
+	}
+}
