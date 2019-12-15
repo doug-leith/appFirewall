@@ -54,7 +54,7 @@ void sort_block_list(int asc1, int col1) {
 		asc = asc1; // if asc1==0 we leave asc unchanged
 	}
 	col=col1;
-	printf("sort_block_list: %d/%d col=%d/%d\n",asc,asc1,col,col1);
+	//printf("sort_block_list: %d/%d col=%d/%d\n",asc,asc1,col,col1);
 	TAKE_LOCK(&block_mutex,"sort_block_list()");
 	sort_list(&block_list, bl_sort_cmp);
 	pthread_mutex_unlock(&block_mutex);

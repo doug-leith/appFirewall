@@ -73,7 +73,7 @@ void* in_list(list_t *l, const void *item, int debug) {
 	if (l->hash == NULL) return NULL;
 	char *temp = (l->hash)(item);
 	if (debug) { // extra logging requested
-		printf("hash='%s'\n", temp);
+		INFO("hash='%s'\n", temp);
 		dump_hashtable(l->htab);
 	}
 	void * res = hashtable_get(l->htab, temp);

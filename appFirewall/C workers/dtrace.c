@@ -107,7 +107,7 @@ void *dtrace_listener(void *ptr) {
 	conn_t c;
 	for(;;) { // we sit in loop waiting for sniffed pkt into from helper
 			if (read_line(d_sock, inbuf, &inbuf_used, line) <0) goto err;
-			printf("dt: %s", line);
+			INFO2("dt: %s", line);
 			if (parse_dt_line(line, &c)>=0) {
 				append_dtrace(&c);
 				if (dtrace_watcher_hook != NULL) dtrace_watcher_hook();

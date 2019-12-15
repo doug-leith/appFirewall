@@ -94,7 +94,7 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 	}
 	struct ifaddrs *dev;
 	for(dev=ifap; dev; dev=dev->ifa_next) {
-		printf("interface %s ...",dev->ifa_name);
+		DEBUG2("interface %s ...",dev->ifa_name);
 		if (dev-> ifa_flags & IFF_LOOPBACK) {printf("loopback\n"); continue;}
 		if (dev-> ifa_flags & IFF_POINTOPOINT) {printf("point to point\n"); continue;}
 		if (dev->ifa_flags&IFF_NOARP) {printf("no ARP\n"); continue;}
@@ -110,10 +110,10 @@ bpf_u_int32 start_sniffer(pcap_t **pd, char* filter_exp) {
 		} else {printf("not IPv4/IPv6\n"); continue;}
 		char* mask="fe80:";
 		if (strncmp(mask, addr_name, strlen(mask)) == 0) {
-			printf("link local addr\n");
+			DEBUG2("link local addr\n");
 			continue; // ignore IPv6 link local addresses
 		}
-		printf("addr %s found\n",addr_name);
+		DEBUG2("addr %s found\n",addr_name);
 		strlcpy(buf,dev->ifa_name,1024);
 		intf = buf;
 		break; // we take the first valid interface

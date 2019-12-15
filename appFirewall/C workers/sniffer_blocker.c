@@ -266,13 +266,13 @@ void *listener(void *ptr) {
 	if ( (p_sock=connect_to_helper(PCAP_PORT,0))<0 ) {
 		//fatal error
 		is_running=0;
-		printf("Exiting listener\n");
+		INFO("Exiting listener\n");
 		pthread_exit(NULL);
 	}
 	if ( (r_sock=connect_to_helper(RST_PORT,0)) <0 ) {
 		//fatal error
 		is_running=0;
-		printf("Exiting listener\n");
+		INFO("Exiting listener\n");
 		pthread_exit(NULL);
 	}
 
@@ -560,23 +560,23 @@ void get_tcp_options(const u_char* pkt, struct libnet_ipv4_hdr *ip, struct libne
 	while( (*opt != 0) && count<offset-LIBNET_TCP_H) {
 		tcp_option_t* _opt = (tcp_option_t*)opt;
 		if( _opt->kind == 1  ) {
-			 printf("nop, ");
+			 //printf("nop, ");
 			 count++; opt++;
 			 continue;
 		}
 		if( _opt->kind == 2  ) {
-			printf("mss %d, ",ntohs(*(uint16_t*)(opt+2)));
+			//printf("mss %d, ",ntohs(*(uint16_t*)(opt+2)));
 		} if( _opt->kind == 4 ) {
-			printf("SackOk, ");
+			//printf("SackOk, ");
 		} else if( _opt->kind == 8  ) {
-			printf("TS val %u ecr %u, ",
+			//printf("TS val %u ecr %u, ",
 			ntohl(*(uint32_t*)(opt+2)),ntohl(*(uint32_t*)(opt+6))
 			);
 		} else if( _opt->kind == 3  ) {
-			printf("wscale: %d, ",*(opt+2));
+			//printf("wscale: %d, ",*(opt+2));
 		}
 		count +=_opt->size; opt += _opt->size;
 	}
-	printf("\n");
+	//printf("\n");
 }
 */

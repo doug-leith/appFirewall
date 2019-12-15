@@ -24,7 +24,7 @@
 
  strcpy(nameBuffer, pathBuffer + position + 1);
 
- printf("path: %s\n\nname:%s\n\n", pathBuffer, nameBuffer);
+ //printf("path: %s\n\nname:%s\n\n", pathBuffer, nameBuffer);
  */
  
 int find_proc(const char* target) {

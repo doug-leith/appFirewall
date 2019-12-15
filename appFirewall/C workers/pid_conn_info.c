@@ -502,7 +502,7 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 				stats.fdtab_same++; // match is good
 			else {
 				stats.fdtab_changed++; // fd has been reused, bad news
-				printf("FD CHANGED: for %s was %s now %s\n", c.name, temp_prev, temp_c);
+				INFO2("FD CHANGED: for %s was %s now %s\n", c.name, temp_prev, temp_c);
 				if (!are_addr_same(c.raw.af, &c.raw.dst_addr, &prev_c->raw.dst_addr))
 					stats.fdtab_destchanged++;
 			}

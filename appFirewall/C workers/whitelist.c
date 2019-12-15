@@ -122,7 +122,7 @@ void save_whitelist(const char* fname) {
 
 void load_whitelist(const char* fname) {
 	//return;
-	printf("load white list\n");
+	INFO("load white list\n");
 	// open and read file
 	#define STR_SIZE 1024
 	char path[STR_SIZE];
