@@ -32,7 +32,10 @@ class appViewController: NSViewController {
 		menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Get Info", action: #selector(getInfo), keyEquivalent: ""))
 		// force using ! since shouldn't fail here and its serious if it does
-		guard tableView != nil else {print("ERROR: appViewDidLoad() tableView is nil!"); return}
+		guard tableView != nil else {
+			print("ERROR: appViewDidLoad() tableView is nil!");
+			exit_popup(msg: "Internal Error: appViewDidLoad() tableView is nil!", force:0) // this won't return
+		}
 		appTableView = tableView
 		appTableView?.menu = menu
 		appTableView!.dataSource = self

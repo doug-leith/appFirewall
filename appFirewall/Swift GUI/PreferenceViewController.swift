@@ -191,7 +191,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 				}
 			}
 			if (row < 0) { // shouldn't happen
-				print("updateDownloadProgess() problem finding list")
+				print("ERROR: updateDownloadProgess() problem finding list")
 				return
 			}
 			guard let cell = tableView?.view(atColumn:0, row:row, makeIfNecessary: true) as? NSTableCellView else {print("WARNING: problem in preferenceView updateDownloadProgess getting tableView cell");return}

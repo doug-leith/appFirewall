@@ -146,14 +146,14 @@ func load_state() {
 // -------------------------------------
 // UI Helpers
 
-func exit_popup(msg: String, force:Int) {
+func exit_popup(msg: String, force:Int)-> Never { // doesn't return
 	print(msg)
 	let alert = NSAlert()
 	alert.messageText = "Error"
 	alert.informativeText = msg
 	alert.alertStyle = .critical
 	alert.addButton(withTitle: "Restart App")
-	alert.addButton(withTitle: "OK")
+	alert.addButton(withTitle: "Exit App")
 	let response = alert.runModal()
 	if (force > 0) {
 		// force reinstall of helper on restart of app
@@ -169,7 +169,7 @@ func exit_popup(msg: String, force:Int) {
 	}
 }
 
-func restart_app() {
+func restart_app()-> Never { // doesn't return
 	let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
 	let path = url.deletingLastPathComponent().deletingLastPathComponent().absoluteString
 	let task = Process()
@@ -249,7 +249,7 @@ func sampleLogData(fname: String) {
 			count = count + 1
 		} while ((Config.browsers.contains(app)) && (count<TRIES))
 		if ((Config.browsers.contains(app)) || (count == TRIES)) {
-			print("sampleLogData(): failed to sample app")
+			print("WARNING: sampleLogData(): failed to sample app")
 			// strange, we'll come back later
 			return
 		}
@@ -264,7 +264,7 @@ func sampleLogData(fname: String) {
 			}
 		}
 		if (lines_selected.count == 0) { // shouldn't happen
-			print("sampleLogData(): sample size is zero");
+			print("ERROR: sampleLogData(): sample size is zero");
 			return
 		}
 		
@@ -291,12 +291,12 @@ func sampleLogData(fname: String) {
 		let task = session.uploadTask(with: request, from: uploadData)
 				{ data, response, error in
 				if let error = error {
-						print ("error when sending app sample: \(error)")
+						print ("WARNING: error when sending app sample: \(error)")
 						return
 				}
 				if let resp = response as? HTTPURLResponse {
 					if !(200...299).contains(resp.statusCode) {
-						print ("server error when sending app sample: ",resp.statusCode)
+						print ("WARNING: server error when sending app sample: ",resp.statusCode)
 					}
 				}
 		}
@@ -310,7 +310,7 @@ func sampleLogData(fname: String) {
 						try FileManager.default.createDirectory(atPath: sampleDir, withIntermediateDirectories: true, attributes: nil)
 						print("created "+sampleDir)
 				} catch {
-						print("problem making sample dir: "+error.localizedDescription);
+						print("WARNING: problem making sample dir: "+error.localizedDescription);
 						return
 				}
 		}
@@ -321,9 +321,9 @@ func sampleLogData(fname: String) {
 		do {
 			try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
 		} catch {
-			print("problem saving "+sampleFile+":"+error.localizedDescription)
+			print("WARNING: problem saving "+sampleFile+":"+error.localizedDescription)
 		}
 	} catch {
-		print("sampleLogData() problem reading ",path,":", error.localizedDescription)
+		print("WARNING: sampleLogData() problem reading ",path,":", error.localizedDescription)
 	}
 }

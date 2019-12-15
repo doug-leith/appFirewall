@@ -286,7 +286,7 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	tmp = skip_dns_label(t);
 	// debugging check, shouldn't happen
 	if (l==NULL || strlen((char*)l)==0) {
-		printf("empty label '%s' !\n", l);
+		printf("WARNING: empty label '%s' !\n", l);
 		for (int i =0; i< tmp-t+16; i++) {
 			printf("%u ", *(t+i));
 		}
@@ -337,7 +337,7 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 		// debugging check
 		if ((tmp < t+1) && (len != 41)) {
 			// empty label, shouldn't happen except for OPT records (type 41)
-			printf("empty label. i=%d, len=%d, prev:",i,len );
+			printf("WARNING: empty label. i=%d, len=%d, prev:",i,len );
 			for (int j = 0; j< tmp-last_t+8; j++) {
 				if (last_t+j == t) printf("\ncurr:");
 				printf("%u ", *(last_t+j));

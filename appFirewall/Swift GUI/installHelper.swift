@@ -56,35 +56,6 @@ func pgrep(Name: String)->Int {
 	}
 	print(count)
 	return count*/
-	
-	/*let task = Process();
-	task.launchPath = Config.pgrep
-		task.arguments = ["-x",Name]
-	let pipe = Pipe()
-	task.standardOutput = pipe
-	task.launch()
-	let resp = pipe.fileHandleForReading.readDataToEndOfFile()
-	task.waitUntilExit()
-	// resp is a Data object i.e. a bytebuffer
-	// so convert to string
-	let resp_str = (String(data: resp, encoding: .utf8) ?? "-1").trimmingCharacters(in: .whitespacesAndNewlines)
-	print("pgrep "+Name+" response: "+resp_str)
-	if (resp.count == 0) {
-		print(Name+" binary not running, null pgrep output")
-		return 0
-	}
-	let resp_lines = resp_str.split { $0.isNewline }
-	var pids : Array<Int>=[]
-	for line in resp_lines {
-		let pid = Int(line) ?? -1
-		if (pid  < 0) {
-			print("Problem parsing pgrep output for "+Name+", not an int: ",resp_lines)
-			return -1
-		}
-		pids.append(pid)
-	}
-	//print(pids)
-	return pids.count*/
 }
 
 func is_app_already_running()->Bool {

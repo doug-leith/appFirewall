@@ -1,6 +1,8 @@
 TO DO
 
 short term:
+- send exit_popup errors
+- catch swift assertion failures
 
 longer term:
 - use of network extensions, only for cataline onwards though
