@@ -2,7 +2,7 @@
 
 A free, fully open-source application firewall for macOS 10.13 High Sierra and later.  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists (Energized Blu etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.  
 
-<img src="https://github.com/doug-leith/appFirewall/blob/master/Screenshot.png" />
+![Screenshot](https://github.com/doug-leith/appFirewall/raw/master/Screenshot.png)
 
 ## Getting Started
 
@@ -54,6 +54,10 @@ The app stores a time-stamped copy of any such samples in the ~/Library/Applicat
 ## App store
 
 The app isn't on the app store because the sandbox that app store apps must use prevents linking of network connections to apps (specifically, it blocks access to the proc_listpids() and proc_pidfdinfo() syscalls).   I've put in a request to Apple to enable this access, we'll see how they respond.  The app sandbox also blocks sniffing of network packets and sending of TCP RST packets, although app Network Extensions should provide a workaround to this in Catalina and later.
+
+## Source code
+
+See [github](https://github.com/doug-leith/appFirewall/)
 
 ## Contributing
 
