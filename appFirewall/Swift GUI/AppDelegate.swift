@@ -108,8 +108,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 					var extra = ""
 					if (version != latest_version) {
 						result = "An update to version "+latest_version+" is available."
-						extra = "Download at <a href='"+Config.updateURL+"'>"+Config.updateURL+"</a>"
+						extra = "Download at <a href=\""+Config.updateURL+"\">"+Config.updateURL+"</a>"
 					}
+					print(extra)
 					if (msg != "<none>") {
 						extra = extra + "\n" + msg
 					}

@@ -195,12 +195,21 @@ func update_popup(msg: String, extra: String) {
 	alert.messageText = "Check for updates"
 	alert.informativeText = msg
 	let h = Data(extra.utf8)
-	if let html = try? NSMutableAttributedString(data:h, options: [.documentType: NSAttributedString.DocumentType.html], documentAttributes: nil) {
+	/*if let html = try? NSMutableAttributedString(data:h, options: [.documentType: NSAttributedString.DocumentType.html], documentAttributes: nil) {
 		//let v = HyperlinkTextView(frame: NSMakeRect(0,0,300,40))
 		let v = HyperlinkTextView(frame: html.boundingRect(with: NSSize(width: 300, height: 40)))
 		v.isEditable = false; v.drawsBackground = false; //v.isBezeled = false
 		v.textStorage!.append(html)
 		alert.accessoryView = v
+	}*/
+	do {
+		let html = try NSMutableAttributedString(data:h, options: [.documentType: NSAttributedString.DocumentType.html], documentAttributes: nil)
+		let v = HyperlinkTextView(frame: html.boundingRect(with: NSSize(width: 300, height: 40)))
+		v.isEditable = false; v.drawsBackground = false; //v.isBezeled = false
+		v.textStorage!.append(html)
+		alert.accessoryView = v
+	} catch {
+		print(error.localizedDescription)
 	}
 	alert.alertStyle = .informational
 	alert.addButton(withTitle: "OK")
