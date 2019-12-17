@@ -190,10 +190,13 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 
 	// and update human-readable log file
 	if (fp_txt) {
+		//printf("%s\t%s\n", l->time_str, long_str);
+		//fprintf(fp_txt,"text\n");
 		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
 	} else {
 		WARN("Problem appending to %s, re-opening: %s\n", _logTxtName, strerror(errno));
 		reopen_logtxt();
+		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
 	}
 	free(l); // free our temp copy
 }
@@ -290,6 +293,8 @@ void open_logtxt(const char* logTxtName) {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,logTxtName,STR_SIZE);
+	//printf("open_logtxt: %s %s\n", logTxtName, path);
+
 	strlcpy(_logTxtName, logTxtName, STR_SIZE);
 	if (fp_txt) close_logtxt();
 	fp_txt = fopen (path,"a");
@@ -316,6 +321,7 @@ void load_log(const char* logName, const char* logTxtName) {
 	close_logtxt();
 	open_logtxt(logTxtName); // will be left open for continuous appending
 	
+	//printf("load_log: %s %s\n", logName, logTxtName);
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	//strlcat(path,LOGFILE,STR_SIZE);
