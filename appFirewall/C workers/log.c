@@ -189,11 +189,8 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	pthread_mutex_unlock(&log_list_mutex);
 
 	// and update human-readable log file
-	if (fp_txt) {
-		//printf("%s\t%s\n", l->time_str, long_str);
-		//fprintf(fp_txt,"text\n");
-		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
-	} else {
+	int res = fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
+	if (res<=0) {
 		WARN("Problem appending to %s, re-opening: %s\n", _logTxtName, strerror(errno));
 		reopen_logtxt();
 		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
@@ -271,8 +268,9 @@ char* get_filter_log_addr_name(int_sw row) {
 
 void save_log(const char* logName) {
 	//printf("saving log\n");
-	fflush(fp_txt); // flush text log
-
+	//fflush(fp_txt); // flush text log
+	reopen_logtxt();  // reopen rather than flush, that we recover if file deleted
+	
 	struct timeval s; gettimeofday(&s, NULL);
 
 	char path[STR_SIZE];
@@ -293,8 +291,6 @@ void open_logtxt(const char* logTxtName) {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,logTxtName,STR_SIZE);
-	//printf("open_logtxt: %s %s\n", logTxtName, path);
-
 	strlcpy(_logTxtName, logTxtName, STR_SIZE);
 	if (fp_txt) close_logtxt();
 	fp_txt = fopen (path,"a");
@@ -311,6 +307,7 @@ void close_logtxt() {
 void reopen_logtxt() {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE); strlcat(path,_logTxtName,STR_SIZE);
+	if (fp_txt) close_logtxt();
 	fp_txt = fopen (path,"a");
 	if (fp_txt==NULL) {
 		WARN("Problem re-opening %s for appending: %s\n", _logTxtName, strerror(errno));
