@@ -148,6 +148,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			NSApp.activate(ignoringOtherApps: true) // bring window to front of other apps
 			// enable main menu etc
 			NSApp.setActivationPolicy(.regular)
+			
+			// menu doesn't reactivate unless we change focus away from our app
+			// and then back again, see https://stackoverflow.com/questions/41340071/macos-menubar-application-main-menu-not-being-displayed/43780588#43780588
+			if (NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate(options: []))! {
+					 let deadlineTime = DispatchTime.now() + .milliseconds(200)
+					 DispatchQueue.main.asyncAfter(deadline: deadlineTime) {
+					 NSApp.setActivationPolicy(.regular)
+								NSApp.activate(ignoringOtherApps: true)
+					 }
+			 }
 		}
 	}
 		
