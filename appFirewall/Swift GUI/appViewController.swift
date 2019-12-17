@@ -39,7 +39,7 @@ class appViewController: NSViewController {
 		appTableView = tableView
 		appTableView?.menu = menu
 		appTableView!.dataSource = self
-		appTableView!.delegate = self
+		appTableView!.delegate = self		
 	}
 
 	func appViewWillAppear() {

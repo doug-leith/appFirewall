@@ -157,7 +157,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 					 NSApp.setActivationPolicy(.regular)
 								NSApp.activate(ignoringOtherApps: true)
 					 }
-			 }
+			}
 		}
 	}
 		
@@ -211,9 +211,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// redirect C logging from stdout to logfile.  do this early but
 		// important to call make_data_dir() first so that logfile has somewhere to live
 		redirect_stdout(Config.appLogName)
-		
-		// catch window close events
-		NSApp.mainWindow?.delegate = self
 		
 		// set default logging level, again do this early
 		UserDefaults.standard.register(defaults: ["logging_level":Config.defaultLoggingLevel])
@@ -318,8 +315,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		
+		print("mainWindow != nil: ",NSApp.mainWindow != nil)
+		NSApp.mainWindow?.delegate = self
 	}
-
+		
 	func applicationWillTerminate(_ aNotification: Notification) {
 		// Insert code here to tear down your application
 		// NB: don't think this function is *ever* called

@@ -13,6 +13,6 @@ class appTabViewController: NSTabViewController {
         super.viewDidLoad()
 				let tab_index = UserDefaults.standard.integer(forKey: "tab_index") // get tab
 				self.tabView.selectTabViewItem(at:tab_index)
-    }
+   }
     
 }
