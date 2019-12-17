@@ -172,12 +172,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				exit_popup(msg:String(cString: get_error_msg()), force:Int(get_error_force()))
 				// this call won't return
 		}
-		save_log(Config.logName)
-		if (need_log_rotate(logName: Config.logName)) {
+		save_log(Config.logTxtName)
+		if (need_log_rotate(logName: Config.logTxtName)) {
 			close_logtxt() // close human-readable log file
-			log_rotate(logName: Config.logName)
+			log_rotate(logName: Config.logTxtName)
 			open_logtxt(Config.logTxtName); // open new log file
-			sampleLogData(fname: Config.logName+"0") // senda sample of last log file
+			sampleLogData(fname: Config.logTxtName+"0") // senda sample of last log file
 		}
 		if (need_log_rotate(logName: Config.appLogName)) {
 			log_rotate(logName: Config.appLogName)

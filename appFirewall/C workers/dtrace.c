@@ -106,14 +106,13 @@ void *dtrace_listener(void *ptr) {
 	char inbuf[LINEBUF_SIZE], line[LINEBUF_SIZE];
 	conn_t c;
 	for(;;) { // we sit in loop waiting for sniffed pkt into from helper
-			if (read_line(d_sock, inbuf, &inbuf_used, line) <0) goto err;
-			INFO2("dt: %s", line);
-			if (parse_dt_line(line, &c)>=0) {
-				append_dtrace(&c);
-				if (dtrace_watcher_hook != NULL) dtrace_watcher_hook();
-
-			}
-			continue;
+		if (read_line(d_sock, inbuf, &inbuf_used, line) <0) goto err;
+		INFO2("dt: %s", line);
+		if (parse_dt_line(line, &c)>=0) {
+			append_dtrace(&c);
+			if (dtrace_watcher_hook != NULL) dtrace_watcher_hook();
+		}
+		continue;
 			
 	err:
 		if (errno==0) {

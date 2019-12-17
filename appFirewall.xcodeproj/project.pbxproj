@@ -667,7 +667,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.3b;
 				OTHER_CFLAGS = "";
 				"OTHER_CFLAGS[arch=*]" = "-Wthread-safety";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
@@ -706,7 +706,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.3b;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
 				PRODUCT_NAME = "$(TARGET_NAME)";

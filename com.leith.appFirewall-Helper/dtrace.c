@@ -213,7 +213,7 @@ int dtrace_buffered(const dtrace_bufdata_t *bufdata, void *arg){
 int init_dtrace() {
 	int err;
 	if ((g_dtp = dtrace_open(DTRACE_VERSION, 0, &err)) == NULL) {
-		WARN("Dailed to initialize dtrace: %s\n", dtrace_errmsg(NULL, err));
+		WARN("Failed to initialize dtrace: %s\n", dtrace_errmsg(NULL, err));
 		return -1;
 	}
 	int flag = DTRACE_C_PSPEC;
