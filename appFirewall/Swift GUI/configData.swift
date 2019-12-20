@@ -11,6 +11,7 @@ import Foundation
 struct Config {
 	static let defaultLoggingLevel = 2 // more verbose, for testing
 	static let enableDtrace = 1 // disable for SIP testing
+	static let enableUpdates = 0 // disable for testing
 	
 	static let minHelperVersion = 5 // required helper version, must be an Int
 	

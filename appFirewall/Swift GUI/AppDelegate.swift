@@ -84,7 +84,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	
 	@IBAction func checkForUpdates(_ sender: NSMenuItem) {
-		UpdateInstaller.shared.checkForUpdates()
+		doCheckForUpdates()
 	}
 	
 	
@@ -127,6 +127,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				window.makeKeyAndOrderFront(self) // bring to front
 				window.delegate = self // just being careful
 				enableMenu()
+				NSApp.activate(ignoringOtherApps: true)
 				return
 			}
 		}

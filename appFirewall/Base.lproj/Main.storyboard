@@ -461,7 +461,7 @@
                                                     <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                     <prototypeCellViews>
                                                         <tableCellView identifier="ConnCell" id="R2x-J0-rin">
-                                                            <rect key="frame" x="170" y="1" width="273" height="17"/>
+                                                            <rect key="frame" x="169.5" y="1" width="273" height="17"/>
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                             <subviews>
                                                                 <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="APL-LO-nlZ">
@@ -1116,6 +1116,75 @@
                 <customObject id="LaE-Wm-bxX" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="232" y="16"/>
+        </scene>
+        <!--Update Installer-->
+        <scene sceneID="HP6-l9-7hW">
+            <objects>
+                <viewController title="Update Installer" storyboardIdentifier="UpdateInstallerViewController" id="KGo-sw-4NO" customClass="UpdateInstallerViewController" customModule="appFirewall" sceneMemberID="viewController">
+                    <view key="view" id="4TM-Ez-GLE">
+                        <rect key="frame" x="0.0" y="0.0" width="450" height="194"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <subviews>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OLS-fS-w2i">
+                                <rect key="frame" x="115" y="27" width="72" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Ok" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="17G-Ek-1xs">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="okButton:" target="KGo-sw-4NO" id="bUp-cT-4sX"/>
+                                </connections>
+                            </button>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="vC2-lP-1fE">
+                                <rect key="frame" x="66" y="151" width="123" height="16"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Check for updates" id="qbm-xK-Ieb">
+                                    <font key="font" metaFont="systemBold"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField identifier="status" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Qez-Tz-yjy">
+                                <rect key="frame" x="66" y="84" width="37" height="14"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <textFieldCell key="cell" selectable="YES" title="status" id="gcz-Bq-8cO">
+                                    <font key="font" metaFont="smallSystem"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField identifier="msg" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OoR-Cv-h6z">
+                                <rect key="frame" x="66" y="119" width="27" height="14"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <textFieldCell key="cell" selectable="YES" title="msg" id="HPJ-J6-5B4">
+                                    <font key="font" metaFont="smallSystem"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="00L-In-fco">
+                                <rect key="frame" x="275" y="27" width="76" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Install" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="dM2-Oj-I7P">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="installButton:" target="KGo-sw-4NO" id="aNe-fI-W2K"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                    </view>
+                    <connections>
+                        <outlet property="msgField" destination="OoR-Cv-h6z" id="fF9-6n-PTO"/>
+                        <outlet property="statusField" destination="Qez-Tz-yjy" id="p69-kF-d6x"/>
+                        <outlet property="view" destination="4TM-Ez-GLE" id="qdx-5D-fPW"/>
+                    </connections>
+                </viewController>
+                <customObject id="2ru-Ph-ELp" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-281" y="-371"/>
         </scene>
     </scenes>
     <resources>

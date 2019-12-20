@@ -38,7 +38,7 @@
 		91607C2C2372FF7F002E50A8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C262372FF7E002E50A8 /* main.c */; };
 		91607C2D2372FFAE002E50A8 /* com.leith.appFirewall-Helper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		91607C312374080C002E50A8 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C302374080B002E50A8 /* util.c */; };
-		916ECAFD23ABA1BB00023AEA /* UpdateInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFC23ABA1BB00023AEA /* UpdateInstaller.swift */; };
+		916ECAFD23ABA1BB00023AEA /* UpdateInstallerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */; };
 		9180E1662387F407007002CB /* percentile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1652387F407007002CB /* percentile.c */; };
 		9180E1692387F4BB007002CB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1672387F4BB007002CB /* heap.c */; };
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
@@ -156,7 +156,7 @@
 		91607C292372FF7F002E50A8 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		91607C302374080B002E50A8 /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
 		91607C3723741D65002E50A8 /* OSLog.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OSLog.framework; path = System/Library/Frameworks/OSLog.framework; sourceTree = SDKROOT; };
-		916ECAFC23ABA1BB00023AEA /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
+		916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallerViewController.swift; sourceTree = "<group>"; };
 		9180E1642387F407007002CB /* percentile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = percentile.h; sourceTree = "<group>"; };
 		9180E1652387F407007002CB /* percentile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = percentile.c; sourceTree = "<group>"; };
 		9180E1672387F4BB007002CB /* heap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = heap.c; sourceTree = "<group>"; };
@@ -310,7 +310,7 @@
 				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
 				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
-				916ECAFC23ABA1BB00023AEA /* UpdateInstaller.swift */,
+				916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */,
 				9180E17B238D2882007002CB /* installHelper.swift */,
 				9180E17D238D2D07007002CB /* Helpers.swift */,
 				91B590952390F7BC000F418D /* HyperlinkTextView.swift */,
@@ -465,7 +465,7 @@
 				91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */,
 				91ABB26E237680B7007F8FFE /* table.c in Sources */,
 				9180E17C238D2882007002CB /* installHelper.swift in Sources */,
-				916ECAFD23ABA1BB00023AEA /* UpdateInstaller.swift in Sources */,
+				916ECAFD23ABA1BB00023AEA /* UpdateInstallerViewController.swift in Sources */,
 				91607BF6237142A0002E50A8 /* log.c in Sources */,
 				91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */,
 				9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */,
@@ -671,7 +671,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				OTHER_CFLAGS = "";
 				"OTHER_CFLAGS[arch=*]" = "-Wthread-safety";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
@@ -710,7 +710,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
 				PRODUCT_NAME = "$(TARGET_NAME)";
