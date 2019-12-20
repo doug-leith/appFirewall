@@ -22,7 +22,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	var statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
 	// create a preference pane instance
 	let prefController : PreferenceViewController = NSStoryboard(name:"Main", bundle:nil).instantiateController(withIdentifier: "PreferenceViewController") as! PreferenceViewController
-	
+	var checkUpdateTimer : Timer = Timer()
+
 	//--------------------------------------------------------
 	// menu item event handlers
 	
@@ -84,7 +85,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	
 	@IBAction func checkForUpdates(_ sender: NSMenuItem) {
-		doCheckForUpdates()
+		doCheckForUpdates(quiet: false, autoUpdate: false)
 	}
 	
 	
@@ -188,6 +189,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		if let button = statusItem.button {
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 		}
+	}
+	
+	@objc func doTimedCheckForUpdate() {
+		// used for timed update checking
+		UserDefaults.standard.register(defaults: ["autoUpdate":true])
+		let autoUpdate = UserDefaults.standard.bool(forKey: "autoUpdate")
+		doCheckForUpdates(quiet: true, autoUpdate: autoUpdate)
 	}
 	
 	//--------------------------------------------------------
@@ -305,6 +313,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		
+		// setup timer for auto checking of updates
+		UserDefaults.standard.register(defaults: ["autoCheckUpdates":true])
+		if UserDefaults.standard.bool(forKey: "timerCheckUpdates") {
+			checkUpdateTimer = Timer.scheduledTimer(timeInterval: Config.checkUpdatesInterval, target: self, selector: #selector(doTimedCheckForUpdate), userInfo: nil, repeats: true)
+		}
+
+		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
 		NSApp.mainWindow?.delegate = self
 	}

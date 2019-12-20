@@ -180,13 +180,23 @@ func restart_app()-> Never { // doesn't return
 }
 
 func error_popup(msg: String) {
-	print(msg)
+	print(msg) // print error to log
 	let alert = NSAlert()
 	alert.messageText = "Error"
 	alert.informativeText = msg
 	alert.alertStyle = .critical
 	alert.addButton(withTitle: "OK")
 	alert.runModal()
+}
+
+func quiet_error_popup(msg: String, quiet: Bool) {
+	if !quiet {
+		DispatchQueue.main.async {
+			error_popup(msg: msg)
+		}
+	} else { // if quiet, just print error to log
+		print(msg)
+	}
 }
 
 func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
@@ -308,4 +318,73 @@ func sampleLogData(fname: String) {
 	} catch {
 		print("WARNING: sampleLogData() problem reading ",path,":", error.localizedDescription)
 	}
+}
+
+func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
+	// if quiet == true, don't show confirmation popup if there
+	// are no updates.  if autoUpdate == true, don't ask user to
+	// confirm update and don't show any associated popups/info
+	// on progress of installing update
+ let session = URLSession(configuration: .default)
+ let task = session.dataTask(with: Config.updateCheckURL)
+		{ data, response, error in
+		if let error = error {
+			quiet_error_popup(msg: "WARNING: error when checking for updates: \(error)", quiet: quiet)
+			return
+		}
+		if let resp = response as? HTTPURLResponse {
+		  if !(200...299).contains(resp.statusCode) {
+		  	quiet_error_popup(msg: "WARNING: server error when checking for updates: "+String(resp.statusCode), quiet: quiet)
+		  }
+	 }
+		if let data = data,
+			 let dataString = String(data: data, encoding: .ascii) {
+			 //print ("got data: ",dataString)
+			 let lines = dataString.components(separatedBy:"\n")
+			 let latest_version = lines[0].trimmingCharacters(in: .whitespacesAndNewlines)
+			 let msg = lines[1].trimmingCharacters(in: .whitespacesAndNewlines)
+			 guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
+			  quiet_error_popup(msg: "WARNING: problem getting version from bundle when checking for updates", quiet: quiet)
+				return
+			 }
+			 print("checking for updates.  our version=",version,", latest_version=",latest_version,", msg=",msg)
+			 var result = "Up to date (current version "+version+" matches latest version "+latest_version+")"
+			 var extra = ""
+			 var new = false
+			 if (version != latest_version) {
+				 result = "An update to version "+latest_version+" is available."
+				 extra = "Download at <a href=\""+Config.updateURL+"\">"+Config.updateURL+"</a>"
+				 new = true
+			 }
+			 print(extra)
+			 if (msg != "<none>") {
+				 result = result + "\n" + msg
+			 }
+			 if (!new) {
+			 	if (quiet) { return } // up to date and don't want notification
+			 	// show popup telling user no update needed
+			 	DispatchQueue.main.async {
+					let alert = NSAlert()
+					alert.messageText = "Check for updates"
+					alert.informativeText = msg
+					alert.alertStyle = .informational
+					alert.runModal()
+					return			 	}
+			 } else {
+				 // display popup asking useer they want to install update
+			  	DispatchQueue.main.async {
+					 updatePopup(msg:result, autoUpdate: autoUpdate)
+			 	 }
+			 }
+		 }
+	}
+	task.resume()
+	session.finishTasksAndInvalidate()
+}
+
+func updatePopup(msg: String, autoUpdate: Bool) {
+	// give option to install, use custom view
+	let storyboard = NSStoryboard(name:"Main", bundle:nil)
+	let controller : UpdateInstallerViewController = storyboard.instantiateController(withIdentifier: "UpdateInstallerViewController") as! UpdateInstallerViewController
+	controller.start(autoUpdate: autoUpdate, msg: msg)
 }

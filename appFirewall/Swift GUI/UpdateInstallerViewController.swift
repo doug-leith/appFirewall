@@ -9,113 +9,79 @@
 import Foundation
 import Cocoa
 
-func doCheckForUpdates() {
- let session = URLSession(configuration: .default)
- let task = session.dataTask(with: Config.updateCheckURL)
-		{ data, response, error in
-		if let error = error {
-				DispatchQueue.main.async {
-					error_popup(msg:"WARNING: error when checking for updates: \(error)")
-				}
-				return
-		}
-		if let resp = response as? HTTPURLResponse {
-		 if !(200...299).contains(resp.statusCode) {
-			 DispatchQueue.main.async { error_popup(msg: "WARNING: server error when checking for updates: "+String(resp.statusCode)) }
-		 }
-	 }
-		if let data = data,
-			 let dataString = String(data: data, encoding: .ascii) {
-			 //print ("got data: ",dataString)
-			 let lines = dataString.components(separatedBy:"\n")
-			 let latest_version = lines[0].trimmingCharacters(in: .whitespacesAndNewlines)
-			 let msg = lines[1].trimmingCharacters(in: .whitespacesAndNewlines)
-			 guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
-				DispatchQueue.main.async {
-					error_popup(msg: "WARNING: problem getting version from bundle when checking for updates")
-				}
-				return
-			 }
-			 print("checking for updates.  our version=",version,", latest_version=",latest_version,", msg=",msg)
-			 var result = "Up to date (current version "+version+" matches latest version "+latest_version+")"
-			 var extra = ""
-			 var new = false
-			 if (version != latest_version) {
-				 result = "An update to version "+latest_version+" is available."
-				 extra = "Download at <a href=\""+Config.updateURL+"\">"+Config.updateURL+"</a>"
-				 new = true
-			 }
-			 print(extra)
-			 if (msg != "<none>") {
-				 result = result + "\n" + msg
-			 }
-			 DispatchQueue.main.async {
-				 updatePopup(msg:result, extra:extra, new:new)
-			 }
-		 }
-}
-task.resume()
-session.finishTasksAndInvalidate()
-}
-
-func updatePopup(msg: String, extra: String, new: Bool) {
-	//called to display outcome of checking for updates
-	// - allows user to then download and update if appropriate
-	if (!new) { // just use an alert popup
-		let alert = NSAlert()
-		alert.messageText = "Check for updates"
-		alert.informativeText = msg
-		alert.alertStyle = .informational
-		alert.runModal()
-		return
-	} else { // give option to install, use custom view
-		let storyboard = NSStoryboard(name:"Main", bundle:nil)
-		let controller : UpdateInstallerViewController = storyboard.instantiateController(withIdentifier: "UpdateInstallerViewController") as! UpdateInstallerViewController
-		controller.msg = msg
-		let myWindow = NSWindow(contentViewController: controller)
-		myWindow.styleMask.remove(.miniaturizable)
-		myWindow.styleMask.remove(.resizable) // fixed size
-		let vc = NSWindowController(window: myWindow)
-		vc.showWindow(controller)
-	}
-}
+// to do:
+// Config.enable
+// sourceforge vs github ?
+// allow timed update
+// add user pref to allow timed update
 
 class UpdateInstallerViewController: NSViewController {
 	
-	//static let shared = UpdateInstallerViewController()
 	let appFile = "appFirewall.app" // name of app inside DMG
 	let hdiutil = "/usr/bin/hdiutil"
 	var msg: String = ""
-		
-	@IBOutlet weak var msgField: NSTextField!
+	var autoUpdate: Bool = false
+	var window: NSWindow?
+	var wc: NSWindowController?
 	
-	@IBOutlet weak var statusField: NSTextField!
-		
+	// popup UI elements
+	@IBOutlet weak var msgField: NSTextField?
+	@IBOutlet weak var statusField: NSTextField?
 	@IBAction func okButton(_ sender: NSButton) {
+		// user has cancelled the update
 		sender.window?.close()
 	}
-	
 	@IBAction func installButton(_ sender: NSButton) {
+		// user has agreed to install the update
 		sender.isEnabled  = false // stop user pressing button again
 		downloadAndInstallUpdate()
 	}
 	
+	// open popup if needed, else leave closed
+	func start(autoUpdate: Bool, msg: String) {
+		self.autoUpdate = autoUpdate
+		if (autoUpdate) {
+			// no need to ask user whether they want to update,
+			// and no need to show popup/info on progress installing update
+			downloadAndInstallUpdate()
+		} else {
+			// if autoUpdate then fall back to
+			// displaying popup and asking user if we should do
+			// update
+			self.msg = msg // we'll display this once popup view has loaded
+			window = NSWindow(contentViewController: self)
+			window?.styleMask.remove(.miniaturizable)
+			window?.styleMask.remove(.resizable) // fixed size
+			wc = NSWindowController(window: window)
+			wc?.showWindow(self)
+		}
+	}
+	
 	override func viewDidLoad() {
-		print("updateinstaller view loaded")
+		// popup window to ask user if they want to install update
+		// has loaded
 		super.viewDidLoad()
-		msgField.stringValue = msg
-		msgField.sizeToFit()
-		statusField.stringValue = ""
-}
+		msgField?.stringValue = msg
+		msgField?.sizeToFit()
+		statusField?.stringValue = ""
+	}
 	
 	func showPopupMsg(msg: String) {
+		// update the information message shown in popup
 		print(msg) // in log
-		statusField.stringValue = msg
-		statusField.sizeToFit()
+		if (!autoUpdate) { // no popup
+			statusField?.stringValue = msg
+			statusField?.sizeToFit()
+		}
 	}
 	
 	func downloadAndInstallUpdate() {
+		// if autoUpdate == true, there is no popup window and no need
+		// to show progress info to user, otherwise the popup window
+		// is being displayed and we need to update it.  showPopupMsg()
+		// is the main place that autoUpdate affects
 		
+		// start by downloading the update DMG, once finished will install
 		let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
 		guard let url = URL(string: Config.updateURL) else { return }
 		session.downloadTask(with: url).resume()
@@ -124,6 +90,7 @@ class UpdateInstallerViewController: NSViewController {
 	}
 		
 	func checkSignature(bundle: String)->Bool {
+		// check that downloaded DMG has reasonable signature
 		var staticCode: SecStaticCode?
 		let result = SecStaticCodeCreateWithPath(URL(fileURLWithPath:bundle) as CFURL, SecCSFlags.init(rawValue: 0), &staticCode)
 		if (result != noErr) {
@@ -134,6 +101,7 @@ class UpdateInstallerViewController: NSViewController {
 		let req_str = "identifier com.leith.appFirewall and anchor apple generic"
 		SecRequirementCreateWithString(req_str as CFString, [], &req);
 		// check signature against embedded requirements
+		guard staticCode != nil else { print("WARNING: problem getting code ref"); return false }
 		let status = SecStaticCodeCheckValidity(staticCode!, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), req)
 		if (status != errSecSuccess) {
 			let flags = SecCSFlags(rawValue: kSecCSInternalInformation
@@ -151,7 +119,8 @@ class UpdateInstallerViewController: NSViewController {
 	}
 	
 	func unmount(mountPoint: String) {
-		// unmount DMG
+		// unmount DMG.  called when errors encountered, so factor
+		// out as its own function
 		let unmountTask = Process()
 		unmountTask.launchPath = hdiutil
 		unmountTask.arguments=["detach", mountPoint,"-force"]
@@ -166,7 +135,8 @@ class UpdateInstallerViewController: NSViewController {
 	}
 	
 	func updateApp(dmgURL: URL, appPath: String) {
-
+		// carry out the actual app updating
+		
 		DispatchQueue.main.async { self.showPopupMsg(msg: "Mounting DMG ...") }
 		
 		let mountPoint = "/Volumes/"+UUID().uuidString
@@ -183,19 +153,16 @@ class UpdateInstallerViewController: NSViewController {
 		let handle = stdin.fileHandleForWriting
 		let yes = "yes\n".data(using: .utf8)!
 		handle.write(yes)
-		//handle.closeFile()
 		mountTask.waitUntilExit()
 		print("done")
-		//print(mountTask.terminationStatus, mountTask.terminationReason)
 		if (mountTask.terminationStatus != 0) {
 			let msg = "Problem when trying to install update, hdiutil mount of DMG failed"
 			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
 			return
 		}
 
-		DispatchQueue.main.async { self.showPopupMsg(msg: "Extracting app ...") }
-
 		// check contents look sane
+		DispatchQueue.main.async { self.showPopupMsg(msg: "Extracting app ...") }
 		if !FileManager.default.fileExists(atPath: mountPoint+"/"+appFile) {
 			unmount(mountPoint:mountPoint)
 			let msg = "Problem when trying to install update, couldn't find "+appFile+" in DMG"
@@ -208,9 +175,8 @@ class UpdateInstallerViewController: NSViewController {
 			return
 		}
 
-		DispatchQueue.main.async { self.showPopupMsg(msg: "Updating app ...") }
-
 		// copy to Applications folder
+		DispatchQueue.main.async { self.showPopupMsg(msg: "Updating app ...") }
 		do {
 			let tempPath = NSTemporaryDirectory()
 			print("copying DMG contents to temp staging folder ",tempPath)
@@ -232,10 +198,12 @@ class UpdateInstallerViewController: NSViewController {
 		// unmount DMG
 		unmount(mountPoint:mountPoint)
 		
-		DispatchQueue.main.async { self.showPopupMsg(msg: "Updated, restarting.") }
 		// and now relaunch app
 		if (Config.enableUpdates == 1) {
+			DispatchQueue.main.async { self.showPopupMsg(msg: "Updated, restarting.") }
 			restart_app()
+		} else {
+			window?.close()
 		}
 	}
 }

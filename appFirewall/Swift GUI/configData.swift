@@ -19,6 +19,7 @@ struct Config {
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!
 	static let updateCheckURL = URL(string: "https://leith.ie/appFirewall_version.html")!
 	static let updateURL = "https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg"
+	static let checkUpdatesInterval = 2592000.0 // 30 days, in seconds !
 	
 	static let browsers = ["firefox","Google Chrome H","Safari","Opera Helper","Brave Browser H","seamonkey"]
 	
