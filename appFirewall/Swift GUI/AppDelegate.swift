@@ -84,43 +84,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	
 	@IBAction func checkForUpdates(_ sender: NSMenuItem) {
-		let session = URLSession(configuration: .default)
-	 	let task = session.dataTask(with: Config.updateCheckURL)
-			 { data, response, error in
-			 if let error = error {
-					 print ("error when checking for updates: \(error)")
-					 return
-			 }
-			 if let resp = response as? HTTPURLResponse {
-			 	if !(200...299).contains(resp.statusCode) {
-					print ("server error when checking for updates: ",resp.statusCode)
-				}
-			}
-			 if let data = data,
-					let dataString = String(data: data, encoding: .ascii) {
-					//print ("got data: ",dataString)
-					let lines = dataString.components(separatedBy:"\n")
-					let latest_version = lines[0].trimmingCharacters(in: .whitespacesAndNewlines)
-						let msg = lines[1].trimmingCharacters(in: .whitespacesAndNewlines)
-					guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {print("WARNING: problem getting version from bundle when checking for updates"); return}
-					print("checking for updates.  our version=",version,", latest_version=",latest_version,", msg=",msg)
-					var result = "Up to date (current version "+version+" matches latest version "+latest_version+")"
-					var extra = ""
-					if (version != latest_version) {
-						result = "An update to version "+latest_version+" is available."
-						extra = "Download at <a href=\""+Config.updateURL+"\">"+Config.updateURL+"</a>"
-					}
-					print(extra)
-					if (msg != "<none>") {
-						extra = extra + "\n" + msg
-					}
-					DispatchQueue.main.async {
-						update_popup(msg:result, extra:extra)
-					}
-				}
-	 }
-	 task.resume()
-	 session.finishTasksAndInvalidate()
+		UpdateInstaller.shared.checkForUpdates()
 	}
 	
 	
@@ -205,7 +169,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	// application event handlers
 	
 	func applicationWillFinishLaunching(_ aNotification: Notification) {
-		
+				
 		// create storage dir if it doesn't already exist
 		make_data_dir()
 		

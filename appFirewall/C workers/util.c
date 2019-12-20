@@ -126,14 +126,14 @@ int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line) {
       // TO DO: check that packet is from expected source IP/port (might be interleaved with a new request for example)
       ssize_t rv = read(fd, (void*)&inbuf[*inbuf_used], LINEBUF_SIZE - *inbuf_used);
       if (rv == 0) {
-        WARN("dtrace connection closed.\n");
-        return -1;
+        WARN("read_line() connection closed.\n");
+        return 0;
       }
       if (rv < 0) {
         if (errno == EAGAIN) {
-           WARN("dtrace connection timeout\n");
+           WARN("read_line() connection timeout\n");
         } else {
-           ERR("dtrace connection error: %s\n",strerror(errno));
+           ERR("read_line() connection error: %s\n",strerror(errno));
         }
         return -1;
       }
@@ -143,7 +143,7 @@ int read_line(int fd, char* inbuf, size_t *inbuf_used, char* line) {
     if (line[i-1]=='\n') break; // have hit a newline, stop
   }
   if (i==LINEBUF_SIZE) {
-    ERR("dtrace line larger than %d.\n",LINEBUF_SIZE);
+    ERR("read_line() line larger than %d.\n",LINEBUF_SIZE);
     return -1;
   }
   line[i]='\0'; // terminate line as string, makes for easier printing when debugging

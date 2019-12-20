@@ -102,11 +102,11 @@ void *dtrace_listener(void *ptr) {
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
 
-	size_t inbuf_used = 0;
+	size_t inbuf_used = 0; int res=0;
 	char inbuf[LINEBUF_SIZE], line[LINEBUF_SIZE];
 	conn_t c;
 	for(;;) { // we sit in loop waiting for sniffed pkt into from helper
-		if (read_line(d_sock, inbuf, &inbuf_used, line) <0) goto err;
+		if ( (res=read_line(d_sock, inbuf, &inbuf_used, line)) <= 0) goto err;
 		INFO2("dt: %s", line);
 		if (parse_dt_line(line, &c)>=0) {
 			append_dtrace(&c);
@@ -115,7 +115,7 @@ void *dtrace_listener(void *ptr) {
 		continue;
 			
 	err:
-		if (errno==0) {
+		if (res == 0) {
 			WARN("dtrace connection closed.\n");
 		} else if (errno == EOPNOTSUPP) {
 			// get this error when code sign check on helper fails, we won't recover from this

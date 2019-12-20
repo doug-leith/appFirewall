@@ -1,14 +1,16 @@
 TO DO
 
 short term:
+- automated app updates (no need to manually copy from github)
+- allow to check for updates automatically (user pref)
+- start up on login (user pref)
 
 longer term:
-- use of network extensions, only for cataline onwards though
+- use of network extensions, only for catalina onwards though
 - sandbox currently prevents calls to proc_info.  until that's fixed we can't run app inside sandbox
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - support for multiple active interfaces (need to fire up a separate pcap sniffer thread for each)
 - compress log samples uploaded to server?
-- add unit tests !
 
 
 
