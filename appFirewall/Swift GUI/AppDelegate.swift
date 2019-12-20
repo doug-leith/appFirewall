@@ -93,12 +93,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		restart_app() 
 	}
 	
+	func disableMenu() {
+		// hide the dock icon and main menu
+		NSApp.setActivationPolicy(.accessory)
+	}
+	
+	func enableMenu() {
+		// show the dock icon and main menu
+		NSApp.setActivationPolicy(.regular)
+		// menu doesn't reactivate unless we change focus away from our app
+		// and then back again, see https://stackoverflow.com/questions/41340071/macos-menubar-application-main-menu-not-being-displayed/43780588#43780588
+		if (NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate(options: []))! {
+				 let deadlineTime = DispatchTime.now() + .milliseconds(200)
+				 DispatchQueue.main.asyncAfter(deadline: deadlineTime) {
+				 NSApp.setActivationPolicy(.regular)
+							NSApp.activate(ignoringOtherApps: true)
+				 }
+		}
+	}
+	
 	// handle click on menubar item
 	@objc func openapp(_ sender: Any?) {
-		// reopen active connections window
-		// surely there is a nicer way to do this !
-		let app = NSApplication.shared
-		if (app.mainWindow == nil){
+		// reopen window
+		// if window already exists,and it should since we don't
+		// release it on close, then we just reopen it.
+		// hopefully this should work almost all of the time
+		// (seems like an error if it doesn't work)
+		for window in NSApp.windows {
+			print(window, window.title)
+			// as well as the main window the status bar button has a window
+			if (window.title == "appFirewall") {
+				print("openapp() restoring existing window")
+				window.makeKeyAndOrderFront(self) // bring to front
+				window.delegate = self // just being careful
+				enableMenu()
+				return
+			}
+		}
+		// fall back to constructing window from scratch.
+		// this is an error condition, just trying to recover gracefully
+		print("WARNING: openapp() falling back to creating new window")
+		if (NSApp.mainWindow == nil){
 			let storyboard = NSStoryboard(name:"Main", bundle:nil)
 			print("openapp(): got storyboard")
 			guard let controller : appTabViewController = storyboard.instantiateController(withIdentifier: "TabViewController") as? appTabViewController else {print("openapp(): problem creating viewcontroller"); return}
@@ -111,18 +146,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			vc.showWindow(self)
 			print("openapp(): show window")
 			NSApp.activate(ignoringOtherApps: true) // bring window to front of other apps
-			// enable main menu etc
-			NSApp.setActivationPolicy(.regular)
-			
-			// menu doesn't reactivate unless we change focus away from our app
-			// and then back again, see https://stackoverflow.com/questions/41340071/macos-menubar-application-main-menu-not-being-displayed/43780588#43780588
-			if (NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate(options: []))! {
-					 let deadlineTime = DispatchTime.now() + .milliseconds(200)
-					 DispatchQueue.main.asyncAfter(deadline: deadlineTime) {
-					 NSApp.setActivationPolicy(.regular)
-								NSApp.activate(ignoringOtherApps: true)
-					 }
-			}
+			enableMenu()
 		}
 	}
 		
@@ -283,7 +307,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
 		NSApp.mainWindow?.delegate = self
 	}
-		
+	
 	func applicationWillTerminate(_ aNotification: Notification) {
 		// Insert code here to tear down your application
 		// NB: don't think this function is *ever* called
@@ -302,6 +326,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: NSWindowDelegate {
 	func windowWillClose(_ notification: Notification) {
 		print("window close")
-		NSApp.setActivationPolicy(.accessory)
+		// hide the dock icon and main menu
+		disableMenu()
 	}
 }
