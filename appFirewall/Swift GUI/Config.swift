@@ -8,7 +8,8 @@
 
 import Foundation
 
-struct Config {
+class Config: NSObject {
+	// fixed settings ...
 	static let defaultLoggingLevel = 2 // more verbose, for testing
 	static let enableDtrace = 1 // disable for SIP testing
 	static let enableUpdates = 0 // disable for testing
@@ -49,4 +50,61 @@ struct Config {
 	
 	static let appDelegateRefreshTime : Double = 10 // check state every 10s
 	static let viewRefreshTime : Double = 1 // check for window uodate every 1s
+
+	//------------------------------------------------
+	// settings that can be changed by user ...
+	static var checkUpdateTimer : Timer = Timer() // timer for updates
+
+	@objc static func doTimedCheckForUpdate() {
+		// used for timed update checking
+		print("doTimedCheckForUpdate")
+		UserDefaults.standard.register(defaults: ["autoUpdate":true])
+		let autoUpdate = UserDefaults.standard.bool(forKey: "autoUpdate")
+		doCheckForUpdates(quiet: true, autoUpdate: autoUpdate)
+	}
+	
+	static func initTimedCheckForUpdate() {
+		UserDefaults.standard.register(defaults: ["autoCheckUpdates":true])
+		print("initTimedCheckForUpdate: autoCheckUpdates ",UserDefaults.standard.bool(forKey: "autoCheckUpdates"))
+		if UserDefaults.standard.bool(forKey: "autoCheckUpdates") {
+			checkUpdateTimer = Timer.scheduledTimer(timeInterval: Config.checkUpdatesInterval, target: self, selector: #selector(doTimedCheckForUpdate), userInfo: nil, repeats: true)
+		} else {
+			checkUpdateTimer.invalidate()
+		}
+	}
+
+	static func refresh() {
+		initTimedCheckForUpdate()
+		// runAtLogin update
+	}
+	
+	static func autoCheckUpdates(value: Bool) {
+		UserDefaults.standard.set(value, forKey: "autoCheckUpdates")
+	}
+	
+	static func autoUpdate(value: Bool) {
+		UserDefaults.standard.set(value, forKey: "autoUpdate")
+	}
+	
+	static func runAtLogin(value: Bool) {
+		UserDefaults.standard.set(value, forKey: "runAtLogin")
+	}
+
+	static func getSetting(label: String, def: Bool)->Bool {
+		UserDefaults.standard.register(defaults: [label: def])
+		return UserDefaults.standard.bool(forKey: label)
+	}
+	
+	static func getAutoCheckUpdates()->Bool {
+		return getSetting(label: "autoCheckUpdates", def: true)
+	}
+
+	static func getAutoUpdate()->Bool {
+		return getSetting(label: "autoUpdate", def: true)
+	}
+
+	static func getRunAtLogin()->Bool {
+		return getSetting(label: "runAtLogin", def: true)
+	}
+
 }

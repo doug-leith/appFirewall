@@ -9,12 +9,6 @@
 import Foundation
 import Cocoa
 
-// to do:
-// Config.enable
-// sourceforge vs github ?
-// allow timed update
-// add user pref to allow timed update
-
 class UpdateInstallerViewController: NSViewController {
 	
 	let appFile = "appFirewall.app" // name of app inside DMG

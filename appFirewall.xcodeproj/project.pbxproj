@@ -39,6 +39,7 @@
 		91607C2D2372FFAE002E50A8 /* com.leith.appFirewall-Helper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		91607C312374080C002E50A8 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C302374080B002E50A8 /* util.c */; };
 		916ECAFD23ABA1BB00023AEA /* UpdateInstallerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */; };
+		916ECAFF23AF5BAA00023AEA /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */; };
 		9180E1662387F407007002CB /* percentile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1652387F407007002CB /* percentile.c */; };
 		9180E1692387F4BB007002CB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1672387F4BB007002CB /* heap.c */; };
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
@@ -50,7 +51,7 @@
 		9180E181238DECEB007002CB /* codesign.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.c */; };
 		9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9183583623A1BF81008FDBB4 /* appViewController.swift */; };
 		9183583A23A4B86B008FDBB4 /* pgrep.c in Sources */ = {isa = PBXBuildFile; fileRef = 9183583923A4B86B008FDBB4 /* pgrep.c */; };
-		919074182397BA7900DE49DE /* configData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919074172397BA7900DE49DE /* configData.swift */; };
+		919074182397BA7900DE49DE /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919074172397BA7900DE49DE /* Config.swift */; };
 		9190741A2399077100DE49DE /* dns_connlist.dat in Resources */ = {isa = PBXBuildFile; fileRef = 919074192399072500DE49DE /* dns_connlist.dat */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91ABB26E237680B7007F8FFE /* table.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB26C237680B7007F8FFE /* table.c */; };
@@ -157,6 +158,7 @@
 		91607C302374080B002E50A8 /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
 		91607C3723741D65002E50A8 /* OSLog.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OSLog.framework; path = System/Library/Frameworks/OSLog.framework; sourceTree = SDKROOT; };
 		916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallerViewController.swift; sourceTree = "<group>"; };
+		916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		9180E1642387F407007002CB /* percentile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = percentile.h; sourceTree = "<group>"; };
 		9180E1652387F407007002CB /* percentile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = percentile.c; sourceTree = "<group>"; };
 		9180E1672387F4BB007002CB /* heap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = heap.c; sourceTree = "<group>"; };
@@ -176,7 +178,7 @@
 		9183583823A4B86B008FDBB4 /* pgrep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pgrep.h; sourceTree = "<group>"; };
 		9183583923A4B86B008FDBB4 /* pgrep.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pgrep.c; sourceTree = "<group>"; };
 		919074152397B59100DE49DE /* Screenshot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Screenshot.png; sourceTree = "<group>"; };
-		919074172397BA7900DE49DE /* configData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = configData.swift; sourceTree = "<group>"; };
+		919074172397BA7900DE49DE /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		919074192399072500DE49DE /* dns_connlist.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = dns_connlist.dat; sourceTree = "<group>"; };
 		9190741C239B9FD000DE49DE /* KNOWN_ISSUES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = KNOWN_ISSUES.md; sourceTree = "<group>"; };
 		91ABB26C237680B7007F8FFE /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
@@ -310,11 +312,12 @@
 				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
 				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
+				916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */,
+				919074172397BA7900DE49DE /* Config.swift */,
 				916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */,
 				9180E17B238D2882007002CB /* installHelper.swift */,
 				9180E17D238D2D07007002CB /* Helpers.swift */,
 				91B590952390F7BC000F418D /* HyperlinkTextView.swift */,
-				919074172397BA7900DE49DE /* configData.swift */,
 			);
 			path = "Swift GUI";
 			sourceTree = "<group>";
@@ -495,8 +498,9 @@
 				9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */,
 				9139F67C237BC41300600D37 /* dtrace.c in Sources */,
 				91607BC6236AB7C1002E50A8 /* BlockListViewController.swift in Sources */,
-				919074182397BA7900DE49DE /* configData.swift in Sources */,
+				919074182397BA7900DE49DE /* Config.swift in Sources */,
 				91607BB3236AB280002E50A8 /* AppDelegate.swift in Sources */,
+				916ECAFF23AF5BAA00023AEA /* SettingsViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

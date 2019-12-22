@@ -325,6 +325,7 @@ func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
 	// are no updates.  if autoUpdate == true, don't ask user to
 	// confirm update and don't show any associated popups/info
 	// on progress of installing update
+ print("doCheckForUpdates")
  let session = URLSession(configuration: .default)
  let task = session.dataTask(with: Config.updateCheckURL)
 		{ data, response, error in

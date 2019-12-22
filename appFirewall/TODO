@@ -4,6 +4,7 @@ short term:
 - automated app updates (no need to manually copy from github)
 - allow to check for updates automatically (user pref)
 - start up on login (user pref)
+- helper doesn't start if no interface when installed, needs to install and wait
 
 longer term:
 - use of network extensions, only for catalina onwards though

@@ -21,18 +21,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	// menubar button ...
 	var statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
 	// create a preference pane instance
-	let prefController : PreferenceViewController = NSStoryboard(name:"Main", bundle:nil).instantiateController(withIdentifier: "PreferenceViewController") as! PreferenceViewController
-	var checkUpdateTimer : Timer = Timer()
+	let prefTabsController : NSTabViewController = NSStoryboard(name:"Main", bundle:nil).instantiateController(withIdentifier: "PreferencesTabs") as! NSTabViewController
+	var prefTabsWindow: NSWindow? = nil
 
 	//--------------------------------------------------------
 	// menu item event handlers
 	
 	@IBAction func PreferencesMenu(_ sender: Any) {
 		// handle click on preferences menu item by opening preferences window
-		let myWindow = NSWindow(contentViewController: prefController)
-		myWindow.styleMask.remove(.miniaturizable) // disable close button, per apple guidelines for preference panes
-		myWindow.styleMask.remove(.resizable) // fixed size
-		let vc = NSWindowController(window: myWindow)
+		if (prefTabsWindow == nil) {
+			// happens when first open prefs, after that prefTabsWindow keeps
+			// a strong ref to the window.  this is needed because
+			// prefTabsController only initialises the toolbar once, so if
+			// we create a new window on each open then on second open onwards
+			// toolbar is missing.
+			prefTabsWindow = NSWindow(contentViewController: prefTabsController)
+		}
+		// hard-wire the size, for some reason window doesn't autosize
+		// to fit preferences view
+		prefTabsWindow?.setContentSize(NSSize(width:602, height:345))
+		prefTabsWindow?.styleMask.remove(.miniaturizable) // disable close button, per apple guidelines for preference panes
+		prefTabsWindow?.styleMask.remove(.resizable) // fixed size
+		let vc = NSWindowController(window: prefTabsWindow)
 		vc.showWindow(self)
 	}
 	
@@ -190,14 +200,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 		}
 	}
-	
-	@objc func doTimedCheckForUpdate() {
-		// used for timed update checking
-		UserDefaults.standard.register(defaults: ["autoUpdate":true])
-		let autoUpdate = UserDefaults.standard.bool(forKey: "autoUpdate")
-		doCheckForUpdates(quiet: true, autoUpdate: autoUpdate)
-	}
-	
+		
 	//--------------------------------------------------------
 	// application event handlers
 	
@@ -299,7 +302,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		}
 		// reload state
 		load_state()
-		prefController.load_hostlists() // might be slow?
+		for tab in prefTabsController.tabViewItems {
+			if (tab.label == "Blacklists") {
+				let tc = tab.viewController as! PreferenceViewController
+				tc.load_hostlists()
+			}
+		}
+		Config.refresh()
 		
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper
@@ -313,12 +322,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		
-		// setup timer for auto checking of updates
-		UserDefaults.standard.register(defaults: ["autoCheckUpdates":true])
-		if UserDefaults.standard.bool(forKey: "timerCheckUpdates") {
-			checkUpdateTimer = Timer.scheduledTimer(timeInterval: Config.checkUpdatesInterval, target: self, selector: #selector(doTimedCheckForUpdate), userInfo: nil, repeats: true)
-		}
-
 		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
 		NSApp.mainWindow?.delegate = self

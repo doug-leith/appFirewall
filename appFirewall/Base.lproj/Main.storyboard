@@ -148,12 +148,12 @@
                 <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
                 <customObject id="Ady-hI-5gd" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-359" y="-154"/>
+            <point key="canvasLocation" x="-366" y="-177"/>
         </scene>
-        <!--Preferences-->
+        <!--Blacklist Preferences-->
         <scene sceneID="wcm-cC-fAF">
             <objects>
-                <viewController title="Preferences" storyboardIdentifier="PreferenceViewController" id="i0n-uy-Uid" customClass="PreferenceViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController title="Blacklist Preferences" storyboardIdentifier="PreferenceViewController" id="i0n-uy-Uid" customClass="PreferenceViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" id="yoq-CS-TZg">
                         <rect key="frame" x="0.0" y="0.0" width="602" height="346"/>
                         <autoresizingMask key="autoresizingMask"/>
@@ -217,7 +217,7 @@
                                     <rect key="frame" x="224" y="17" width="15" height="102"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
-                                <tableHeaderView key="headerView" id="aGq-5w-In4">
+                                <tableHeaderView key="headerView" wantsLayer="YES" id="aGq-5w-In4">
                                     <rect key="frame" x="0.0" y="0.0" width="280" height="25"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </tableHeaderView>
@@ -281,7 +281,7 @@
                                     <rect key="frame" x="224" y="17" width="15" height="102"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
-                                <tableHeaderView key="headerView" id="QUd-au-V4h">
+                                <tableHeaderView key="headerView" wantsLayer="YES" id="QUd-au-V4h">
                                     <rect key="frame" x="0.0" y="0.0" width="280" height="25"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </tableHeaderView>
@@ -354,7 +354,7 @@
                 </viewController>
                 <customObject id="ybd-RT-DnQ" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-211" y="89"/>
+            <point key="canvasLocation" x="-211" y="112"/>
         </scene>
         <!--appFirewall-->
         <scene sceneID="J5c-Sh-upX">
@@ -1090,10 +1090,10 @@
             </objects>
             <point key="canvasLocation" x="459.5" y="578.5"/>
         </scene>
-        <!--Help View Controller-->
+        <!--Help-->
         <scene sceneID="vf6-ZR-FGn">
             <objects>
-                <viewController storyboardIdentifier="HelpViewController" id="2wT-ct-lHi" customClass="helpViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController title="Help" storyboardIdentifier="HelpViewController" id="2wT-ct-lHi" customClass="helpViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" id="Nmr-wU-ADG">
                         <rect key="frame" x="0.0" y="0.0" width="250" height="200"/>
                         <autoresizingMask key="autoresizingMask"/>
@@ -1115,12 +1115,12 @@
                 </viewController>
                 <customObject id="LaE-Wm-bxX" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="232" y="16"/>
+            <point key="canvasLocation" x="-387" y="-576"/>
         </scene>
-        <!--Update Installer-->
+        <!--appFirewall Update-->
         <scene sceneID="HP6-l9-7hW">
             <objects>
-                <viewController title="Update Installer" storyboardIdentifier="UpdateInstallerViewController" id="KGo-sw-4NO" customClass="UpdateInstallerViewController" customModule="appFirewall" sceneMemberID="viewController">
+                <viewController title="appFirewall Update" storyboardIdentifier="UpdateInstallerViewController" id="KGo-sw-4NO" customClass="UpdateInstallerViewController" customModule="appFirewall" sceneMemberID="viewController">
                     <view key="view" id="4TM-Ez-GLE">
                         <rect key="frame" x="0.0" y="0.0" width="468" height="168"/>
                         <autoresizingMask key="autoresizingMask"/>
@@ -1189,12 +1189,93 @@
                 </viewController>
                 <customObject id="2ru-Ph-ELp" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-290" y="-384"/>
+            <point key="canvasLocation" x="-278" y="-335"/>
+        </scene>
+        <!--Preferences-->
+        <scene sceneID="sX6-hE-jGE">
+            <objects>
+                <tabViewController title="Preferences" storyboardIdentifier="PreferencesTabs" selectedTabViewItemIndex="0" tabStyle="toolbar" id="erp-UW-t6N" sceneMemberID="viewController">
+                    <tabViewItems>
+                        <tabViewItem label="Blacklists" image="StatusBarButtonImage" id="L1n-ax-wQf"/>
+                        <tabViewItem label="Settings" image="NSPreferencesGeneral" id="Ndn-et-Ow5"/>
+                    </tabViewItems>
+                    <tabView key="tabView" type="noTabsNoBorder" translatesAutoresizingMaskIntoConstraints="NO" id="9Ny-oq-unf">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="340"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
+                        <font key="font" metaFont="system"/>
+                        <connections>
+                            <outlet property="delegate" destination="erp-UW-t6N" id="jBp-MC-pZr"/>
+                        </connections>
+                    </tabView>
+                    <connections>
+                        <outlet property="tabView" destination="9Ny-oq-unf" id="EOd-qR-btA"/>
+                        <segue destination="i0n-uy-Uid" kind="relationship" relationship="tabItems" id="9eN-gi-OPh"/>
+                        <segue destination="XPy-PT-yGD" kind="relationship" relationship="tabItems" id="nwk-zJ-124"/>
+                    </connections>
+                </tabViewController>
+                <customObject id="Piz-gA-oYk" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="297" y="-385"/>
+        </scene>
+        <!--Settings-->
+        <scene sceneID="bq9-QL-vh0">
+            <objects>
+                <viewController title="Settings" id="XPy-PT-yGD" customClass="SettingsViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" id="t7c-TO-bAv">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="346"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <subviews>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Wb7-4A-Hag">
+                                <rect key="frame" x="40" y="287" width="279" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="check" title="Automatically check for updates (monthly)" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="Rcs-1x-Lyt">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="autoCheckUpdatesClick:" target="XPy-PT-yGD" id="pK3-xO-kP6"/>
+                                </connections>
+                            </button>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4vg-zR-jeb">
+                                <rect key="frame" x="40" y="244" width="196" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="check" title="Automatically install updates" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="NFg-Vo-JGP">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="autoUpdateClick:" target="XPy-PT-yGD" id="CEa-9g-8GR"/>
+                                </connections>
+                            </button>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Y6R-QM-wQC">
+                                <rect key="frame" x="40" y="203" width="98" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="check" title="Run on login" bezelStyle="regularSquare" imagePosition="right" alignment="left" state="on" inset="2" id="rkh-Gv-hJ2">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="runAtLoginClick:" target="XPy-PT-yGD" id="S6j-fc-jAZ"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                    </view>
+                    <connections>
+                        <outlet property="autoCheckUpdates" destination="Wb7-4A-Hag" id="ude-Me-fbQ"/>
+                        <outlet property="autoUpdate" destination="4vg-zR-jeb" id="0rT-bj-5rF"/>
+                        <outlet property="runAtLogin" destination="Y6R-QM-wQC" id="eOM-uN-a4f"/>
+                    </connections>
+                </viewController>
+                <customObject id="J8x-W8-jtO" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="419" y="112"/>
         </scene>
     </scenes>
     <resources>
         <image name="NSAddTemplate" width="11" height="11"/>
+        <image name="NSPreferencesGeneral" width="32" height="32"/>
         <image name="NSRemoveTemplate" width="11" height="11"/>
+        <image name="StatusBarButtonImage" width="16" height="16"/>
         <image name="icon_256" width="256" height="256"/>
     </resources>
 </document>
