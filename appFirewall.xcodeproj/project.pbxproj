@@ -41,6 +41,9 @@
 		916ECAFD23ABA1BB00023AEA /* UpdateInstallerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */; };
 		916ECAFF23AF5BAA00023AEA /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */; };
 		916ECB0323AF8EF900023AEA /* version in Resources */ = {isa = PBXBuildFile; fileRef = 916ECB0223AF8EF900023AEA /* version */; };
+		916ECB1423AF9ECA00023AEA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 916ECB1323AF9ECA00023AEA /* Assets.xcassets */; };
+		916ECB1F23AFA07400023AEA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECB0F23AF9EC700023AEA /* AppDelegate.swift */; };
+		916ECB2323AFA16D00023AEA /* com.leith.appFirewall-runAtLogin.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = 916ECB0D23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9180E1662387F407007002CB /* percentile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1652387F407007002CB /* percentile.c */; };
 		9180E1692387F4BB007002CB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1672387F4BB007002CB /* heap.c */; };
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
@@ -84,6 +87,16 @@
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 1;
+		};
+		916ECB2123AFA0EA00023AEA /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LoginItems;
+			dstSubfolderSpec = 1;
+			files = (
+				916ECB2323AFA16D00023AEA /* com.leith.appFirewall-runAtLogin.app in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		91ABB294237734F6007F8FFE /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -161,6 +174,11 @@
 		916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallerViewController.swift; sourceTree = "<group>"; };
 		916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		916ECB0223AF8EF900023AEA /* version */ = {isa = PBXFileReference; lastKnownFileType = text; path = version; sourceTree = "<group>"; };
+		916ECB0D23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "com.leith.appFirewall-runAtLogin.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		916ECB0F23AF9EC700023AEA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		916ECB1323AF9ECA00023AEA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		916ECB1823AF9ECA00023AEA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		916ECB1923AF9ECA00023AEA /* com_leith_appFirewall_runAtLogin.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = com_leith_appFirewall_runAtLogin.entitlements; sourceTree = "<group>"; };
 		9180E1642387F407007002CB /* percentile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = percentile.h; sourceTree = "<group>"; };
 		9180E1652387F407007002CB /* percentile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = percentile.c; sourceTree = "<group>"; };
 		9180E1672387F4BB007002CB /* heap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = heap.c; sourceTree = "<group>"; };
@@ -216,6 +234,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		916ECB0A23AF9EC700023AEA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -231,6 +256,7 @@
 				9180E16A2387FCC9007002CB /* LICENSE.md */,
 				91607BB1236AB280002E50A8 /* appFirewall */,
 				91607C1F2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
+				916ECB0E23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin */,
 				91607BB0236AB280002E50A8 /* Products */,
 				91607BCB236AD6BA002E50A8 /* Frameworks */,
 			);
@@ -241,6 +267,7 @@
 			children = (
 				91607BAF236AB280002E50A8 /* appFirewall.app */,
 				91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
+				916ECB0D23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -299,6 +326,17 @@
 				9180E174238927A2007002CB /* catch_escapee.c */,
 			);
 			path = "com.leith.appFirewall-Helper";
+			sourceTree = "<group>";
+		};
+		916ECB0E23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin */ = {
+			isa = PBXGroup;
+			children = (
+				916ECB0F23AF9EC700023AEA /* AppDelegate.swift */,
+				916ECB1323AF9ECA00023AEA /* Assets.xcassets */,
+				916ECB1823AF9ECA00023AEA /* Info.plist */,
+				916ECB1923AF9ECA00023AEA /* com_leith_appFirewall_runAtLogin.entitlements */,
+			);
+			path = "com.leith.appFirewall-runAtLogin";
 			sourceTree = "<group>";
 		};
 		9180E16223865418007002CB /* Swift GUI */ = {
@@ -381,6 +419,7 @@
 				91607BAC236AB280002E50A8 /* Frameworks */,
 				91607BAD236AB280002E50A8 /* Resources */,
 				91607C182372EA7D002E50A8 /* CopyFiles */,
+				916ECB2123AFA0EA00023AEA /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -409,13 +448,30 @@
 			productReference = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */;
 			productType = "com.apple.product-type.tool";
 		};
+		916ECB0C23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 916ECB1A23AF9ECA00023AEA /* Build configuration list for PBXNativeTarget "com.leith.appFirewall-runAtLogin" */;
+			buildPhases = (
+				916ECB0923AF9EC700023AEA /* Sources */,
+				916ECB0A23AF9EC700023AEA /* Frameworks */,
+				916ECB0B23AF9EC700023AEA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "com.leith.appFirewall-runAtLogin";
+			productName = "com.leith.appFirewall-runAtLogin";
+			productReference = 916ECB0D23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		91607BA7236AB280002E50A8 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1110;
+				LastSwiftUpdateCheck = 1120;
 				LastUpgradeCheck = 1120;
 				ORGANIZATIONNAME = "Doug Leith";
 				TargetAttributes = {
@@ -425,6 +481,9 @@
 					};
 					91607C1D2372FF40002E50A8 = {
 						CreatedOnToolsVersion = 11.1;
+					};
+					916ECB0C23AF9EC700023AEA = {
+						CreatedOnToolsVersion = 11.2.1;
 					};
 				};
 			};
@@ -443,6 +502,7 @@
 			targets = (
 				91607BAE236AB280002E50A8 /* appFirewall */,
 				91607C1D2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
+				916ECB0C23AF9EC700023AEA /* com.leith.appFirewall-runAtLogin */,
 			);
 		};
 /* End PBXProject section */
@@ -459,6 +519,14 @@
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
 				916ECB0323AF8EF900023AEA /* version in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		916ECB0B23AF9EC700023AEA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				916ECB1423AF9ECA00023AEA /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -519,6 +587,14 @@
 				91607C2C2372FF7F002E50A8 /* main.c in Sources */,
 				9139F673237BB1BB00600D37 /* pcap_sniffer.c in Sources */,
 				9139F679237BB9A800600D37 /* send_rst.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		916ECB0923AF9EC700023AEA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				916ECB1F23AFA07400023AEA /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -791,6 +867,51 @@
 			};
 			name = Release;
 		};
+		916ECB1B23AF9ECA00023AEA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "com.leith.appFirewall-runAtLogin/com_leith_appFirewall_runAtLogin.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "com.leith.appFirewall-runAtLogin/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.leith.appFirewall-runAtLogin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		916ECB1C23AF9ECA00023AEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "com.leith.appFirewall-runAtLogin/com_leith_appFirewall_runAtLogin.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "com.leith.appFirewall-runAtLogin/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.leith.appFirewall-runAtLogin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -817,6 +938,15 @@
 			buildConfigurations = (
 				91607C232372FF40002E50A8 /* Debug */,
 				91607C242372FF40002E50A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		916ECB1A23AF9ECA00023AEA /* Build configuration list for PBXNativeTarget "com.leith.appFirewall-runAtLogin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				916ECB1B23AF9ECA00023AEA /* Debug */,
+				916ECB1C23AF9ECA00023AEA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

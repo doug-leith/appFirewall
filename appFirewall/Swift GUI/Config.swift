@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import ServiceManagement
 
 class Config: NSObject {
 	// fixed settings ...
@@ -75,17 +76,25 @@ class Config: NSObject {
 		}
 	}
 
+	static func initRunAtLogin() {
+		print("run at login: ", getRunAtLogin())
+		if getRunAtLogin() {
+			SMLoginItemSetEnabled("com.leith.appFirewall-runAtLogin" as CFString, true)
+		} else {
+			SMLoginItemSetEnabled("com.leith.appFirewall-runAtLogin" as CFString, false)
+		}
+	}
 	static func initLoad() {
 		// called by app delegate at startup
 		load_hostlists()
 		initTimedCheckForUpdate()
-		// runAtLogin update
+		initRunAtLogin()
 	}
 	
 	static func refresh() {
 		// run after updating config
 		initTimedCheckForUpdate()
-		// runAtLogin update
+		initRunAtLogin()
 	}
 	
 	static func autoCheckUpdates(value: Bool) {
