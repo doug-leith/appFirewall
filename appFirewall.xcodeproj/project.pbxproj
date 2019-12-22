@@ -40,6 +40,7 @@
 		91607C312374080C002E50A8 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C302374080B002E50A8 /* util.c */; };
 		916ECAFD23ABA1BB00023AEA /* UpdateInstallerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */; };
 		916ECAFF23AF5BAA00023AEA /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */; };
+		916ECB0323AF8EF900023AEA /* version in Resources */ = {isa = PBXBuildFile; fileRef = 916ECB0223AF8EF900023AEA /* version */; };
 		9180E1662387F407007002CB /* percentile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1652387F407007002CB /* percentile.c */; };
 		9180E1692387F4BB007002CB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1672387F4BB007002CB /* heap.c */; };
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
@@ -159,6 +160,7 @@
 		91607C3723741D65002E50A8 /* OSLog.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OSLog.framework; path = System/Library/Frameworks/OSLog.framework; sourceTree = SDKROOT; };
 		916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallerViewController.swift; sourceTree = "<group>"; };
 		916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		916ECB0223AF8EF900023AEA /* version */ = {isa = PBXFileReference; lastKnownFileType = text; path = version; sourceTree = "<group>"; };
 		9180E1642387F407007002CB /* percentile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = percentile.h; sourceTree = "<group>"; };
 		9180E1652387F407007002CB /* percentile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = percentile.c; sourceTree = "<group>"; };
 		9180E1672387F4BB007002CB /* heap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = heap.c; sourceTree = "<group>"; };
@@ -222,6 +224,7 @@
 			children = (
 				91494782239F8DC400C01432 /* previous releases */,
 				91D96AD5239718CF00AAA73B /* latest release */,
+				916ECB0223AF8EF900023AEA /* version */,
 				9157B04A238FB09E0027457A /* README.md */,
 				9190741C239B9FD000DE49DE /* KNOWN_ISSUES.md */,
 				919074152397B59100DE49DE /* Screenshot.png */,
@@ -455,6 +458,7 @@
 				91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */,
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
+				916ECB0323AF8EF900023AEA /* version in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
