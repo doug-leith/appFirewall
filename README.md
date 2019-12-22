@@ -51,6 +51,8 @@ The firewall also periodically uploads a sample of the connections made by a ran
 
 The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see exactly what has been uploaded.  There is no identifier linking a sample to your copy of the app and the upload server does not log IP address or other connection details.
 
+By default the app checks github monthly for updates, and automatically downloads and installs them.   You can disable this via the app Preferences window and check for updates manually using the "Check for updates" menu option.   Github logs traffic to the repository so it can present stats - just counts of download  etc, which are publicly visible (feel free to check them [here](https://github.com/doug-leith/appFirewall/graphs/traffic): )
+
 ## App store
 
 The app isn't on the app store because the sandbox that app store apps must use prevents linking of network connections to apps (specifically, it blocks access to the [proc_listpids() and proc_pidfdinfo()](https://opensource.apple.com/source/xnu/xnu-3248.60.10/bsd/kern/proc_info.c.auto.html) syscalls).   I've put in a request to Apple to enable this access, we'll see how they respond.  The app sandbox also blocks sniffing of network packets and sending of TCP RST packets, although app [Network Extensions](https://developer.apple.com/documentation/networkextension) should provide a workaround to this in Catalina and later.
