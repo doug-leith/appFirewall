@@ -12,9 +12,6 @@ class PreferenceViewController: NSViewController {
 	@IBOutlet weak var tableView: NSTableView?
 	@IBOutlet weak var tableSelectedView: NSTableView?
 	
-	var lists_lastUpdated : String = ""
-	var EnabledLists : [String] = []
-	var AvailableLists : [String] = []
 	var changed : Bool = false
 	var timer : Timer = Timer()
 	var downloadStartTime :  Double = 0
@@ -31,69 +28,14 @@ class PreferenceViewController: NSViewController {
 		tableSelectedView!.delegate = self //as NSTableViewDelegate
 		tableSelectedView!.dataSource = self //as NSTableViewDataSource
 		
-		lists_lastUpdated = UserDefaults.standard.string(forKey: "lists_lastUpdated") ?? String("")
-		refreshLabel?.stringValue = "(Last updated:  "+lists_lastUpdated+")"
+		refreshLabel?.stringValue = "(Last updated:  "+Config.getListsLastUpdated()+")"
 		timer = Timer.scheduledTimer(timeInterval: Config.viewRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
-	}
-  
-  func updateAvailableLists() {
-		AvailableLists = []
-		for item in Config.hostNameLists{
-			guard let n = item["Name"] else { print("WARNING: problem in preferenceView empty name in host list on update"); continue };
-			guard EnabledLists.firstIndex(of: n) == nil else { continue }
-			AvailableLists.append(n);
-		}
-	}
-	
-	func load_hostlists() {
-		// called by AppDelegate on application startup, and also by self
-		// on changes to set of enabled lists
-		
-		// set default host list(s) to use
-		UserDefaults.standard.register(defaults: Config.defaultNameList)
-		// reload enabled lists, persistent across runs of app
-		// and wil default to above if not previously set
-		EnabledLists = UserDefaults.standard.array(forKey: "host_lists") as? [String] ?? []
-		updateAvailableLists()
-		
-		// update the host name files used, and reload,
-		// we fall back to files distributed by app
-		init_hosts_list();
-		let filePath = String(cString:get_path())
-		let backupPath = Bundle.main.resourcePath ?? "./"
-		var n = String("")
-		for item in Config.hostNameLists {
-			guard let nn = item["Name"] else { print("WARNING: problem in preferenceView empty name in host list");  continue };
-			guard EnabledLists.firstIndex(of: nn) != nil else { continue };
-			guard let fname = item["File"] else { continue };
-			print("adding ", filePath+fname)
-			if (item["Type"]=="Hostlist") {
-				// read in file and adds to hosts list table
-				n=filePath+fname
-				if (load_hostsfile(n)<0) {
-					n=backupPath+"/BlackLists/"+fname
-					print("Falling back to loading from ",n)
-					load_hostsfile(n)
-				}
-			} else if (item["Type"]=="Blocklist") {
-				// read in file and adds to hosts list table
-				n=filePath+fname
-				if (load_blocklistfile(n)<0){
-					n=backupPath+"/BlackLists/"+fname
-					print("Falling back to loading from ",n)
-					load_blocklistfile(n)
-				}
-			}
-			lists_lastUpdated = String(cString:get_file_modify_time(n))
-			print("from file: last updated=",lists_lastUpdated)
-			UserDefaults.standard.set(lists_lastUpdated, forKey: "lists_lastUpdated")
-		}
 	}
 	
 	override func viewWillDisappear() {
 		// window is closing, save state
 		if (changed) {
-			load_hostlists()
+			Config.load_hostlists()
 			changed = false
 		}
 		timer.invalidate()
@@ -104,15 +46,14 @@ class PreferenceViewController: NSViewController {
 		guard let row = tableView?.selectedRow else {print("WARNING: problem in preferenceView addButton getting row");  return}
 		if (row<0 || row > Config.hostNameLists.count) { return }
 		
-		for item in EnabledLists {
-			if (item == AvailableLists[row]) {
+		for item in Config.EnabledLists {
+			if (item == Config.AvailableLists[row]) {
 				// already enabled, ignore
 				return
 			}
 		}
-		EnabledLists.append(AvailableLists[row])
-		UserDefaults.standard.set(EnabledLists, forKey: "host_lists")
-		updateAvailableLists()
+		Config.EnabledLists.append(Config.AvailableLists[row])
+		Config.updateAvailableLists()
 		tableSelectedView?.reloadData()
 		tableView?.reloadData()
 		changed = true
@@ -120,9 +61,8 @@ class PreferenceViewController: NSViewController {
 	
 	@IBAction func RemoveButton(_ sender: Any) {
 		guard let row = tableSelectedView?.selectedRow else {print("WARNING: problem in preferenceView removeButton getting row"); return}
-		EnabledLists.remove(at: row)
-		UserDefaults.standard.set(EnabledLists, forKey: "host_lists")
-		updateAvailableLists()
+		Config.EnabledLists.remove(at: row)
+		Config.updateAvailableLists()
 		tableSelectedView?.reloadData()
 		tableView?.reloadData()
 		changed = true
@@ -131,7 +71,7 @@ class PreferenceViewController: NSViewController {
 	@objc func refresh() {
 		if (!isViewLoaded) { return }
 		
-		refreshLabel?.stringValue = "(Last updated:  "+lists_lastUpdated+")"
+		refreshLabel?.stringValue = "(Last updated:  "+Config.getListsLastUpdated()+")"
 		let elapsedTime = Date().timeIntervalSinceReferenceDate - downloadStartTime
 		if ((downloadsInProgress.count != 0) && (elapsedTime>10.0)) {
 			// one or more downloads is stuck, tell user about any errors anyway and renable button
@@ -173,7 +113,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 		// let's find where list is located
 		let name = Config.hostNameLists[index]["Name"]
 		var row: Int = -1
-		for (i, item) in EnabledLists.enumerated()  {
+		for (i, item) in Config.EnabledLists.enumerated()  {
 			if (item == name) {
 				row = i
 				break;
@@ -181,10 +121,10 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 		}
 		if (row >= 0) {
 			guard let cell = tableSelectedView?.view(atColumn:0, row:row, makeIfNecessary: true) as? NSTableCellView else {print("WARNING: problem in preferenceView updateDownloadProgess getting tableSelectedView cell"); return}
-			cell.textField?.stringValue = EnabledLists[row]+" "+progress
+			cell.textField?.stringValue = Config.EnabledLists[row]+" "+progress
 		} else {
 			var row:  Int = -1
-			for (i, item) in AvailableLists.enumerated()  {
+			for (i, item) in Config.AvailableLists.enumerated()  {
 				if (item == name) {
 					row = i
 					break;
@@ -195,7 +135,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 				return
 			}
 			guard let cell = tableView?.view(atColumn:0, row:row, makeIfNecessary: true) as? NSTableCellView else {print("WARNING: problem in preferenceView updateDownloadProgess getting tableView cell");return}
-			cell.textField?.stringValue = AvailableLists[row]+" "+String(progress)
+			cell.textField?.stringValue = Config.AvailableLists[row]+" "+String(progress)
 		}
 	}
 	
@@ -280,9 +220,9 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 			} catch {
 				print ("Error moving ",fileURL," to ",path,":", error)
 			}
-			self.lists_lastUpdated = String(cString:get_file_modify_time(path))
-			print("Successully downloaded ",url,", t=",self.lists_lastUpdated)
-			UserDefaults.standard.set(self.lists_lastUpdated, forKey: "lists_lastUpdated")
+			let lists_lastUpdated = String(cString:get_file_modify_time(path))
+			Config.listsLastUpdated(value:lists_lastUpdated)
+			print("Successully downloaded ",url,", t=",Config.getListsLastUpdated)
 		}
 		// we batch errors into a single popup
 		if (downloadsInProgress.count == 0) {
@@ -315,9 +255,9 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 extension PreferenceViewController: NSTableViewDataSource {
 	func numberOfRows(in tView: NSTableView) -> Int {
 		if (tView == tableView) {
-			return AvailableLists.count
+			return Config.AvailableLists.count
 		} else {
-			return EnabledLists.count
+			return Config.EnabledLists.count
 		}
 	}
 }
@@ -331,11 +271,11 @@ extension PreferenceViewController: NSTableViewDelegate {
 			let cellId = NSUserInterfaceItemIdentifier(rawValue: "HostListCell")
 			
 			guard let cell = tableView?.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in preferenceView tableView making cell"); return nil}
-			cell.textField?.stringValue = AvailableLists[row]
+			cell.textField?.stringValue = Config.AvailableLists[row]
 			var tip = ""
 			for item in Config.hostNameLists {
 				guard let n = item["Name"] else {print("WARNING: in preferenceView empty name in list"); continue}
-				if (n == AvailableLists[row]) {
+				if (n == Config.AvailableLists[row]) {
 						tip = item["Tip"] ?? ""
 						tip += "\nURL:" + (item["URL"] ?? "")
 						break
@@ -348,11 +288,11 @@ extension PreferenceViewController: NSTableViewDelegate {
 			let cellId = NSUserInterfaceItemIdentifier(rawValue: "EnabledListCell")
 			
 			guard let cell = tableSelectedView?.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in preferenceView making cell"); return nil}
-			cell.textField?.stringValue = EnabledLists[row]
+			cell.textField?.stringValue = Config.EnabledLists[row]
 			var tip = ""
 			for item in Config.hostNameLists {
 				guard let n = item["Name"] else {print("WARNING: problem in preferenceView empty name in host list");  continue}
-				if (n == EnabledLists[row]) {
+				if (n == Config.EnabledLists[row]) {
 							tip = item["Tip"] ?? ""
 						tip += "\nURL:" + (item["URL"] ?? "")
 					break

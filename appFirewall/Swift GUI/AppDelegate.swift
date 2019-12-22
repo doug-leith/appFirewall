@@ -20,28 +20,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	var count_stats: Int = 0
 	// menubar button ...
 	var statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
-	// create a preference pane instance
-	let prefTabsController : NSTabViewController = NSStoryboard(name:"Main", bundle:nil).instantiateController(withIdentifier: "PreferencesTabs") as! NSTabViewController
-	var prefTabsWindow: NSWindow? = nil
 
 	//--------------------------------------------------------
 	// menu item event handlers
 	
 	@IBAction func PreferencesMenu(_ sender: Any) {
 		// handle click on preferences menu item by opening preferences window
-		if (prefTabsWindow == nil) {
-			// happens when first open prefs, after that prefTabsWindow keeps
-			// a strong ref to the window.  this is needed because
-			// prefTabsController only initialises the toolbar once, so if
-			// we create a new window on each open then on second open onwards
-			// toolbar is missing.
-			prefTabsWindow = NSWindow(contentViewController: prefTabsController)
-		}
+		let prefTabsController : NSTabViewController = NSStoryboard(name:"Main", bundle:nil).instantiateController(withIdentifier: "PreferencesTabs") as! NSTabViewController
+		let prefTabsWindow = NSWindow(contentViewController: prefTabsController)
 		// hard-wire the size, for some reason window doesn't autosize
 		// to fit preferences view
-		prefTabsWindow?.setContentSize(NSSize(width:602, height:345))
-		prefTabsWindow?.styleMask.remove(.miniaturizable) // disable close button, per apple guidelines for preference panes
-		prefTabsWindow?.styleMask.remove(.resizable) // fixed size
+		prefTabsWindow.setContentSize(NSSize(width:602, height:345))
+		prefTabsWindow.styleMask.remove(.miniaturizable) // disable close button, per apple guidelines for preference panes
+		prefTabsWindow.styleMask.remove(.resizable) // fixed size
 		let vc = NSWindowController(window: prefTabsWindow)
 		vc.showWindow(self)
 	}
@@ -302,13 +293,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		}
 		// reload state
 		load_state()
-		for tab in prefTabsController.tabViewItems {
-			if (tab.label == "Blacklists") {
-				let tc = tab.viewController as! PreferenceViewController
-				tc.load_hostlists()
-			}
-		}
-		Config.refresh()
+		Config.initLoad()
 		
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper

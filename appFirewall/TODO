@@ -1,7 +1,6 @@
 TO DO
 
 short term:
-- test check for updates automatically (user pref)
 - start up on login (user pref)
 - helper doesn't start if no interface when installed, needs to install and wait. support for multiple active interfaces (need to fire up a separate pcap sniffer thread for each)
 

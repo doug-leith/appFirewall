@@ -12,7 +12,7 @@ class Config: NSObject {
 	// fixed settings ...
 	static let defaultLoggingLevel = 2 // more verbose, for testing
 	static let enableDtrace = 1 // disable for SIP testing
-	static let enableUpdates = 0 // disable for testing
+	static let enableUpdates = 1 // disable for testing
 	
 	static let minHelperVersion = 5 // required helper version, must be an Int
 	
@@ -20,7 +20,7 @@ class Config: NSObject {
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!
 	static let updateCheckURL = URL(string: "https://github.com/doug-leith/appFirewall/raw/master/version")!
 	static let updateURL = "https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg"
-	static let checkUpdatesInterval = 2592000.0 // 30 days, in seconds !
+	static let checkUpdatesInterval: Double = 2592000 // 30 days, in seconds !
 	
 	static let browsers = ["firefox","Google Chrome H","Safari","Opera Helper","Brave Browser H","seamonkey"]
 	
@@ -54,6 +54,8 @@ class Config: NSObject {
 	//------------------------------------------------
 	// settings that can be changed by user ...
 	static var checkUpdateTimer : Timer = Timer() // timer for updates
+	static var EnabledLists : [String] = []
+	static var AvailableLists : [String] = []
 
 	@objc static func doTimedCheckForUpdate() {
 		// used for timed update checking
@@ -73,7 +75,15 @@ class Config: NSObject {
 		}
 	}
 
+	static func initLoad() {
+		// called by app delegate at startup
+		load_hostlists()
+		initTimedCheckForUpdate()
+		// runAtLogin update
+	}
+	
 	static func refresh() {
+		// run after updating config
 		initTimedCheckForUpdate()
 		// runAtLogin update
 	}
@@ -107,4 +117,64 @@ class Config: NSObject {
 		return getSetting(label: "runAtLogin", def: true)
 	}
 
+  static func updateAvailableLists() {
+  	// called after changing EnabledLists
+		UserDefaults.standard.set(Config.EnabledLists, forKey: "host_lists")
+		AvailableLists = []
+		for item in Config.hostNameLists{
+			guard let n = item["Name"] else { print("WARNING: problem in Config empty name in host list on update"); continue };
+			guard EnabledLists.firstIndex(of: n) == nil else { continue }
+			AvailableLists.append(n);
+		}
+	}
+	
+	static func getListsLastUpdated()->String {
+		return UserDefaults.standard.string(forKey: "lists_lastUpdated") ?? ""
+	}
+	
+	static func listsLastUpdated(value:String) {
+		UserDefaults.standard.set(value, forKey: "lists_lastUpdated")
+	}
+	
+	static func load_hostlists() {
+		// set default host list(s) to use
+		UserDefaults.standard.register(defaults: Config.defaultNameList)
+		// reload enabled lists, persistent across runs of app
+		// and wil default to above if not previously set
+		EnabledLists = UserDefaults.standard.array(forKey: "host_lists") as? [String] ?? []
+		updateAvailableLists()
+		
+		// update the host name files used, and reload,
+		// we fall back to files distributed by app
+		init_hosts_list() // initialise C helpers
+		let filePath = String(cString:get_path())
+		let backupPath = Bundle.main.resourcePath ?? "./"
+		var n = String("")
+		for item in Config.hostNameLists {
+			guard let nn = item["Name"] else { print("WARNING: problem in Config empty name in host list");  continue };
+			guard EnabledLists.firstIndex(of: nn) != nil else { continue };
+			guard let fname = item["File"] else { continue };
+			print("adding ", filePath+fname)
+			if (item["Type"]=="Hostlist") {
+				// read in file and adds to hosts list table
+				n=filePath+fname
+				if (load_hostsfile(n)<0) {
+					n=backupPath+"/BlackLists/"+fname
+					print("Falling back to loading from ",n)
+					load_hostsfile(n)
+				}
+			} else if (item["Type"]=="Blocklist") {
+				// read in file and adds to hosts list table
+				n=filePath+fname
+				if (load_blocklistfile(n)<0){
+					n=backupPath+"/BlackLists/"+fname
+					print("Falling back to loading from ",n)
+					load_blocklistfile(n)
+				}
+			}
+			let lists_lastUpdated = String(cString:get_file_modify_time(n))
+			print("from file: last updated=",lists_lastUpdated)
+			listsLastUpdated(value:lists_lastUpdated)
+		}
+	}
 }
