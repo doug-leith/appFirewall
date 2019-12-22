@@ -18,7 +18,7 @@ class Config: NSObject {
 	
 	static let crashURL = URL(string: "https://leith.ie/logcrash.php")!
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!
-	static let updateCheckURL = URL(string: "https://leith.ie/appFirewall_version.html")!
+	static let updateCheckURL = URL(string: "https://github.com/doug-leith/appFirewall/raw/master/version")!
 	static let updateURL = "https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg"
 	static let checkUpdatesInterval = 2592000.0 // 30 days, in seconds !
 	
