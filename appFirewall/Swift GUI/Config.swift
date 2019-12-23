@@ -79,9 +79,9 @@ class Config: NSObject {
 	static func initRunAtLogin() {
 		print("run at login: ", getRunAtLogin())
 		if getRunAtLogin() {
-			SMLoginItemSetEnabled("com.leith.appFirewall-runAtLogin" as CFString, true)
+			SMLoginItemSetEnabled("com.leith.appFirewall-loginLaunch" as CFString, true)
 		} else {
-			SMLoginItemSetEnabled("com.leith.appFirewall-runAtLogin" as CFString, false)
+			SMLoginItemSetEnabled("com.leith.appFirewall-loginLaunch" as CFString, false)
 		}
 	}
 	static func initLoad() {

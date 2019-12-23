@@ -35,7 +35,7 @@ class SettingsViewController: NSViewController {
 		autoCheckUpdates.state = boolToState(value: Config.getAutoCheckUpdates())
 		autoUpdate.state = boolToState(value: Config.getAutoUpdate())
 		runAtLogin.state = boolToState(value: Config.getRunAtLogin())
-		runAtLogin.isEnabled = false // for now
+		//runAtLogin.isEnabled = false // for now
 	}
 	
 	@IBAction func autoCheckUpdatesClick(_ sender: Any) {
