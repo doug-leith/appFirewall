@@ -38,19 +38,16 @@ class SettingsViewController: NSViewController {
 		//runAtLogin.isEnabled = false // for now
 	}
 	
-	@IBAction func autoCheckUpdatesClick(_ sender: Any) {
-		autoCheckUpdates.setNextState() // toggle
+	@IBAction func autoCheckUpdatesClick(_ sender: NSButton!) {
 		Config.autoCheckUpdates(value: stateToBool(state:autoCheckUpdates.state))
 		Config.refresh()
 	}
 	
 	@IBAction func autoUpdateClick(_ sender: Any) {
-		autoUpdate.setNextState() // toggle
 		Config.autoUpdate(value: stateToBool(state:autoUpdate.state))
 	}
 	
 	@IBAction func runAtLoginClick(_ sender: Any) {
-		runAtLogin.setNextState() // toggle
 		Config.runAtLogin(value: stateToBool(state:runAtLogin.state))
 		Config.refresh()
 	}

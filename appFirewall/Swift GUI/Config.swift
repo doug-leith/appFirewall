@@ -123,7 +123,7 @@ class Config: NSObject {
 	}
 
 	static func getRunAtLogin()->Bool {
-		return getSetting(label: "runAtLogin", def: true)
+		return getSetting(label: "runAtLogin", def: false)
 	}
 
   static func updateAvailableLists() {

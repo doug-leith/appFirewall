@@ -33,6 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			task.launch()
 			os_log("com.leith.appFirewall-autoLaunch: com.leith.appFirewall started")
 		}
+		sleep(15) // otherwise launchd may think helper has crashed and relaunch it
 		exit(1)
 	}
 }

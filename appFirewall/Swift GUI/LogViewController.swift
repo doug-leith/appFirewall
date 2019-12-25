@@ -88,7 +88,9 @@ class LogViewController: appViewController {
 		let time_str = String(cString: &item.time_str.0)
 		let log_line = String(cString: &item.log_line.0)
 		let blocked_log = Int(item.blocked)
-		let hashStr = String(cString:filtered_log_hash(item_ptr));
+		let c_ptr = filtered_log_hash(item_ptr)
+		let hashStr = String(cString:c_ptr!)
+		free(c_ptr)
 
 		let tip = getTip(ip: String(cString:get_filter_log_addr_name(Int32(r))), domain: String(cString: &item.bl_item.domain.0), name: String(cString: &item.bl_item.name.0), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
 

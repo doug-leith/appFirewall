@@ -60,7 +60,9 @@ class ActiveConnsViewController: appViewController {
 		var bl_item = conn_to_bl_item(&item)
 		let blocked = Int(blocked_status(&bl_item))
 		let white = Int(is_white(&bl_item))
-		let hashStr = String(cString:conn_hash(&item));
+		let c_ptr = conn_hash(&item)
+		let hashStr = String(cString:c_ptr!)
+		free(c_ptr)
 		let ip = String(cString: &item.dst_addr_name.0)
 		var domain = String(cString: &bl_item.domain.0)
 		if (domain.count == 0) { domain = ip }
