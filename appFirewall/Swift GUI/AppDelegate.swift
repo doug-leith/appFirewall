@@ -35,6 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		prefTabsWindow.styleMask.remove(.resizable) // fixed size
 		let vc = NSWindowController(window: prefTabsWindow)
 		vc.showWindow(self)
+		prefTabsWindow.makeKeyAndOrderFront(self) // bring to front
 	}
 	
 	@IBAction func ClearLog(_ sender: Any) {

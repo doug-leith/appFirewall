@@ -61,16 +61,34 @@ class Config: NSObject {
 	@objc static func doTimedCheckForUpdate() {
 		// used for timed update checking
 		print("doTimedCheckForUpdate")
-		UserDefaults.standard.register(defaults: ["autoUpdate":true])
-		let autoUpdate = UserDefaults.standard.bool(forKey: "autoUpdate")
-		doCheckForUpdates(quiet: true, autoUpdate: autoUpdate)
+		var date = UserDefaults.standard.object(forKey: "lastCheckUpdateDate") as? NSDate
+		if (date == nil) { // first time checking for updates
+			date = NSDate()
+			UserDefaults.standard.set(date, forKey: "lastCheckUpdateDate")
+		}
+		guard let diff = date?.timeIntervalSinceNow else { print("Problem getting date diff when checking for updates"); return } // shouldn't happen
+		if (diff < -checkUpdatesInterval) {
+			// time since last check for updates exceeds checkUpdatesInterval
+			print("doTimedCheckForUpdate, diff=",diff,": doing update check")
+			UserDefaults.standard.register(defaults: ["autoUpdate":true])
+			let autoUpdate = UserDefaults.standard.bool(forKey: "autoUpdate")
+			UserDefaults.standard.set(date, forKey: "lastCheckUpdateDate")
+			doCheckForUpdates(quiet: true, autoUpdate: autoUpdate)
+		} else {
+			print("doTimedCheckForUpdate, diff=",diff)
+		}
 	}
 	
 	static func initTimedCheckForUpdate() {
 		UserDefaults.standard.register(defaults: ["autoCheckUpdates":true])
 		print("initTimedCheckForUpdate: autoCheckUpdates ",UserDefaults.standard.bool(forKey: "autoCheckUpdates"))
 		if UserDefaults.standard.bool(forKey: "autoCheckUpdates") {
-			checkUpdateTimer = Timer.scheduledTimer(timeInterval: Config.checkUpdatesInterval, target: self, selector: #selector(doTimedCheckForUpdate), userInfo: nil, repeats: true)
+			// we periodically check to see if we need to
+			// check for updates.  do it this way as its sure to work even
+			// if app has been closed for a while - not sure Timer() class
+			// will do the right thing, and apple documentation is rubbish as
+			// usual
+			checkUpdateTimer = Timer.scheduledTimer(timeInterval: 3600, target: self, selector: #selector(doTimedCheckForUpdate), userInfo: nil, repeats: true)
 		} else {
 			checkUpdateTimer.invalidate()
 		}

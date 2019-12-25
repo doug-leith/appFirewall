@@ -48,6 +48,8 @@ class UpdateInstallerViewController: NSViewController {
 			window?.styleMask.remove(.resizable) // fixed size
 			wc = NSWindowController(window: window)
 			wc?.showWindow(self)
+			window?.makeKeyAndOrderFront(self) // bring to front
+			NSApp.activate(ignoringOtherApps: true)
 		}
 	}
 	

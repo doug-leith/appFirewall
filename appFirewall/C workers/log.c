@@ -189,11 +189,15 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	pthread_mutex_unlock(&log_list_mutex);
 
 	// and update human-readable log file
-	int res = fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
-	if (res<=0) {
-		WARN("Problem appending to %s, re-opening: %s\n", _logTxtName, strerror(errno));
-		reopen_logtxt();
-		fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
+	if (fp_txt != NULL) {
+		int res = fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
+		if (res<=0) {
+			WARN("Problem appending to %s, re-opening: %s\n", _logTxtName, strerror(errno));
+			reopen_logtxt();
+			fprintf(fp_txt,"%s\t%s\n", l->time_str, long_str);
+		}
+	} else {
+		WARN("in append_log() fp_txt = NULL!\n");
 	}
 	free(l); // free our temp copy
 }

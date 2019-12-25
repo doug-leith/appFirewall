@@ -353,7 +353,7 @@ func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
 			 var extra = ""
 			 var new = false
 			 if (version != latest_version) {
-				 result = "An update to version "+latest_version+" is available."
+				 result = "An update to version "+latest_version+" of appFirewall is available."
 				 extra = "Download at <a href=\""+Config.updateURL+"\">"+Config.updateURL+"</a>"
 				 new = true
 			 }
