@@ -106,7 +106,13 @@ int main(int argc, char *argv[]) {
 
 	// configure log rotation
 	// see https://www.freebsd.org/cgi/man.cgi?newsyslog.conf(5)
-  char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t5000\t*\tNZ\n";
+	int pid = getpid();
+	int pidfd = open("/var/run/com.leith.appFirewall-Helper.pid",O_WRONLY|O_CREAT,0644);
+	char pid_str[1024];
+	sprintf(pid_str,"%d\n",pid);
+	write(pidfd,pid_str,strlen(pid_str));
+	close(pidfd);
+	char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t5000\t*\tZ\t/var/run/com.leith.appFirewall-Helper.pid\n";
   char rot_str[1024];
   sprintf(rot_str,rot_fmt,LOGFILE);
 	int rotatefd = open(ROTFILE,O_WRONLY|O_CREAT,0644);

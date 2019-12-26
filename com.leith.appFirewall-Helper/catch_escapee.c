@@ -371,6 +371,7 @@ void *catcher_listener(void *ptr) {
 				// our RSTs - is this necessary ?
 				//usleep(WAITTIME);
 				n = tries_per_round; // let's try a bit harder !
+				printf("%d ", i);
 			}
 		}
 	done:

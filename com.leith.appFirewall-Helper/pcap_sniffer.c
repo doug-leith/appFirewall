@@ -360,7 +360,7 @@ void *interface_watcher(void *ptr) {
 	int prev_num_pds=0;
 	for(;;) {
 		// check for changes to the set of available interfaces
-		// (up/down, a usb adapter might have been
+		// (wifi has come up, a usb adapter might have been
 		// added/removed, a VPN tun might have been added/removed etc)
 		// we leave already running sniffers alone, as ok if
 		// interface is down, but start new threads as needed.
