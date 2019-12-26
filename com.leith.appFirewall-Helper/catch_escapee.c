@@ -112,8 +112,8 @@ void stop_sniffers() {
 	printf("sending SIGUSR1 to threads\n");
 	for (int i=0; i<sn_esc.num_pds; i++) {
 		pthread_kill(sn_esc.sniffer_threads[i],SIGUSR1);
-		// calling breakloop() across threads doesn't work, see man page.
-		// need to use signal to break out of pacp_loop.
+		// calling pcap_breakloop() across threads doesn't work, see man page.
+		// instead need to use a signal to break out of pcap_loop.
 		//pcap_breakloop(sn_esc.pds[i]);
 	}
 }
@@ -196,9 +196,9 @@ void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 }
 
 void *c_sniffer(void *arg)  {
-	// fire up pcap loop,
-	// this will exit when network connection fails/is broken or if it receives
-	// SIGUSR1
+	// fire up pcap sniffer.
+	// this will exit when network connection fails/is broken or if
+	// thread receives SIGUSR1 (to break out of pcap_loop()).
 	struct sigaction action;
 	memset(&action, 0, sizeof(action));
 	sigemptyset(&action.sa_mask);

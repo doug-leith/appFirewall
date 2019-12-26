@@ -194,6 +194,11 @@ int refresh_sniffers_list(sniffers_t* sn) {
 	return sn->num_pds;
 }
 
+void sigusr1_handler(int signum) {
+	printf("signal %d received (SIGUSR1=%d), exiting sniffer thread.\n", signum, SIGUSR1);
+	pthread_exit(NULL);
+}
+
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 	// send pkt to GUI
 	int i = *((int*)args);
@@ -260,7 +265,9 @@ stop:
 	pthread_mutex_unlock(&pcap_mutex);
 	pthread_mutex_lock(&sn.sniffer_mutex);
 	for (int j=0; j<sn.num_pds; j++) {
-		pcap_breakloop(sn.pds[j]);
+		pthread_kill(sn.sniffer_threads[j],SIGUSR1);
+		//pcap_breakloop() doesn't work across threads, we need to use a signal.
+		//pcap_breakloop(sn.pds[j]);
 	}
 	sn.is_sniffing = 0; // stop interface watcher starting up new threads
 	pthread_mutex_unlock(&sn.sniffer_mutex);
@@ -280,6 +287,14 @@ void *sniffer(void *arg)  {
 		ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(sn.pds[i]));
 		return NULL;
 	}
+	// setup handler to exit thread on SIGUSR1 signal, use this to break out of
+	// pcap_loop()
+	struct sigaction action;
+	memset(&action, 0, sizeof(action));
+	sigemptyset(&action.sa_mask);
+	action.sa_handler = sigusr1_handler;
+	sigaction(SIGUSR1, &action, NULL);
+	// enter sniffer loop
 	if (pcap_loop(sn.pds[i], -1,	sniffer_callback, (u_char*)&i)==PCAP_ERROR){	// this blocks
 		ERR("sniffer pcap_loop: %s\n", pcap_geterr(sn.pds[i]));
 	}
