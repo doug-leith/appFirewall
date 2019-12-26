@@ -250,7 +250,13 @@ err:
 	WARN("pcap send: %s\n", strerror(errno));
 stop:
 	// likely helper has shut down connection,
-	// in any case exit all of the pcap listening loops
+	// in any case exit all of the pcap listening loops.
+	// alternatively we could just exit this pcap sniffer
+	// and leave others active, but if they sniff no pkts then
+	// they may never exit even if p_sock2 is closed, so seems
+	// safer to exit them all when one fails, even though it will
+	// be flagged as a serious fault by GUI client if the client itself
+	// didn't close the connection.
 	pthread_mutex_unlock(&pcap_mutex);
 	pthread_mutex_lock(&sn.sniffer_mutex);
 	for (int j=0; j<sn.num_pds; j++) {
@@ -312,14 +318,14 @@ void *listener(void *ptr) {
 		int int_num[MAX_INTS];
 		refresh_sniffers_list(&sn);
 		if (sn.num_pds>0) {
-			INFO2("Starting pcap sniffers: ");
+			INFO("Starting pcap sniffers: ");
 			for (int i = 0; i<sn.num_pds; i++) {
-				INFO2("%s ", sn.interfaces[i]);
+				printf("%s ", sn.interfaces[i]);
 				int_num[i] = i;
 				pthread_create(&sn.sniffer_threads[i], NULL, sniffer, &int_num);
 				sn.needs_thread[i]=0;
 			}
-			INFO2("\n");
+			printf("\n");
 			pthread_mutex_unlock(&sn.sniffer_mutex);
 		} else {
 			// no interfaces are up, sit here and wait -- interface_watcher

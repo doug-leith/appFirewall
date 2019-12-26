@@ -44,9 +44,9 @@ void init_libnet(libnet_data_t *ld) {
 		exit(EXIT_FAILURE);
 	}
 	
-	// we set IP_HDRINCL socket option for this socket, so have to construct full
-	// IP header but this allows us to send to self (when not set the kernel
-	// constructs source part of header itself)
+	// we set IP_HDRINCL socket option for this socket, so have to construct
+	// full IP header but this allows us to send to self (when not set the
+	// kernel constructs source part of header itself)
 	// see https://www.unix.com/man-page/osx/8/ip/
 	ld->l4_hdr=libnet_init(LIBNET_RAW4,NULL,err_buf);
 	if (ld->l4_hdr==NULL) {
@@ -58,12 +58,15 @@ void init_libnet(libnet_data_t *ld) {
 		ERR("libnet setsockopt IP_HDRINCL failed: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	//fcntl(ld->l4_hdr->fd, F_SETFL, O_NONBLOCK);
 	
 	ld->l6_hdr=libnet_init(LIBNET_RAW6,NULL,err_buf);
 	if (ld->l6_hdr==NULL) {
 		ERR("libnet_init() IPv6 failed: %s\n", err_buf);
 		exit(EXIT_FAILURE);
 	}
+	//fcntl(ld->l6_hdr->fd, F_SETFL, O_NONBLOCK);
+	
 	// doesn't seem to work for IPv6, sigh
 	/*if (setsockopt(l6_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
 		ERR("setsockopt IP_HDRINCL failed: %s\n", strerror(errno));

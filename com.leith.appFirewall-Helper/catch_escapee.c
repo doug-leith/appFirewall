@@ -103,9 +103,18 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t port, conn_raw_t *cr
 	return -1;
 }
 
+void sigusr1_handler(int signum) {
+	printf("signal %d received (SIGUSR1=%d), exiting catcher thread.\n", signum, SIGUSR1);
+	pthread_exit(NULL);
+}
+
 void stop_sniffers() {
+	printf("sending SIGUSR1 to threads\n");
 	for (int i=0; i<sn_esc.num_pds; i++) {
-		pcap_breakloop(sn_esc.pds[i]);
+		pthread_kill(sn_esc.sniffer_threads[i],SIGUSR1);
+		// calling breakloop() across threads doesn't work, see man page.
+		// need to use signal to break out of pacp_loop.
+		//pcap_breakloop(sn_esc.pds[i]);
 	}
 }
 
@@ -188,7 +197,14 @@ void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 
 void *c_sniffer(void *arg)  {
 	// fire up pcap loop,
-	// this will exit when network connection fails/is broken.
+	// this will exit when network connection fails/is broken or if it receives
+	// SIGUSR1
+	struct sigaction action;
+	memset(&action, 0, sizeof(action));
+	sigemptyset(&action.sa_mask);
+	action.sa_handler = sigusr1_handler;
+	sigaction(SIGUSR1, &action, NULL);
+
 	int i = *((int*)arg);
 	if (pcap_loop(sn_esc.pds[i], -1,	catcher_callback, (u_char*)&i)==PCAP_ERROR){	// this blocks
 		ERR("catcher sniffer pcap_loop(): %s\n", pcap_geterr(sn_esc.pds[i]));
@@ -282,7 +298,13 @@ void *catcher_listener(void *ptr) {
 		INFO("Started new connection on port %d (catch_escapee): pid=%d, af=%d, %s:%u, ack=%u\n",CATCHER_PORT,pid, af,dn,target_dport,ack);
 		
 		// do some basic sanity checking
-		if (af!=AF_INET && af!=AF_INET6) continue;
+		if (af!=AF_INET && af!=AF_INET6) {
+			WARN("Invalid AF value\n");
+			ok=-1;
+			send(c_sock2, &ok, 1, 0);// just sending 1 byte, shouldn't ever block
+			close(c_sock2);
+			continue;
+		}
 				
 		conn_raw_t c; memset(&c,0,sizeof(c));
 		res = find_fds(pid, af, dst, target_dport, &c);
@@ -326,11 +348,12 @@ void *catcher_listener(void *ptr) {
 		}
 		//restart pcap listener thread
 		a.target_dport = target_dport; a.pkt_count=0;
+		printf("signalling catcher\n");
 		pthread_mutex_lock(&catcher_mutex);
 		wakeup = 1; pcap_stopped = 0;
 		pthread_cond_signal(&catcher_cond);
 		pthread_mutex_unlock(&catcher_mutex);
-
+		printf("signalled\n");
 		// if connection is actively sending pkts then catcher thread will sniff
 		// them and use the info to send RSTs.
 		// but if the connection is side the catcher thread has no packets to work
@@ -353,6 +376,7 @@ void *catcher_listener(void *ptr) {
 		// we send RSTs as two inter-leaved sequences shifted by win/2,
 		// that way if the window size is large enough we catch it on
 		// first round i.e. quicker, otherwise on second round
+		printf("starting RST loop\n");
 		for (int k=0; k<2; k++) {
 			c.ack = ack + k*win/2;
 			for (int i=0; i<TRIES; i++) {
@@ -371,23 +395,23 @@ void *catcher_listener(void *ptr) {
 				// our RSTs - is this necessary ?
 				//usleep(WAITTIME);
 				n = tries_per_round; // let's try a bit harder !
-				printf("%d ", i);
 			}
 		}
 	done:
+		printf("finished RST loop\n");
 		if (ok != 1) {
 			struct timeval end; gettimeofday(&end, NULL);
 			INFO("FAILED to stop connection %d %s:%u, pkts sniffed=%d, time taken %fs\n",pid,dn,target_dport,a.pkt_count,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
 		}
 		// tell GUI we're done ...
 		//fcntl(c_sock2, F_SETFL, O_NONBLOCK); // make non-blocking
-		printf("send c_sock2\n");
+		//printf("send c_sock2\n");
 		send(c_sock2, &ok, 1, 0);
 		// stop pcap listeners
 		pcap_stopped = 1;
-		printf("stopping sniffers\n");
+		//printf("stopping sniffers\n");
 		stop_sniffers();
-		printf("stopped\n");
+		//printf("stopped\n");
 		// and tidy up
 		close(c_sock2);
 		continue;

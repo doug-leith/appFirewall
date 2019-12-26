@@ -24,9 +24,9 @@ Otherwise some care is needed.  Since the firewall can block connections on a pe
 
 You can see information on the domains sharing an IP address by hovering your mouse over a connection - the tool tip gives connection details, including domains.  The number in brackets after a domain name indicates the number of times that domain name was recently resolved to the IP address.  So we can see, for example, whether one domain name is much more frequent than others.
 
-### Multi-path/multi-homed configuratioins are not fully monitored (yet)
+### Use with VPNs is unreliable
 
-Just now most people use a single network interface e.g. WiFi.  Its possible, however, to have multiple network interfaces active at the same time e.g. WiFi and wired ethernet or WiFi and cellular.   When multiple interfaces are active, the firewall monitors connections on the network interface associated with the default route and ignores other interfaces.  Extending the firewall to monitor multiple interfaces simultaneously is on my "to do" list (its not hard, I just haven't gotten around to it yet).
+VPNs using a tun interface encapsulate  all traffic in encypted packets so all that is visible to firewall is the source address and the other end of the VPN.   That means we can't see what the final destination of a connection is, and so can't block it.
 
 ### Google QUIC connections are not blocked (yet)
 
