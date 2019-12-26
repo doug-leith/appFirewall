@@ -471,7 +471,7 @@ void *listener(void *ptr) {
 		} else if (errno == EOPNOTSUPP) {
 			// get this error when code sign check on helper fails, we won't recover from this so tell
 			// the user
-			set_error_msg("Problem receiving packet data from helper, likely a code signing issue.  Try reinstalling helper.",1);
+			set_error_msg("Problem in sniffer-blocker receiving packet data from helper, likely a code signing issue.  Try reinstalling helper.",1);
 			is_running=0; pthread_exit(NULL);
 		} else {
 			WARN("recv sniffed pkt: %s (%d)\n", strerror(errno), errno);

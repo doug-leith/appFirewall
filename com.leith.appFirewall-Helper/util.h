@@ -29,7 +29,7 @@ const static int verbose=1;          // debugging level
 #define ERR(fmt,args ...) do{char buf[32]; fprintf(stderr,"%s ERROR: ",now(buf)); fprintf(stdout, fmt,args);}while(0)
 #define WARN(args ...) do{char buf[32];fprintf(stderr,"%s WARNING: ",now(buf)); fprintf(stdout, args);}while(0)
 #define INFO(args ...) if (verbose) do{char buf[32]; fprintf(stdout, "%s: ",now(buf));fprintf(stdout, args);}while(0)
-#define INFO2(args ...) if (verbose>1) do{char buf[32]; fprintf(stdout, "%s: ",now(buf));fprintf(stdout, args);}while(0)
+#define INFO2(args ...) if (verbose>1) do{fprintf(stdout, args);}while(0)
 #define DEBUG2(args ...) if (verbose>2) fprintf(stdout, args)
 
 #define LINEBUF_SIZE 4096 // max line size of readn line

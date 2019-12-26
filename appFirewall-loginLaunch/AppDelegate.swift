@@ -15,7 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 
 	func applicationDidFinishLaunching(_ aNotification: Notification) {
-		os_log("com.leith.appFirewall-autoLaunch started")
+		let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
+		os_log("com.leith.appFirewall-autoLaunch (version ",version,") started")
 		let runningApps = NSWorkspace.shared.runningApplications
 		let isRunning = runningApps.contains {
 			$0.bundleIdentifier == "com.leith.appFirewall"
@@ -27,6 +28,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		}
 
 		if !isRunning {
+			// TO DO: to make this compatible with sandbox we should open
+			// appFirewall from within same bundle as appFirewall-autoLaunch
 			let task = Process()
 			task.launchPath = "/usr/bin/open"
 			task.arguments = ["/Applications/appFirewall.app"]

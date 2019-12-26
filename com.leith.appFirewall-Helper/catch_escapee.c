@@ -17,7 +17,7 @@
 #include "catch_escapee.h"
 
 //globals
-static pcap_t *pd_esc;  // pcap listener
+static sniffers_t sn_esc = SNIFFERS_INITIALIZER;
 static pthread_t catcher_thread; // handle to catcher thread
 static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
@@ -31,6 +31,7 @@ typedef struct catcher_callback_args_t {
 	uint16_t target_dport;
 	int pkt_count;
 } catcher_callback_args_t;
+static catcher_callback_args_t a;
 
 int find_fds(int pid, int af, struct in6_addr dst, uint16_t port, conn_raw_t *cr) {
 	// Figure out the size of the buffer needed to hold the list of open FDs
@@ -102,16 +103,24 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t port, conn_raw_t *cr
 	return -1;
 }
 
+void stop_sniffers() {
+	for (int i=0; i<sn_esc.num_pds; i++) {
+		pcap_breakloop(sn_esc.pds[i]);
+	}
+}
+
 void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 
 	if (pcap_stopped) {
-		pcap_breakloop(pd_esc);
+		stop_sniffers();
+		return;
 	}
 	
 	// we got a pkt, let's process it ...
-	catcher_callback_args_t *a=(catcher_callback_args_t*)args;
-	uint16_t target_dport = a->target_dport;
-	a->pkt_count++; // record number of packets we've snifeed for this connection
+	uint16_t target_dport = a.target_dport;
+	// should take lock on a.pkt_count, but its just for stats
+	// so ok if corrupted now and then
+	a.pkt_count++; // record number of packets we've sniffed for this connection
 
 	const int pcap_off = 14; // ethernet link layer offset
 	
@@ -120,7 +129,7 @@ void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	double t=(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 	#define TIMEOUT 2 //packets >2s old are dropped, likely due to wakeup after sleep
 	if (t > TIMEOUT) {
-		INFO2("catcher_callback received stale pkt, %f old. discard\n",t);
+		INFO2("Received stale pkt, %f old. discard (catch_escapee)\n",t);
 		return;
 	}
 	
@@ -170,11 +179,21 @@ void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 		cr.sport=dport; cr.dport=sport;
 		cr.seq=ack; cr.ack=seq;
 	} else {
-		WARN("received packet with mismatched ports, sport=%u/dport=%u but expected dport=%u (catch_escapee)\n",sport,dport,target_dport);
+		WARN("Received packet with mismatched ports, sport=%u/dport=%u but expected dport=%u (catch_escapee)\n",sport,dport,target_dport);
 		return;
 	}
 	
 	snd_rst(0,&cr,0,&ld);
+}
+
+void *c_sniffer(void *arg)  {
+	// fire up pcap loop,
+	// this will exit when network connection fails/is broken.
+	int i = *((int*)arg);
+	if (pcap_loop(sn_esc.pds[i], -1,	catcher_callback, (u_char*)&i)==PCAP_ERROR){	// this blocks
+		ERR("catcher sniffer pcap_loop(): %s\n", pcap_geterr(sn_esc.pds[i]));
+	}
+	return NULL;
 }
 
 void *catcher(void *ptr) {
@@ -189,12 +208,28 @@ void *catcher(void *ptr) {
 		wakeup=0;
 		pthread_mutex_unlock(&catcher_mutex);
 		
-		if (pcap_loop(pd_esc, -1,	catcher_callback, (u_char*)ptr)==PCAP_ERROR){	// this blocks
-			ERR("catcher_escapee pcap_loop: %s\n", pcap_geterr(pd_esc));
+		// fire up sniffers on each interface
+		if (sn_esc.num_pds == 0) {
+			// might happen if have interfaces have gone away but processes haven't
+			// closed sockets yet to catch up with this event.
+			WARN("No valid interfaces for catcher to sniff\n");
+		} else {
+			INFO2("Catcher sniffing on: ");
+			int int_num[MAX_INTS];
+			for (int i = 0; i<sn_esc.num_pds; i++) {
+				INFO2("%s ", sn_esc.interfaces[i]);
+				int_num[i] = i;
+				pthread_create(&sn_esc.sniffer_threads[i], NULL, c_sniffer, &int_num);
+			}
+			INFO2("\n");
+			// and now wait here until all the sniffers finish
+			for (int i = 0; i<sn_esc.num_pds; i++) {
+				pthread_join(sn_esc.sniffer_threads[i], NULL);
+			}
+			INFO("All catchers exited pcap_loop()\n");
+			// catcher_listener calls pcap_breakloop() when connection is
+			// stopped or timeout occurs
 		}
-		INFO("catcher exited pcap_loop()\n");
-		// catcher_listener calls pcap_breakloop() when connection is
-		// stopped or timeout occurs
 	}
 }
 
@@ -205,14 +240,10 @@ void *catcher_listener(void *ptr) {
 
 	init_libnet(&ld);
 	init_libnet(&ld_prompt);
-	
-	// setup pcap sniffer data structure with this filter
-	bpf_u_int32 mask = start_sniffer(&pd_esc, NULL);
-
-	catcher_callback_args_t a;
 	memset(&a,0,sizeof(catcher_callback_args_t));
+	memset(&sn_esc,0,sizeof(sniffers_t));
 	wakeup=0;
-	pthread_create(&catcher_thread, NULL, catcher, &a);
+	pthread_create(&catcher_thread, NULL, catcher, NULL);
 	int prev_pid = -1;
 	for(;;) {
 		INFO("Waiting to accept connection on localhost port %u (catch_escapee) ...\n", CATCHER_PORT);
@@ -221,11 +252,11 @@ void *catcher_listener(void *ptr) {
 			continue;
 		}
 		//INFO("Started new connection on port %d\n", CATCHER_PORT);
-		// signature check is slow (about 100ms) so we only do it when PID of connecting client
-		// changes
+		// signature check is slow (about 100ms) so we only do it when PID of
+		// connecting client changes
 		int current_pid = get_sock_pid(c_sock2, CATCHER_PORT);
 		if (current_pid != prev_pid) {
-			INFO("Prev PID=%d ot equal to new PID=%d (catch_escapee), authenticating ...\n",prev_pid,current_pid);
+			INFO("Prev PID=%d not equal to new PID=%d (catch_escapee), authenticating ...\n",prev_pid,current_pid);
 			if (check_signature(c_sock2, CATCHER_PORT)<0) goto err;
 		}
 		prev_pid = current_pid;
@@ -263,17 +294,35 @@ void *catcher_listener(void *ptr) {
 			continue;
 		}
 
+		// setup sniffers
+		free_sniffers(&sn_esc);
+		refresh_sniffers_list(&sn_esc);
+		if (sn_esc.num_pds==0) {
+			// no interfaces up, move on
+			WARN("catch_escapee() called when no interfaces are up\n");
+			int ok = 0;
+			send(c_sock2, &ok, 1, 0);
+			close(c_sock2);
+			continue;
+		}
+		// flag to pcap sniffer to refresh interfaces too, since when
+		// an interface comes up it often generates escapees before
+		// polling interval of interface_watcher() expires, so we can
+		// speed things up a bit using this signal
+		signal_interface_watcher();
 		char filter[1024];
 		sprintf(filter,"tcp and host %s and (port %u or port %u) and (tcp[tcpflags]&tcp-rst==0)", dn, c.sport, c.dport);
 		struct bpf_program fp;		/* The compiled filter expression */
-		if (pcap_compile(pd_esc, &fp, filter, 0, mask) == -1) {
-			ERR("Couldn't parse pcap filter %s (catch_escapee): %s\n", filter, pcap_geterr(pd_esc));
-			//exit(EXIT_FAILURE);
-			continue;
-		}
-		if (pcap_setfilter(pd_esc, &fp) == -1) {
-			ERR("Couldn't install pcap filter %s (catch_escapee): %s\n", filter, pcap_geterr(pd_esc));
-			continue;
+		bpf_u_int32 mask = 0;
+		for (int i = 0; i<sn_esc.num_pds; i++) {
+			if (pcap_compile(sn_esc.pds[i], &fp, filter, 0, mask) == -1) {
+				ERR("Couldn't parse pcap filter %s (catch_escapee) for interface %s: %s\n", filter, sn_esc.interfaces[i],pcap_geterr(sn_esc.pds[i]));
+				continue;
+			}
+			if (pcap_setfilter(sn_esc.pds[i], &fp) == -1) {
+				ERR("Couldn't install pcap filter %s (catch_escapee) for interface %s: %s\n", filter,sn_esc.interfaces[i], pcap_geterr(sn_esc.pds[i]));
+				continue;
+			}
 		}
 		//restart pcap listener thread
 		a.target_dport = target_dport; a.pkt_count=0;
@@ -285,9 +334,9 @@ void *catcher_listener(void *ptr) {
 		// if connection is actively sending pkts then catcher thread will sniff
 		// them and use the info to send RSTs.
 		// but if the connection is side the catcher thread has no packets to work
-		// with, so prompt the connection to come back to life by sending some RSTs.
-		// ack is the seq number from the remote.  we need to use a value that lies
-		// in current window for RST to provoke a response
+		// with, so prompt the connection to come back to life by sending some
+		// RSTs. ack is the seq number from the remote.  we need to use a value
+		// that lies in current window for RST to provoke a response
 		c.seq = 0; c.ack = ack;
 		// estimate of recv window of localhost
 		// changed top be more aggressive as suspect tcp shrinks window
@@ -331,17 +380,20 @@ void *catcher_listener(void *ptr) {
 		}
 		// tell GUI we're done ...
 		//fcntl(c_sock2, F_SETFL, O_NONBLOCK); // make non-blocking
+		printf("send c_sock2\n");
 		send(c_sock2, &ok, 1, 0);
-		// stop pcap listener
+		// stop pcap listeners
 		pcap_stopped = 1;
-		pcap_breakloop(pd_esc);
+		printf("stopping sniffers\n");
+		stop_sniffers();
+		printf("stopped\n");
 		// and tidy up
 		close(c_sock2);
 		continue;
 	err:
 		INFO("Connection on port %u for %d %s ended (catch_escapee): %s\n", prev_pid, CATCHER_PORT, dn, strerror(errno));
 		pcap_stopped = 1;
-		pcap_breakloop(pd_esc);
+		stop_sniffers();
 		close(c_sock2);
 	}
 	return NULL;
