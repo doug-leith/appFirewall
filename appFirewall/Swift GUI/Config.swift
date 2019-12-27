@@ -96,7 +96,17 @@ class Config: NSObject {
 
 	static func initRunAtLogin() {
 		print("run at login: ", getRunAtLogin())
+		// command to list all programs with same bundle identifier:
+		// mdfind kMDItemCFBundleIdentifier == com.leith.appFirewall-loginLaunch
 		if getRunAtLogin() {
+			let urls = LSCopyApplicationURLsForBundleIdentifier("com.leith.appFirewall-loginLaunch" as CFString, nil)?.takeRetainedValue() as NSArray?
+			print("URLs for bundle identifier com.leith.appFirewall-loginLaunch:")
+			for url in urls ?? [] {
+				if let u = url as? URL {
+					let b = Bundle(url: u)
+					print(url, b?.infoDictionary?["CFBundleVersion"] as Any)
+				}
+			}
 			SMLoginItemSetEnabled("com.leith.appFirewall-loginLaunch" as CFString, true)
 		} else {
 			SMLoginItemSetEnabled("com.leith.appFirewall-loginLaunch" as CFString, false)
