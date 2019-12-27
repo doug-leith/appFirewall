@@ -35,7 +35,11 @@ char** get_interfaces() {
 	// get list of useful interfaces (IPv4 or IPv6 and not link-local,
 	// might be down but that's ok)
 	char **intf = calloc(MAX_INTS,sizeof(char*));
-		
+	if (intf==NULL) {
+		WARN("calloc() failed in get_interfaces(): %s", strerror(errno));
+		return NULL;
+	}
+	
 	/*FILE *fp = popen("/sbin/route get default default | /usr/bin/grep interface","r");
 	char* interface=NULL, buf[1024];
 	if (fp != NULL) {
@@ -80,7 +84,7 @@ char** get_interfaces() {
 			inet_ntop(addr->sa_family, &((struct sockaddr_in6*)addr)->sin6_addr, addr_name, INET6_ADDRSTRLEN);
 		} else {DEBUG2("not IPv4/IPv6\n"); continue;}
 		char* mask="fe80:";
-		if (strncmp(mask, addr_name, strlen(mask)) == 0) {
+		if (strncmp(mask, addr_name, strnlen(mask,STR_SIZE)) == 0) {
 			DEBUG2("link local addr\n");
 			continue; // ignore IPv6 link local addresses
 		}
@@ -152,7 +156,11 @@ int refresh_sniffers_list(sniffers_t* sn) {
 	// if any new interfaces added, we add a new sniffer.
 	// nb: we leave existing sniffers untouched, even if their
 	// interface has gone down/away, otherwise join loop in
-	// listener thread might get messed up
+	// listener thread might get messed up.
+	// nb: we could kill sniffer thread of interfaces that have gone away,
+	// so long as we leave sn list alone then join loop will be ok.  But then have
+	// have to recreate sniffer thread if interface comes back, so seems easier just to
+	// leave things alone.
 	
 	int i;
 	for (char** intf = temp_interfaces; *intf; intf++) {
@@ -194,7 +202,7 @@ int refresh_sniffers_list(sniffers_t* sn) {
 	return sn->num_pds;
 }
 
-void sigusr1_handler(int signum) {
+void sigusr1_c_handler(int signum) {
 	printf("signal %d received (SIGUSR1=%d), exiting sniffer thread.\n", signum, SIGUSR1);
 	pthread_exit(NULL);
 }
@@ -266,8 +274,9 @@ stop:
 	pthread_mutex_lock(&sn.sniffer_mutex);
 	for (int j=0; j<sn.num_pds; j++) {
 		pthread_kill(sn.sniffer_threads[j],SIGUSR1);
-		//pcap_breakloop() doesn't work across threads, we need to use a signal.
-		//pcap_breakloop(sn.pds[j]);
+		// pcap_breakloop() doesn't work across threads, we need to use a signal.
+		// we'll try it anyway though, in case signal handler failed to install
+		pcap_breakloop(sn.pds[j]);
 	}
 	sn.is_sniffing = 0; // stop interface watcher starting up new threads
 	pthread_mutex_unlock(&sn.sniffer_mutex);
@@ -279,6 +288,7 @@ void *sniffer(void *arg)  {
 	int i = *((int*)arg);
 	struct bpf_program fp;		// the compiled filter expression
 	bpf_u_int32 mask = 0;
+	//nb: pcap_compile() is not thread safe before ver 1.8.0 of pcap library
 	if (pcap_compile(sn.pds[i], &fp, filter_exp, 0, mask) == -1) {
 		ERR("Couldn't parse pcap filter %s: %s\n", filter_exp, pcap_geterr(sn.pds[i]));
 		return NULL;
@@ -292,8 +302,8 @@ void *sniffer(void *arg)  {
 	struct sigaction action;
 	memset(&action, 0, sizeof(action));
 	sigemptyset(&action.sa_mask);
-	action.sa_handler = sigusr1_handler;
-	sigaction(SIGUSR1, &action, NULL);
+	action.sa_handler = sigusr1_c_handler;
+	if (sigaction(SIGUSR1, &action, NULL)<0) WARN("Problem setting SIGUSR1 handler for sniffer: %s",strerror(errno));
 	// enter sniffer loop
 	if (pcap_loop(sn.pds[i], -1,	sniffer_callback, (u_char*)&i)==PCAP_ERROR){	// this blocks
 		ERR("sniffer pcap_loop: %s\n", pcap_geterr(sn.pds[i]));
@@ -444,11 +454,7 @@ void start_listener() {
 	INFO("Interface watcher started\n");
 	// start listening for requests to receive pcap info
 	p_sock = bind_to_port(PCAP_PORT,2);
-	INFO("Now listening on localhost port %d (pcap)\n", PCAP_PORT);
+	INFO("Now listening on localhost port %d (%s, if version <1.8.0 then pcap_compile() is not thread safe!)\n", PCAP_PORT, pcap_lib_version());
 	pthread_create(&listener_thread, NULL, listener, NULL);
 }
 
-void stop_listener() {
-	pthread_kill(interface_watcher_thread, SIGTERM);
-	pthread_kill(listener_thread, SIGTERM);
-}

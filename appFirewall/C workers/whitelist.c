@@ -37,7 +37,7 @@ void add_whiteitem(bl_item_t *item) {
 		WARN("add_whiteitem() item has process name %s.\n", NOTFOUND);
 		return;
 	}
-	if (strlen(item->domain)==0) {
+	if (strnlen(item->domain,MAXDOMAINLEN)==0) {
 		WARN("add_whiteitem() item has no domain name.\n");
 		return;
 	}

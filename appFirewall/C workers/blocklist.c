@@ -13,7 +13,7 @@ static pthread_mutex_t block_mutex = MUTEX_INITIALIZER;
 char* bl_hash(const void *it) {
 	// generate table lookup key string from block list item
 	bl_item_t *item = (bl_item_t*) it;
-	size_t len = strlen(item->name)+strlen(item->domain)+4;
+	size_t len = strnlen(item->name, MAXCOMLEN)+strnlen(item->domain, MAXDOMAINLEN)+4;
 	if (len>STR_SIZE) len=STR_SIZE; // just to be safe !
 	char* temp = malloc(len);
 	strlcpy(temp,item->name, len);
@@ -86,7 +86,7 @@ void add_blockitem(bl_item_t *item) {
 		WARN("add_blockitem() item has process name %s.\n", NOTFOUND);
 		return;
 	}
-	if (strlen(item->domain)==0) {
+	if (strnlen(item->domain,MAXDOMAINLEN)==0) {
 		WARN("add_blockitem() item has no domain name.\n");
 		return;
 	}

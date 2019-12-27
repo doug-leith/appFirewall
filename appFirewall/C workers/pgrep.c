@@ -16,7 +16,7 @@
 
  char nameBuffer[256];
 
- int position = strlen(pathBuffer);
+ int position = strnlen(pathBuffer,256);
  while(position >= 0 && pathBuffer[position] != '/')
  {
 		 position--;

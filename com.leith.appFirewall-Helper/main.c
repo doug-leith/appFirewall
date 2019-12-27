@@ -44,18 +44,19 @@
 
 #define LOGFILE "/Library/Logs/appFirewall-Helper.log"
 #define ROTFILE "/etc/newsyslog.d/appFirewall-Helper.conf"
+#define PIDFILE "/var/run/com.leith.appFirewall-Helper.pid"
 // compile with gcc -g -lpcap -lnet pcap_sniffer.c dtrace.c util.c send_rst.c main.c
 // and debug with lldb
 
 void sigterm_handler(int signum) {
-	INFO("signal %d received.\n", signum); // shouldn't really printf() in signal handler
+	INFO("signal %d (SIGTERM=%d) received.\n", signum, SIGTERM);
 	INFO("appFirewall-Helper exiting.\n");
 	exit(EXIT_SUCCESS);
 }
 
 void sighup_handler(int signum) {
 	// signalled by logrotate, reopen log file
-	INFO("signal %d received, reloading logs.\n", signum);
+	INFO("signal %d (SIGHUP=%d) received, reloading logs.\n", signum, SIGHUP);
 	int logfd = open(LOGFILE,O_RDWR|O_CREAT|O_APPEND,0644);
 	dup2(logfd,STDOUT_FILENO); // redirect stdout to log file
 	dup2(logfd,STDERR_FILENO); // ditto stderr
@@ -72,13 +73,16 @@ int main(int argc, char *argv[]) {
 	int logfd = open(LOGFILE,O_RDWR|O_CREAT|O_APPEND,0644);
 	if (logfd == -1) {
 		ERR("Failed to open logfile: %s\n",strerror(errno));
-		//exit(EXIT_FAILURE);
 	}
 	//int stdout_fd = dup(STDOUT_FILENO); // keep orig stdout
 	if (!isatty(fileno(stdout))) {
-		dup2(logfd,STDOUT_FILENO); // redirect stdout to log file
-		dup2(logfd,STDERR_FILENO); // ditto stderr
-		setbuf(stdout, NULL); // disable buffering on stdout
+		if (logfd>0)  {
+			if (dup2(logfd,STDOUT_FILENO)<0) WARN("Problem redirecting stdout to %s: %s",LOGFILE, strerror(errno)); // redirect stdout to log file
+			if (dup2(logfd,STDERR_FILENO)<0) WARN("Problem redirecting stderr to %s: %s",LOGFILE, strerror(errno)); // ditto stderr
+			setbuf(stdout, NULL); // disable buffering on stdout
+		} else {
+			// lack of log file is quite serious if don't have tty, should we exit ?
+		}
 	} else {
 		INFO("logging to terminal\'n");
 	}
@@ -94,30 +98,38 @@ int main(int argc, char *argv[]) {
 
 	action.sa_handler = SIG_IGN;
 	// disable SIGPIPE, we'll catch such errors ourselves
-	sigaction(SIGPIPE, &action, NULL);
+	if (sigaction(SIGPIPE, &action, NULL)<0) WARN("Problem setting SIGPIPE handler, communication with appFirewall GUI may fail: %s",strerror(errno));
 
 	// set up SIGTERM handler
 	action.sa_handler = sigterm_handler;
-	sigaction(SIGTERM, &action, NULL);
+	if (sigaction(SIGTERM, &action, NULL)<0) WARN("Problem setting SIGTERM handler, its not serious though: %s",strerror(errno));
 
 	// set up SIGHUP handler
 	action.sa_handler = sighup_handler;
-	sigaction(SIGHUP, &action, NULL);
+	if (sigaction(SIGHUP, &action, NULL)<0) WARN("Problem setting SIGHUP handler, log may not rotate properly: %s",strerror(errno));
 
 	// configure log rotation
 	// see https://www.freebsd.org/cgi/man.cgi?newsyslog.conf(5)
 	int pid = getpid();
-	int pidfd = open("/var/run/com.leith.appFirewall-Helper.pid",O_WRONLY|O_CREAT,0644);
-	char pid_str[1024];
-	sprintf(pid_str,"%d\n",pid);
-	write(pidfd,pid_str,strlen(pid_str));
-	close(pidfd);
+	int pidfd = open(PIDFILE,O_WRONLY|O_CREAT,0644);
+	if (pidfd == -1) {
+		WARN("Failed to open pid file %s, log may fail to rotate properly: %s\n",PIDFILE, strerror(errno));
+	} else {
+		char pid_str[STR_SIZE];
+		sprintf(pid_str,"%d\n",pid);
+		write(pidfd,pid_str,strnlen(pid_str,STR_SIZE));
+		close(pidfd);
+	}
 	char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t5000\t*\tZ\t/var/run/com.leith.appFirewall-Helper.pid\n";
-  char rot_str[1024];
+  char rot_str[STR_SIZE];
   sprintf(rot_str,rot_fmt,LOGFILE);
 	int rotatefd = open(ROTFILE,O_WRONLY|O_CREAT,0644);
-	write(rotatefd,rot_str,strlen(rot_str));
-	close(rotatefd);
+	if (rotatefd == -1) {
+		WARN("Failed to open syslof config file %s, log will not be rotated: %s\n",ROTFILE, strerror(errno));
+	} else {
+		write(rotatefd,rot_str,strnlen(rot_str,STR_SIZE));
+		close(rotatefd);
+	}
 
 	// now initialise libnet packet processing data structure
 	//init_libnet();
@@ -138,7 +150,10 @@ int main(int argc, char *argv[]) {
 	
 	// flush DNS
 	INFO("Flushing DNS (sending HUP to mDNSResponder) ...\n");
-	system("/usr/bin/pkill -HUP mDNSResponder");
+	int res=system("/usr/bin/pkill -HUP mDNSResponder");
+	if ((res<0) || (res==127)) {
+		WARN("Problem flushing DNS: %s (res=%d)", strerror(errno), res);
+	}
 	
 	INFO("Starting RST loop ...\n");
 	

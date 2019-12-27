@@ -38,7 +38,6 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 void free_sniffers(sniffers_t* sn);
 void signal_interface_watcher(void);
 void *listener(void *ptr);
-void stop_listener(void);
 void start_listener(void);
 void close_sniffer_sock(void);
 

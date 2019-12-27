@@ -35,13 +35,11 @@ void init_libnet(libnet_data_t *ld) {
 
 	ld->l4=libnet_init(LIBNET_RAW4,NULL,err_buf);
 	if (ld->l4==NULL) {
-		ERR("libnet_init() IPv4 failed: %s\n", err_buf);
-		exit(EXIT_FAILURE);
+		ERR("libnet_init() IPv4 failed, won't be able to kill network connections: %s\n", err_buf);
 	}
 	ld->l6=libnet_init(LIBNET_RAW6,NULL,err_buf);
 	if (ld->l6==NULL) {
-		ERR("libnet_init() IPv6 failed: %s\n", err_buf);
-		exit(EXIT_FAILURE);
+		ERR("libnet_init() IPv6 failed, won't be able to kill network connections: %s\n", err_buf);
 	}
 	
 	// we set IP_HDRINCL socket option for this socket, so have to construct
@@ -50,22 +48,17 @@ void init_libnet(libnet_data_t *ld) {
 	// see https://www.unix.com/man-page/osx/8/ip/
 	ld->l4_hdr=libnet_init(LIBNET_RAW4,NULL,err_buf);
 	if (ld->l4_hdr==NULL) {
-		ERR("libnet_init() IPv4 failed: %s\n", err_buf);
-		exit(EXIT_FAILURE);
+		ERR("libnet_init() IPv4 failed, won't be able to kill network connections: %s\n", err_buf);
 	}
 	int n = 1;
 	if (setsockopt(ld->l4_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
-		ERR("libnet setsockopt IP_HDRINCL failed: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
+		WARN("libnet setsockopt IP_HDRINCL failed, won't be able to send TCP RST packets to self: %s\n", strerror(errno));
 	}
-	//fcntl(ld->l4_hdr->fd, F_SETFL, O_NONBLOCK);
 	
 	ld->l6_hdr=libnet_init(LIBNET_RAW6,NULL,err_buf);
 	if (ld->l6_hdr==NULL) {
-		ERR("libnet_init() IPv6 failed: %s\n", err_buf);
-		exit(EXIT_FAILURE);
+		ERR("libnet_init() IPv6 failed, won't be able to kill network connections: %s\n", err_buf);
 	}
-	//fcntl(ld->l6_hdr->fd, F_SETFL, O_NONBLOCK);
 	
 	// doesn't seem to work for IPv6, sigh
 	/*if (setsockopt(l6_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
@@ -77,29 +70,30 @@ void init_libnet(libnet_data_t *ld) {
 
 void free_libnet(libnet_data_t *ld) {
 	INFO("free_libnet()\n");
-	libnet_destroy(ld->l4);
-	libnet_destroy(ld->l6);
-	libnet_destroy(ld->l4_hdr);
-	libnet_destroy(ld->l6_hdr);
+	if (ld->l4) libnet_destroy(ld->l4);
+	if (ld->l6) libnet_destroy(ld->l6);
+	if (ld->l4_hdr) libnet_destroy(ld->l4_hdr);
+	if (ld->l6_hdr) libnet_destroy(ld->l6_hdr);
 }
 
-void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
+int snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 
 	// send RSTs to specified connection
-	libnet_t *l=NULL;
 	libnet_ptag_t *tcp_ptag, *ip_ptag;
-	if (!syn && !onlyself) {
+	libnet_t *l=NULL;
+	if (c->af==AF_INET) {
+		// ipv4
+		l = ld->l4;
+		tcp_ptag=&ld->tcp4_ptag; ip_ptag=&ld->ip4_ptag;
+	} else {
+		// ipv6
+		l= ld->l6;
+		tcp_ptag=&ld->tcp6_ptag; ip_ptag=&ld->ip6_ptag;
+	}
+	
+	if (!syn && !onlyself && (l!=NULL)) {
 		
 		// construct and send the RST packet to remote
-		if (c->af==AF_INET) {
-			// ipv4
-			l = ld->l4;
-			tcp_ptag=&ld->tcp4_ptag; ip_ptag=&ld->ip4_ptag;
-		} else {
-			// ipv6
-			l= ld->l6;
-			tcp_ptag=&ld->tcp6_ptag; ip_ptag=&ld->ip6_ptag;
-		}
 		// construct tcp header for RST pkt to remote host
 		uint8_t flags=TH_RST;
 		*tcp_ptag = libnet_build_tcp(c->sport,c->dport,c->seq,c->ack,flags,
@@ -110,7 +104,7 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 			free_libnet(ld);
 			// try to repair the error
 			init_libnet(ld);
-			return;
+			return -1;
 		}
 		
 		// construct IP header for RST packet to remote host
@@ -144,7 +138,7 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 			free_libnet(ld);
 			// try to repair the error
 			init_libnet(ld);
-			return;
+			return -1;
 		}
 		
 		// and send the packet
@@ -155,7 +149,7 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 			free_libnet(ld);
 			// try to repair
 			init_libnet(ld);
-			return;
+			return -1;
 		} else {
 			// and send again, in case first one is lost
 			if (libnet_write(l) < 0) {
@@ -164,13 +158,13 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 				free_libnet(ld);
 				// try to repair
 				init_libnet(ld);
-				return;
+				return -1;
 			}
 		}
 		
 	} // end !syn && ! self
 	
-	if (c->af==AF_INET) {
+	if ((c->af==AF_INET)&&(ld->l4_hdr!=NULL)){
 		// now construct TCP RST packet to send to self
 		// construct tcp header for RST pkt to remote host
 		uint8_t flags=TH_RST;
@@ -197,9 +191,9 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 			free_libnet(ld);
 			// try to repair
 			init_libnet(ld);
-			return;
+			return -1;
 		}
-	} else {
+	} else if (ld->l6_hdr!=NULL) {
 		// can't set IP_HDRINCL flag for IPv6, will this even work ?
 		uint8_t flags=TH_RST;
 		if (syn) flags |= TH_ACK;
@@ -218,10 +212,10 @@ void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 			free_libnet(ld);
 			// try to repair
 			init_libnet(ld);
-			return;
+			return -1;
 		}
 	}
-	
+	return 1;
 }
 
 void rst_accept_loop() {

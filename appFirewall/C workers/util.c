@@ -167,21 +167,25 @@ inline int are_addr_same(int af, struct in6_addr* addr1, struct in6_addr* addr2)
 char *trimwhitespace(char *str) {
   char *end;
 
-  // Trim leading space
-  while(isspace((unsigned char)*str)) str++;
+  // Trim leading space, we cap trimming at 1024 to be safe
+  int count=0;
+  size_t max = strnlen(str,STR_SIZE);
+  while(isspace((unsigned char)*str) && (count<max)) {str++; count++;}
 
   if(*str == 0)  // All spaces?
     return str;
 
   // Trim trailing space
-  end = str + strlen(str) - 1;
-  while(end > str && isspace((unsigned char)*end)) end--;
+  end = str + strnlen(str,STR_SIZE) - 1;
+  count=0;
+  while( (end > str) && isspace((unsigned char)*end) && (count<max)) {end--; count++;}
 
   // Write new null terminator character
   end[1] = '\0';
 
   return str;
 }
+
 
 void redirect_stdout(const char* appLog) {
 	// set up logging
@@ -190,12 +194,11 @@ void redirect_stdout(const char* appLog) {
 	strlcat(path,appLog,STR_SIZE);
 	int logfd = open(path,O_RDWR|O_CREAT|O_APPEND,0644);
 	if (logfd == -1) {
-		ERR("Failed to open %s: %s\n",path,strerror(errno));
-		//exit(EXIT_FAILURE);
+		ERR("Failed to open logfile %s, logging disabled: %s\n",path,strerror(errno));
 	}
 	//if (!isatty(fileno(stdout))) {
-		dup2(logfd,STDOUT_FILENO); // redirect stdout to log file
-		dup2(logfd,STDERR_FILENO); // ditto stderr
+		if (dup2(logfd,STDOUT_FILENO)<0) WARN("Problem redirecting stdout to %s: %s",appLog, strerror(errno)); // redirect stdout to log file
+		if (dup2(logfd,STDERR_FILENO)<0) WARN("Problem redirecting stderr to %s: %s",appLog, strerror(errno));  // ditto stderr
 		setbuf(stdout, NULL); // disable buffering on stdout
 	//} else {
 	//	INFO("logging to terminal\'n");
@@ -237,13 +240,17 @@ const char* robust_inet_ntop(int *af, const void * restrict src, char * restrict
 
 #define NSEC_PER_SEC 1000000000
 struct timespec timespec_normalise(struct timespec ts) {
-	while(ts.tv_nsec >= NSEC_PER_SEC) {
+	int count=0, max=1024;
+	while((ts.tv_nsec >= NSEC_PER_SEC)&&(count<max)) {
 		++(ts.tv_sec);
 		ts.tv_nsec -= NSEC_PER_SEC;
+		count++;
 	}
-	while(ts.tv_nsec <= -NSEC_PER_SEC) {
+	count=0;
+	while((ts.tv_nsec <= -NSEC_PER_SEC)&&(count<max)) {
 		--(ts.tv_sec);
 		ts.tv_nsec += NSEC_PER_SEC;
+		count++;
 	}
 	if(ts.tv_nsec < 0 && ts.tv_sec > 0) {
 		--(ts.tv_sec);
@@ -278,14 +285,18 @@ inline void set_recv_timeout(int sockfd, int timeout) {
 	struct timeval tv;
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+	if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv)<0) {
+		WARN("Problem setting SO_RCVTIMEO socket option: %s\n", strerror(errno));
+	}
 }
 
 inline void set_snd_timeout(int sockfd, int timeout) {
 	struct timeval tv;
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
-	setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+	if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv)<0) {
+		WARN("Problem setting SO_SNDTIMEO socket option: %s\n", strerror(errno));
+	}
 }
 
 char* get_date() {
@@ -296,7 +307,10 @@ char* get_date() {
 
 char* get_file_modify_time(const char *path) {
     struct stat attr;
-    lstat(path, &attr);
+    if (lstat(path, &attr)<0) {
+    	WARN("Problem calling lstat to get modify time of %s: %s\n",path,strerror(errno));
+    	return NULL;
+		}
     strftime(date_temp,STR_SIZE,"%d %b %H:%M:%S %Y",localtime(&attr.st_mtime));
     return date_temp;
 }

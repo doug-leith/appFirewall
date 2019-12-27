@@ -112,7 +112,7 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 		inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 		inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
 		char dns[MAXDOMAINLEN], dst_name[MAXDOMAINLEN];
-		if (strlen(c->domain)>0) {
+		if (strnlen(c->domain,MAXDOMAINLEN)>0) {
 			sprintf(dns,"%s (%s)",c->addr_name,c->domain);
 			strlcpy(dst_name,c->domain,MAXDOMAINLEN);
 		} else {
@@ -381,7 +381,7 @@ void *listener(void *ptr) {
 					}
 					// log connection
 					char dns[MAXDOMAINLEN]={0};
-					if (strlen(c.domain)) {
+					if (strnlen(c.domain,MAXDOMAINLEN)) {
 						sprintf(dns,"%s (%s)",c.addr_name,c.domain);
 					}
 					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];

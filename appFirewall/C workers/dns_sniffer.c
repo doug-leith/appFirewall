@@ -285,7 +285,7 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	}
 	tmp = skip_dns_label(t);
 	// debugging check, shouldn't happen
-	if (l==NULL || strlen((char*)l)==0) {
+	if (l==NULL || strnlen((char*)l,BUFSIZE)==0) {
 		WARN("empty label '%s' !\n", l);
 		for (int i =0; i< tmp-t+16; i++) {
 			printf("%u ", *(t+i));

@@ -114,7 +114,8 @@ void stop_sniffers() {
 		pthread_kill(sn_esc.sniffer_threads[i],SIGUSR1);
 		// calling pcap_breakloop() across threads doesn't work, see man page.
 		// instead need to use a signal to break out of pcap_loop.
-		//pcap_breakloop(sn_esc.pds[i]);
+		// we'll try it anyway though, in case signal handler failed to install
+		pcap_breakloop(sn_esc.pds[i]);
 	}
 }
 
@@ -203,7 +204,7 @@ void *c_sniffer(void *arg)  {
 	memset(&action, 0, sizeof(action));
 	sigemptyset(&action.sa_mask);
 	action.sa_handler = sigusr1_handler;
-	sigaction(SIGUSR1, &action, NULL);
+	if (sigaction(SIGUSR1, &action, NULL)<0) WARN("Problem setting SIGUSR1 handler for c_sniffer: %s",strerror(errno));
 
 	int i = *((int*)arg);
 	if (pcap_loop(sn_esc.pds[i], -1,	catcher_callback, (u_char*)&i)==PCAP_ERROR){	// this blocks
@@ -337,6 +338,7 @@ void *catcher_listener(void *ptr) {
 		struct bpf_program fp;		/* The compiled filter expression */
 		bpf_u_int32 mask = 0;
 		for (int i = 0; i<sn_esc.num_pds; i++) {
+			//nb: pcap_compile() is not thread safe before ver 1.8.0 of pcap library
 			if (pcap_compile(sn_esc.pds[i], &fp, filter, 0, mask) == -1) {
 				ERR("Couldn't parse pcap filter %s (catch_escapee) for interface %s: %s\n", filter, sn_esc.interfaces[i],pcap_geterr(sn_esc.pds[i]));
 				continue;
@@ -381,7 +383,9 @@ void *catcher_listener(void *ptr) {
 			c.ack = ack + k*win/2;
 			for (int i=0; i<TRIES; i++) {
 				for (int j=0; j<n; j++){
-					snd_rst(0,&c,1,&ld_prompt); // just send RSTs to self, so don't flood internet
+					// just send RSTs to self, so don't flood internet
+					int res = snd_rst(0,&c,1,&ld_prompt);
+					if (res<0) goto done; // problem
 					c.ack += win; // ack might be stale, so advance it by a few windows
 				}
 				conn_raw_t c_temp;

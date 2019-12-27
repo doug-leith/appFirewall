@@ -33,6 +33,6 @@ void init_libnet(libnet_data_t *ld);
 void start_libnet(void);
 void rst_accept_loop(void);
 void close_rst_sock(void);
-void snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld);
+int snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld);
 
 #endif /* send_rst_h */

@@ -16,7 +16,7 @@ char* now(char* buf) {
 	if (res!=NULL) {
 		char* str=asctime_r(res,buf);
 		if (str != NULL) {
-			str[strlen(str)-1]=0; // remove "\n"
+			str[strnlen(str,1024)-1]=0; // remove "\n"
 			return str;
 		} else {
 			return NULL;
@@ -28,9 +28,9 @@ char* now(char* buf) {
 
 ssize_t readn(int fd, void* buf, ssize_t n) {
  // read n bytes from socket fd
-	int res=0, posn=0;;
+	ssize_t res=0, posn=0;;
 	while (posn<n) {
-		res = (int)recv(fd, buf+posn, n-res, 0);
+		res = recv(fd, buf+posn, n-res, 0);
 		if (res <= 0) {
 			return res;
 		}
@@ -85,26 +85,29 @@ int bind_to_port(int port, int q) {
 	int sock;
 	//if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-		ERR("Problem creating socket: %s\n", strerror(errno));
+		ERR("Problem creating socket, fatal: %s\n", strerror(errno));
+		// this is serious as it means we can't talk with GUI client, bail.
 		exit(EXIT_FAILURE);
 	}
 	
 	int yes=1;
 	if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(yes)) == -1) {
-		ERR("Setsockopt: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
+		WARN("Problem setting SO_REUSEADDR socket option: %s\n", strerror(errno));
+		//exit(EXIT_FAILURE); // not great, but not fatal.
 	}
 	struct sockaddr_un local;
 	local.sun_family = AF_UNIX;
 	sprintf(local.sun_path,"/var/run/appFirewall-Helper.%d",port);
 	unlink(local.sun_path);
 	if (bind(sock, (struct sockaddr *)&local, sizeof(local)) == -1) {
-		ERR("Problem binding to %s: %s\n", local.sun_path, strerror(errno));
+		ERR("Problem binding to %s, fatal: %s\n", local.sun_path, strerror(errno));
+		// this is serious as it means we can't talk with GUI client, bail.
 		exit(EXIT_FAILURE);
 	}
-	chmod(local.sun_path, 0777);
+	if (chmod(local.sun_path, 0777)<0) WARN("Problem calling chmod on port %d, appFirewall might have trouble reading/writing socket to helper: %s", port, strerror(errno));
 	if (listen(sock, q) == -1) {
-		ERR("Problem listening to %s: %s\n", local.sun_path, strerror(errno));
+		ERR("Problem listening to %s, fatal: %s\n", local.sun_path, strerror(errno));
+		// this is serious as it means we can't talk with GUI client, bail.
 		exit(EXIT_FAILURE);
 	}
 	return sock;
@@ -124,25 +127,33 @@ inline void set_recv_timeout(int sockfd, int timeout) {
 	struct timeval tv;
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+	if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv)<0) {
+		WARN("Problem setting SO_RCVTIMEO socket option: %s\n", strerror(errno));
+	}
 }
 
 inline void set_snd_timeout(int sockfd, int timeout) {
 	struct timeval tv;
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
-	setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+	if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv)<0) {
+		WARN("Problem setting SO_SNDTIMEO socket option: %s\n", strerror(errno));
+	}
 }
 
 //#define NSEC_PER_SEC 1000000000
 struct timespec timespec_normalise(struct timespec ts) {
-	while(ts.tv_nsec >= NSEC_PER_SEC) {
+	int count=0, max=1024;
+	while((ts.tv_nsec >= NSEC_PER_SEC)&&(count<max)) {
 		++(ts.tv_sec);
 		ts.tv_nsec -= NSEC_PER_SEC;
+		count++;
 	}
-	while(ts.tv_nsec <= -NSEC_PER_SEC) {
+	count=0;
+	while((ts.tv_nsec <= -NSEC_PER_SEC)&&(count<max)) {
 		--(ts.tv_sec);
 		ts.tv_nsec += NSEC_PER_SEC;
+		count++;
 	}
 	if(ts.tv_nsec < 0 && ts.tv_sec > 0) {
 		--(ts.tv_sec);
@@ -166,15 +177,18 @@ struct timespec timespec_add(struct timespec ts1, struct timespec ts2) {
 char *trimwhitespace(char *str) {
   char *end;
 
-  // Trim leading space
-  while(isspace((unsigned char)*str)) str++;
+  // Trim leading space, we cap trimming at 1024 to be safe
+  int count=0;
+  size_t max = strnlen(str,1024);
+  while(isspace((unsigned char)*str) && (count<max)) {str++; count++;}
 
   if(*str == 0)  // All spaces?
     return str;
 
   // Trim trailing space
-  end = str + strlen(str) - 1;
-  while(end > str && isspace((unsigned char)*end)) end--;
+  end = str + strnlen(str,1024) - 1;
+  count=0;
+  while( (end > str) && isspace((unsigned char)*end) && (count<max)) {end--; count++;}
 
   // Write new null terminator character
   end[1] = '\0';

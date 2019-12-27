@@ -19,7 +19,7 @@ static int first_load = 1;
 char* log_hash(const void* it) {
 	log_line_t* l = (log_line_t*)it;
 	char* temp0 = conn_raw_hash(&l->raw);
-	size_t len = strlen(temp0)+strlen(l->bl_item.name)+2u;
+	size_t len = strnlen(temp0,STR_SIZE)+strnlen(l->bl_item.name,MAXCOMLEN)+2u;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
 	sprintf(temp,"%s:%s",l->bl_item.name,temp0);
@@ -32,7 +32,7 @@ char* filtered_log_hash(const void *it) {
 	// domain that occur within same 1s time slot into a single
 	// log entry
 	log_line_t* l = (log_line_t*)it;
-	size_t len = strlen(l->time_str)+strlen(l->log_line)+4;
+	size_t len = strnlen(l->time_str,STR_SIZE)+strnlen(l->log_line,STR_SIZE)+4;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
 	sprintf(temp,"%s:%s",l->time_str,l->log_line);
@@ -171,10 +171,9 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	log_line_t *l = malloc(sizeof(log_line_t)+2);
 	strlcpy(l->log_line,str,LOGSTRSIZE);
 	time_t t; time(&t);
-	//str=asctime(localtime(&t)); str[strlen(str)-1]=0; // remove "\n"
 	strftime(str,LOGSTRSIZE,"%b %d %H:%M:%S %Y",localtime(&t));
-	int len = (int)strlen(str)+1;
-	if (len > LOGSTRSIZE) len = LOGSTRSIZE;
+	size_t len = strnlen(str,LOGSTRSIZE-1)+1;
+	//if (len > LOGSTRSIZE) len = LOGSTRSIZE;
 	strlcpy(l->time_str, str, len);
 	memcpy(&l->bl_item,bl_item,sizeof(struct bl_item_t));
 	memcpy(&l->raw,raw,sizeof(conn_raw_t));
@@ -214,7 +213,7 @@ char* log_conn_str(const void* it) {
 	log_line_t* l = (log_line_t*)it;
 	char dn[INET6_ADDRSTRLEN];
 	robust_inet_ntop(&l->raw.af,&l->raw.dst_addr,dn,INET6_ADDRSTRLEN);
-	size_t len = INET6_ADDRSTRLEN+strlen(l->bl_item.name)+8u;
+	size_t len = INET6_ADDRSTRLEN+strnlen(l->bl_item.name,MAXDOMAINLEN)+8u;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
 	sprintf(temp,"%s:%s:%u",l->bl_item.name,dn,l->raw.dport);
@@ -232,7 +231,7 @@ void filter_log_list(int_sw show_blocked, const char* str) {
 	for (size_t i=0; i< get_log_size(); i++) {
 		l = get_log_row(i);
 		if (l->blocked <= show_blocked) {
-			if ((str==NULL) || (strlen(str)==0) || (strcasestr(l->log_line, str) != NULL)) {
+			if ((str==NULL) || (strnlen(str,STR_SIZE)==0) || (strcasestr(l->log_line, str) != NULL)) {
 				if (h_prev!=NULL) free(h_prev);
 				h_prev=h; h = log_conn_str(l);
 				if ((h_prev!=NULL) && (l_filtered!=NULL) && (strcmp(h_prev,h)==0)) {

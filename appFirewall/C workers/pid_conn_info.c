@@ -157,7 +157,7 @@ char* gui_pid_hash(const void *it) {
 	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
 	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
 	robust_inet_ntop(&item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
-	char* temp = malloc(2*INET6_ADDRSTRLEN+strlen(item->domain)+64);
+	char* temp = malloc(2*INET6_ADDRSTRLEN+strnlen(item->domain,MAXDOMAINLEN)+64);
 	sprintf(temp,"%s-%s:%u-%s",sn,dn,item->raw.dport,item->domain);
 	return temp;
 }
@@ -475,11 +475,11 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 			robust_inet_ntop(&c.raw.af, &c.raw.dst_addr, c.dst_addr_name, INET6_ADDRSTRLEN);
 			// ignore IPv6 link-local connections
 			char* mask="fe80:";
-			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
+			if (strncmp(mask, c.src_addr_name, strnlen(mask,INET6_ADDRSTRLEN)) == 0) {
 				continue; // ignore IPv6 link local addresses
 			}
 			mask="::";
-			if (strncmp(mask, c.src_addr_name, strlen(mask)) == 0) {
+			if (strncmp(mask, c.src_addr_name, strnlen(mask,INET6_ADDRSTRLEN)) == 0) {
 				continue; // null IPv6 address, happens with Skype
 			}
 

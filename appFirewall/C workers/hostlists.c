@@ -29,7 +29,7 @@ void* in_hostlist_htab(const char *domain) {
 		if (!strncmp(domain," (",2)) { // swift adds spaces and () around string, sigh
 			char temp[MAXDOMAINLEN];
 			strlcpy(temp,domain+2,MAXDOMAINLEN);
-			temp[strlen(temp)-1]=0;
+			temp[strnlen(temp,MAXDOMAINLEN)-1]=0;
 			//printf("in_hostlist_htab swift %s/%s\n", domain, temp);
 			void* res = hashtable_get(hl_htab, temp);
 			pthread_mutex_unlock(&hl_mutex);
@@ -45,7 +45,7 @@ void* in_hostlist_htab(const char *domain) {
 }
 
 void add_hostlist(char * domain) {
-	size_t len = strlen(domain)+1;
+	size_t len = strnlen(domain,MAXDOMAINLEN)+1;
 	if (len > STR_SIZE) len = STR_SIZE; // just to be safe !
 	char *str = malloc(len);
 	strlcpy(str,domain,len);
