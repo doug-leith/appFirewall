@@ -24,9 +24,9 @@ Otherwise some care is needed.  Since the firewall can block connections on a pe
 
 You can see information on the domains sharing an IP address by hovering your mouse over a connection - the tool tip gives connection details, including domains.  The number in brackets after a domain name indicates the number of times that domain name was recently resolved to the IP address.  So we can see, for example, whether one domain name is much more frequent than others.
 
-### Use with VPNs is unreliable
+### Can't filter VPN traffic
 
-VPNs using a tun interface encapsulate  all traffic in encypted packets so all that is visible to firewall is the source address and the other end of the VPN.   That means we can't see what the final destination of a connection is, and so can't block it.
+VPNs using a tun interface encapsulate  all traffic inside encypted packets (usually UDP) so all that is left visible is the source address and the address of the other end of the VPN.   That means we can't send TCP RSTs to block a connection.   Note we can still see per app connection info via the procfd_info interface (the "active connections" tab in the GUI), its just that there is no easy way to block tunnelled connections.
 
 ### Google QUIC connections are not blocked (yet)
 
