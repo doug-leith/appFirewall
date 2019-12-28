@@ -1,8 +1,7 @@
 TO DO
 
 short term:
-- VPN support.  does catcher go crazy with vpn? no route to host etc
-- test start up on login
+- VPN testing.  does catcher go crazy with vpn? no route to host etc
 
 longer term:
 - use of network extensions, only for catalina onwards though

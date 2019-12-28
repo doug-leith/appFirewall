@@ -24,6 +24,7 @@
 typedef struct sniffers_t {
 	pcap_t *pds[MAX_INTS];  // pcap listener
 	char* interfaces[MAX_INTS];
+	int offset[MAX_INTS];
 	//bpf_u_int32 mask[MAX_INTS], net[MAX_INTS];
 	int needs_thread[MAX_INTS];
 	pthread_t sniffer_threads[MAX_INTS];
@@ -31,7 +32,7 @@ typedef struct sniffers_t {
 	int num_pds;
 	int is_sniffing;
 } sniffers_t;
-#define SNIFFERS_INITIALIZER {{NULL}, {NULL}, {0}, {0}, PTHREAD_ERRORCHECK_MUTEX_INITIALIZER, 0, 0}
+#define SNIFFERS_INITIALIZER {{NULL}, {NULL}, {0}, {0}, {0}, PTHREAD_ERRORCHECK_MUTEX_INITIALIZER, 0, 0}
 
 int refresh_sniffers_list(sniffers_t* sn);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);

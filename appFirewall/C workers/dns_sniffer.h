@@ -29,7 +29,7 @@ typedef struct dns_count_t {
 	size_t num, count[MAXDNS];
 } dns_count_t;
 
-void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* pkt);
+void dns_sniffer(const u_char* pkt, size_t pkt_len);
 void append_dns(int af, struct in6_addr addr, char* name);
 char* lookup_dns_name(int af, struct in6_addr addr);
 

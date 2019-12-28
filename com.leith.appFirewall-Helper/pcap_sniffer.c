@@ -104,6 +104,52 @@ char** get_interfaces() {
 	return intf;
 }
 
+int get_DLT_offset(pcap_t *pd) {
+
+	int datalink, offset=0;
+  if ((datalink = pcap_datalink(pd)) < 0){
+    WARN("Cannot obtain datalink information: %s", pcap_geterr(pd));
+    return -1;
+	}
+
+	switch (datalink) {
+		case DLT_EN10MB:
+			offset = 14;
+			break;
+		case DLT_IEEE802:
+			offset = 22;
+			break;
+		case DLT_NULL:
+			offset = 4;
+			break;
+		case DLT_SLIP:
+			offset = 16;
+			break;
+		case DLT_PPP:
+		case DLT_PPP_BSDOS:
+		case DLT_PPP_SERIAL:
+		case DLT_PPP_ETHER:
+			offset = 4;
+			break;
+		case DLT_RAW:
+			offset = 0;
+			break;
+		case DLT_FDDI:
+			offset = 21;
+			break;
+		case DLT_ENC:
+			offset = 12;
+			break;
+		case DLT_IPNET:
+			offset = 24;
+			break;
+		default:
+			ERR("Unknown datalink type: %d\n", datalink);
+			return -1;
+		}
+		return offset;
+}
+
 int setup_pd(char* intf, pcap_t **pd) {
 	// initialise a pcap listener for an available interfaces
 	char ebuf[PCAP_ERRBUF_SIZE];
@@ -129,14 +175,16 @@ int setup_pd(char* intf, pcap_t **pd) {
 		ERR("Couldn't activate pcap sniffer: %s\n",pcap_geterr(*pd));
 		return -1;
 	}
-			
+	
+	// this call must be made *after* calling pcap_activate()
 	// we need to specify the link layer header size.  have hard-wired in
 	// ethernet value of 14, so check link we have is compatible with this
-	int dl;
+	/*int dl;
 	if ( (dl=pcap_datalink(*pd)) != DLT_EN10MB) { //
 		ERR("Pcap device %s not supported: %d\n", intf, dl);
 		return -1;
-	}
+	}*/
+	
 	return 1;
 }
 
@@ -191,6 +239,13 @@ int refresh_sniffers_list(sniffers_t* sn) {
 			free(*intf);
 			continue;
 		}
+		sn->offset[sn->num_pds] = get_DLT_offset(sn->pds[sn->num_pds]);
+		if (sn->offset[sn->num_pds]<0) {
+			WARN("Problem getting datalink offset for interface %s\n",*intf);
+			pcap_close(sn->pds[sn->num_pds]);
+			free(*intf);
+			continue;
+		}
 		sn->needs_thread[sn->num_pds] = 1;
 		sn->num_pds++;
 	}
@@ -211,19 +266,21 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	// send pkt to GUI
 	int i = *((int*)args);
 	DEBUG2("sniffed pkt on interface %s(%d), sending to GUI ... %d bytes\n", sn.interfaces[i], i, pkthdr->caplen);
+	const u_char* pkt_proper = pkt + sn.offset[i]; // look past link layer header to pkt itself
+	size_t pkt_proper_len = pkthdr->caplen - sn.offset[i];
 	
 	if (dtrace_active()) {
 		// when dtrace is running on receipt of a syn we signal to
 		// dtrace to look for connect() trace info, otherwise
 		// we pass the syn on to client.
-		const int pcap_off = 14; // ethernet link layer offset
-		int version = (*(pkt + pcap_off))>>4; // get IP version
+		//const int pcap_off = 14; // ethernet link layer offset
+		int version = (*pkt_proper)>>4; // get IP version
 		u_char* nexth=NULL; // this will point to TCP/UDP header
 		if (version == 4) {
-			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)(pkt + pcap_off);
+			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt_proper;
 			nexth=((u_char *)ip + (ip->ip_hl * 4));
 		} else {
-			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)(pkt + pcap_off);
+			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt_proper;
 			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
 		}
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
@@ -244,7 +301,8 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	pthread_mutex_lock(&pcap_mutex);
 	if (p_sock2<0) goto stop; // socket is closed, bail
 	if (send(p_sock2, pkthdr, sizeof(struct pcap_pkthdr),0)<0) goto err;
-	if (send(p_sock2, pkt, pkthdr->caplen,0)<0) goto err;
+	if (send(p_sock2, &pkt_proper_len, sizeof(size_t),0)<0) goto err;
+	if (send(p_sock2, pkt_proper, pkt_proper_len,0)<0) goto err;
 	pthread_mutex_lock(&pcap_mutex);
 	
 	// periodically log pcap stats ... we don't want to be seeing too many pkt drops

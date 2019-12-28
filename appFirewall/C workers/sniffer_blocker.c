@@ -297,11 +297,12 @@ void *listener(void *ptr) {
 			pkthdr.caplen=SNAPLEN; // we truncate packet and hope for the best !
 		}
 		DEBUG2("waiting to read pkt ...\n");
-		if ( (res=readn(p_sock, pkt, (ssize_t)pkthdr.caplen) )<=0) goto err_p;
+		size_t pkt_proper_len=0;
+		if ( (res=readn(p_sock, &pkt_proper_len, sizeof(size_t)) )<=0) goto err_p;
+		if ( (res=readn(p_sock, pkt, (ssize_t)pkt_proper_len) )<=0) goto err_p;
 		
 		// we got a pkt, let's process it ...
-		const int pcap_off = 14; // ethernet link layer offset
-		
+		// nb: link layer header has already been removed by helper.
 		struct timeval ts = pkthdr.ts;
 		struct timeval start; gettimeofday(&start, NULL);
 		// stale SYN packets are dropped, likely due to wakeup after sleep.  
@@ -310,20 +311,20 @@ void *listener(void *ptr) {
 			continue;
 		}
 
-		int version = (*(pkt + pcap_off))>>4; // get IP version
+		int version = (*pkt)>>4; // get IP version
 		int proto, af;
 		struct in6_addr src, dst;
 		memset(&src,0,sizeof(src)); memset(&dst,0,sizeof(dst));
 		u_char* nexth=NULL; // this will point to TCP/UDP header
 		if (version == 4) {
-			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)(pkt + pcap_off);
+			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt;
 			proto=ip->ip_p;
 			af=AF_INET;
 			memcpy(&src,&ip->ip_src,sizeof(struct in_addr));
 			memcpy(&dst,&ip->ip_dst,sizeof(struct in_addr));
 			nexth=((u_char *)ip + (ip->ip_hl * 4));
 		} else {
-			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)(pkt + pcap_off);
+			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt;
 			proto=ip->ip_nh;
 			af=AF_INET6;
 			memcpy(&src,&ip->ip_src,sizeof(struct in6_addr));
@@ -340,7 +341,7 @@ void *listener(void *ptr) {
 				// pass to DNS sniffer
 				double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 				//INFO2("t (sniffed dns) %f\n", t);
-				dns_sniffer(&pkthdr,nexth);
+				dns_sniffer(nexth,pkt_proper_len);
 				cm_add_sample_lock(&stats.cm_t_dns,t);
 				continue;
 			} else if (dport == 443) {

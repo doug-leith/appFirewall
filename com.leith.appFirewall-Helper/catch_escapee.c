@@ -132,7 +132,9 @@ void catcher_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	// so ok if corrupted now and then
 	a.pkt_count++; // record number of packets we've sniffed for this connection
 
-	const int pcap_off = 14; // ethernet link layer offset
+	int i = *((int*)args);
+	int pcap_off = sn_esc.offset[i];
+	//const int pcap_off = 14; // ethernet link layer offset
 	
 	struct timeval ts = pkthdr->ts;
 	struct timeval start; gettimeofday(&start, NULL);
@@ -366,7 +368,7 @@ void *catcher_listener(void *ptr) {
 		// estimate of recv window of localhost
 		// changed top be more aggressive as suspect tcp shrinks window
 		// for idle connections
-		uint32_t win = 65536/4;
+		uint32_t win = 65536/4; // 16K, but we actually probe down to 8L windows in loop below
 		// sit here and keep an eye on procinfo.  when connection goes away we can
 		// stop.
 		//#define WAITTIME 1000 // 1ms

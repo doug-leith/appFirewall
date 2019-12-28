@@ -369,7 +369,7 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 	return RR;
 }
 
-void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
+void dns_sniffer(const u_char* udph, size_t pkt_len) {
 	// we sniff DNS response packets and save the answers so we can do
 	// a rough sort of reverse lookup
 
@@ -383,8 +383,8 @@ void dns_sniffer(const struct pcap_pkthdr *pkthdr, const u_char* udph) {
 	uint16_t sport=ntohs(udp->uh_sport);
 	int mDNS = (sport == 5353);
 	uint16_t len = ntohs(udp->uh_ulen)-LIBNET_UDP_H;
-	if (len > pkthdr->caplen-LIBNET_IPV4_H-LIBNET_UDP_H) {
-		WARN("dns_sniffer() snaplen looks too short: %d/%d\n", ntohs(udp->uh_ulen), 	pkthdr->caplen-LIBNET_IPV4_H);
+	if (len > pkt_len-LIBNET_IPV4_H-LIBNET_UDP_H) {
+		WARN("dns_sniffer() snaplen looks too short: %d/%lu\n", ntohs(udp->uh_ulen), 	pkt_len-LIBNET_IPV4_H);
 	}
 	const u_char* payload = udph+LIBNET_UDP_H; // includes DNS header
 	const u_char *end = payload + len ;
