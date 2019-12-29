@@ -614,10 +614,11 @@ void find_escapees() {
 		log_line_t *l = find_log_by_conn(c.name,&c.raw,0);
 		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c.raw.udp==0)) {
 			// its an active connection that is supposed to have been blocked
+			int vpn = (is_ppp(c.raw.af, &c.raw.src_addr) || is_ppp(c.raw.af, &c.raw.dst_addr));
 			TAKE_LOCK(&escapee_mutex,"find_fds escapee_mutex");
 			int is_escapee = (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX);
 			pthread_mutex_unlock(&escapee_mutex);
-			if (is_escapee) {
+			if (is_escapee && !vpn) {
 				// a new escapee, add to the active list ...
 				TAKE_LOCK(&escapee_mutex,"find_fds escapee_mutex");
 				add_item(&escapee_list,&c,sizeof(conn_t));

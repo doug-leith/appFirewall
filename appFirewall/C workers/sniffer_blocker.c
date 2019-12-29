@@ -32,9 +32,6 @@ int udp_cache_size=0, udp_cache_start=0;
 //--------------------------------------------------------
 // private functions
 
-
-
-
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	// create a new blocklist item from raw connection info (assumed to be
 	// outgoing connection, so src is local and dst is remote)
@@ -296,12 +293,18 @@ void *listener(void *ptr) {
 			WARN("Sniffer listener: our snaplen %d is too small for received pkt len %d\n",SNAPLEN,pkthdr.caplen);
 			pkthdr.caplen=SNAPLEN; // we truncate packet and hope for the best !
 		}
-		DEBUG2("waiting to read pkt ...\n");
-		size_t pkt_proper_len=0;
+		size_t pkt_proper_len=0; int datalink;
+		if ( (res=readn(p_sock, &datalink, sizeof(int)) )<=0) goto err_p;
 		if ( (res=readn(p_sock, &pkt_proper_len, sizeof(size_t)) )<=0) goto err_p;
 		if ( (res=readn(p_sock, pkt, (ssize_t)pkt_proper_len) )<=0) goto err_p;
+		//printf("read pkt datalink %d, len %d\n",datalink,pkt_proper_len);
 		
 		// we got a pkt, let's process it ...
+		if ((datalink == DLT_PPP)||(datalink == DLT_PPP_BSDOS)||(datalink == DLT_PPP_ETHER)) {
+			// its a point to point interface, v likely a VPN
+			// - don't do anything special, for now.
+		}
+		
 		// nb: link layer header has already been removed by helper.
 		struct timeval ts = pkthdr.ts;
 		struct timeval start; gettimeofday(&start, NULL);
@@ -331,12 +334,13 @@ void *listener(void *ptr) {
 			memcpy(&dst,&ip->ip_dst,sizeof(struct in6_addr));
 			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
 		}
-		DEBUG2("version %d proto %d (udp=%d, tcp=%d)\n",version,proto,IPPROTO_UDP,IPPROTO_TCP);
+		//printf("version %d proto %d (udp=%d, tcp=%d)\n",version,proto,IPPROTO_UDP,IPPROTO_TCP);
 		
 		if (proto == IPPROTO_UDP) {
 			struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
 			uint16_t sport=ntohs(udp->uh_sport);
 			uint16_t dport=ntohs(udp->uh_dport);
+			//printf("UDP port %d/%d\n", sport,dport);
 			if (sport == 53 || dport == 53 || sport == 5353 || dport == 5353) {
 				// pass to DNS sniffer
 				double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
@@ -405,7 +409,7 @@ void *listener(void *ptr) {
 		
 		if (proto != IPPROTO_TCP) {
 			// shouldn't happen
-			WARN("sniffed pkt is not tcp\n");
+			WARN("sniffed pkt is not udp or tcp\n");
 			continue;
 		}
 

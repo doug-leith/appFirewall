@@ -13,6 +13,7 @@
 #include <pcap.h>
 #include <pthread.h>
 #include <ifaddrs.h>
+#include <sys/select.h>
 #include "util.h"
 #include "dtrace.h"
 
@@ -23,21 +24,22 @@
 
 typedef struct sniffers_t {
 	pcap_t *pds[MAX_INTS];  // pcap listener
-	char* interfaces[MAX_INTS];
+	char interfaces[MAX_INTS][STR_SIZE];
+	int fd[MAX_INTS];
+	int datalink[MAX_INTS];
 	int offset[MAX_INTS];
-	//bpf_u_int32 mask[MAX_INTS], net[MAX_INTS];
-	int needs_thread[MAX_INTS];
-	pthread_t sniffer_threads[MAX_INTS];
-	pthread_mutex_t sniffer_mutex;
 	int num_pds;
-	int is_sniffing;
 } sniffers_t;
-#define SNIFFERS_INITIALIZER {{NULL}, {NULL}, {0}, {0}, {0}, PTHREAD_ERRORCHECK_MUTEX_INITIALIZER, 0, 0}
 
-int refresh_sniffers_list(sniffers_t* sn);
+typedef struct sniffer_callback_args_t {
+	sniffers_t *sn;
+	int i;
+} sniffer_callback_args_t;
+
+int refresh_sniffers_list(sniffers_t* sn, char* filter_exp);
+int get_interfaces(char intf[MAX_INTS][STR_SIZE]);
+void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);
-void free_sniffers(sniffers_t* sn);
-void signal_interface_watcher(void);
 void *listener(void *ptr);
 void start_listener(void);
 void close_sniffer_sock(void);

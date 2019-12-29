@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
   sprintf(rot_str,rot_fmt,LOGFILE);
 	int rotatefd = open(ROTFILE,O_WRONLY|O_CREAT,0644);
 	if (rotatefd == -1) {
-		WARN("Failed to open syslof config file %s, log will not be rotated: %s\n",ROTFILE, strerror(errno));
+		WARN("Failed to open syslog config file %s, log will not be rotated: %s\n",ROTFILE, strerror(errno));
 	} else {
 		write(rotatefd,rot_str,strnlen(rot_str,STR_SIZE));
 		close(rotatefd);

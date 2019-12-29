@@ -8,16 +8,11 @@
 #include "pcap_sniffer.h"
 
 //globals
-static sniffers_t sn = SNIFFERS_INITIALIZER;
 static time_t stats_time; // time when last asked pcap for stats
 static int p_sock, p_sock2=-1;
-static pthread_mutex_t pcap_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
 static int pid = -1;
 static pthread_t listener_thread; // handle to listener thread
-static pthread_t interface_watcher_thread;
-static pthread_mutex_t watcher_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
-static pthread_cond_t watcher_cond = PTHREAD_COND_INITIALIZER;
-static int wakeup = 0;
+static int are_sniffing = 0;
 
 // syns and syn-acks, DNS and mDNS, UDP on ports 443 likely to be quic
 // tcpflags doesn't work for ipv6, sigh.
@@ -31,15 +26,8 @@ void close_sniffer_sock() {
 	close(p_sock); close(p_sock2);
 }
 
-char** get_interfaces() {
-	// get list of useful interfaces (IPv4 or IPv6 and not link-local,
-	// might be down but that's ok)
-	char **intf = calloc(MAX_INTS,sizeof(char*));
-	if (intf==NULL) {
-		WARN("calloc() failed in get_interfaces(): %s", strerror(errno));
-		return NULL;
-	}
-	
+int get_interfaces(char intf[MAX_INTS][STR_SIZE]) {
+	// get list of useful interfaces (IPv4 or IPv6 and not link-local)
 	/*FILE *fp = popen("/sbin/route get default default | /usr/bin/grep interface","r");
 	char* interface=NULL, buf[1024];
 	if (fp != NULL) {
@@ -64,17 +52,23 @@ char** get_interfaces() {
 	if (getifaddrs(&ifap)<0) {
 		ERR("Couldn't get list of interfaces from getifaddrs() for pcap sniffer: %s", strerror(errno));
 		// should this be fatal ?
-		return intf;
+		return -1;
 	}
 	struct ifaddrs *dev;
 	int count=0;
 	for(dev=ifap; dev; dev=dev->ifa_next) {
 		DEBUG2("interface %s ...",dev->ifa_name);
 		if (dev-> ifa_flags & IFF_LOOPBACK) {DEBUG2("loopback\n"); continue;}
-		if (dev-> ifa_flags & IFF_POINTOPOINT) {DEBUG2("point to point\n"); continue;}
+		// point to point link is likely a vpn, so let's listen to it
+		//if (dev-> ifa_flags & IFF_POINTOPOINT) {DEBUG2("point to point\n"); continue;}
 		if (dev->ifa_flags&IFF_NOARP) {DEBUG2("no ARP\n"); continue;}
-		if ((dev->ifa_flags&IFF_UP)==0) {DEBUG2("point to point\n"); continue;}
-		if ((dev->ifa_flags&IFF_BROADCAST)==0) {DEBUG2("no valid broadcast addr\n"); continue;}
+		if ((dev->ifa_flags&IFF_UP)==0) {DEBUG2("not up\n"); continue;}
+		if ((dev->ifa_flags&IFF_BROADCAST)==0) {
+			if (!(dev-> ifa_flags & IFF_POINTOPOINT)) {
+				DEBUG2("no valid broadcast addr\n");
+				continue;
+			}
+		}
 		//if (!dev->ifa_netmask) {printf("no valid netmask\n"); continue;}
 		struct sockaddr *addr = dev->ifa_addr;
 		char addr_name[INET6_ADDRSTRLEN];
@@ -83,14 +77,14 @@ char** get_interfaces() {
 		} else if (addr->sa_family == AF_INET6) {
 			inet_ntop(addr->sa_family, &((struct sockaddr_in6*)addr)->sin6_addr, addr_name, INET6_ADDRSTRLEN);
 		} else {DEBUG2("not IPv4/IPv6\n"); continue;}
-		char* mask="fe80:";
-		if (strncmp(mask, addr_name, strnlen(mask,STR_SIZE)) == 0) {
+		char* mask6="fe80:", *mask4="169.254";
+		if ((strncmp(mask6, addr_name, strnlen(mask6,STR_SIZE)) == 0)
+				|| (strncmp(mask4, addr_name, strnlen(mask4,STR_SIZE)) == 0)) {
 			DEBUG2("link local addr\n");
-			continue; // ignore IPv6 link local addresses
+			continue; // ignore link local addresses
 		}
 		DEBUG2("addr %s found\n",addr_name);
-		intf[count] = malloc(STR_SIZE*sizeof(char));
-		strlcpy(intf[count],dev->ifa_name,STR_SIZE);
+		if (intf!=NULL) strlcpy(intf[count],dev->ifa_name,STR_SIZE);
 		DEBUG2("valid interface: %s\n", intf[count]);
 		if (count < MAX_INTS) {
 			count++;
@@ -101,7 +95,7 @@ char** get_interfaces() {
 	}
 	freeifaddrs(ifap);
 	//}
-	return intf;
+	return count;
 }
 
 int get_DLT_offset(pcap_t *pd) {
@@ -114,12 +108,14 @@ int get_DLT_offset(pcap_t *pd) {
 
 	switch (datalink) {
 		case DLT_EN10MB:
+			//printf("DLT_EN10MB\n");
 			offset = 14;
 			break;
 		case DLT_IEEE802:
 			offset = 22;
 			break;
 		case DLT_NULL:
+			//printf("DLT_NULL\n");
 			offset = 4;
 			break;
 		case DLT_SLIP:
@@ -129,9 +125,11 @@ int get_DLT_offset(pcap_t *pd) {
 		case DLT_PPP_BSDOS:
 		case DLT_PPP_SERIAL:
 		case DLT_PPP_ETHER:
+			//printf("DLT_PPP %d %d %d %d\n",DLT_PPP,DLT_PPP_BSDOS,DLT_PPP_SERIAL,DLT_PPP_ETHER);
 			offset = 4;
 			break;
 		case DLT_RAW:
+			//printf("DLT_RAW\n");
 			offset = 0;
 			break;
 		case DLT_FDDI:
@@ -150,7 +148,7 @@ int get_DLT_offset(pcap_t *pd) {
 		return offset;
 }
 
-int setup_pd(char* intf, pcap_t **pd) {
+int setup_pd(char* intf, pcap_t **pd, char* filter_exp) {
 	// initialise a pcap listener for an available interfaces
 	char ebuf[PCAP_ERRBUF_SIZE];
 
@@ -171,121 +169,112 @@ int setup_pd(char* intf, pcap_t **pd) {
 	pcap_set_buffer_size(*pd, BUFFER_SIZE);
 	
 	// now that its configured, fire up listener
-	if (pcap_activate(*pd)!=0) {
-		ERR("Couldn't activate pcap sniffer: %s\n",pcap_geterr(*pd));
+	int res;
+	if ((res=pcap_activate(*pd))!=0) {
+		if (res<0) {
+			ERR("Couldn't activate pcap sniffer: %s\n",pcap_geterr(*pd));
+			return -1;
+		} else {
+			// activate was successful but had warnings
+			WARN("Problem activating pcap sniffer: %s\n",pcap_geterr(*pd));
+		}
+	}
+
+	struct bpf_program fp;
+	if (pcap_compile(*pd, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
+		ERR("Couldn't parse pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
 		return -1;
 	}
-	
-	// this call must be made *after* calling pcap_activate()
-	// we need to specify the link layer header size.  have hard-wired in
-	// ethernet value of 14, so check link we have is compatible with this
-	/*int dl;
-	if ( (dl=pcap_datalink(*pd)) != DLT_EN10MB) { //
-		ERR("Pcap device %s not supported: %d\n", intf, dl);
+	if (pcap_setfilter(*pd, &fp) == PCAP_ERROR) {
+		ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
 		return -1;
-	}*/
-	
+	}
 	return 1;
 }
 
-void free_sniffers(sniffers_t* sn) {
-	for (int i = 0; i< sn->num_pds; i++) {
-		if (sn->interfaces[i]) free(sn->interfaces[i]);
-		if (sn->pds[i]) pcap_close(sn->pds[i]);
-	}
-	memset(sn,0,sizeof(sniffers_t));
-}
-
-int refresh_sniffers_list(sniffers_t* sn) {
+int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 	// get an update on the available interfaces ...
 	//struct timeval start; gettimeofday(&start, NULL);
-	char** temp_interfaces = get_interfaces();
-	
-	// if any new interfaces added, we add a new sniffer.
-	// nb: we leave existing sniffers untouched, even if their
-	// interface has gone down/away, otherwise join loop in
-	// listener thread might get messed up.
-	// nb: we could kill sniffer thread of interfaces that have gone away,
-	// so long as we leave sn list alone then join loop will be ok.  But then have
-	// have to recreate sniffer thread if interface comes back, so seems easier just to
-	// leave things alone.
-	
+	char temp_interfaces[MAX_INTS][STR_SIZE];
+	int n=0;
+	sniffers_t old_sn;
+	memcpy(&old_sn,sn,sizeof(sniffers_t));
+	memset(sn,0,sizeof(sniffers_t));
+	if ( (n=get_interfaces(temp_interfaces))<=0) {
+		return 0;
+	}
 	int i;
-	for (char** intf = temp_interfaces; *intf; intf++) {
-		for (i = 0; i<sn->num_pds; i++) {
-			if (strcmp(sn->interfaces[i], *intf)==0) break;
+	for (int j=0; j<n; j++) {
+		for (i = 0; i<old_sn.num_pds; i++) {
+			if (strcmp(old_sn.interfaces[i], temp_interfaces[j])==0) break;
 		}
-		if (i<sn->num_pds) {
+		if (i<old_sn.num_pds) {
 			// interface already has an existing sniffer
-			free(*intf);
+			sn->pds[sn->num_pds] = old_sn.pds[i];
+			strlcpy(sn->interfaces[sn->num_pds],old_sn.interfaces[i], STR_SIZE);
+			sn->fd[sn->num_pds] = old_sn.fd[i];
+			sn->datalink[sn->num_pds] = old_sn.datalink[i];
+			sn->offset[sn->num_pds] = old_sn.offset[i];
+			sn->num_pds++;
+			old_sn.pds[i] = NULL; // mark as copied
 			continue;
 		}
 		// a new interface has appeared
 		if (sn->num_pds >= MAX_INTS) {
-			WARN("in refresh_sniffers_list() have reached max number of interfaces\n");
-			free(*intf);
+			WARN("In refresh_sniffers_list() have reached max number of interfaces\n");
+			// TO DO: handle this situation better
 			continue;
 		}
-		sn->interfaces[sn->num_pds] = *intf;
-		/*char ebuf[PCAP_ERRBUF_SIZE];
-		if (pcap_lookupnet(*intf, &sn->net[sn->num_pds], &sn->mask[sn->num_pds], ebuf) == -1) {
-			WARN("Can't get netmask for interface %s: %s\n", *intf, ebuf);
-			sn->net[sn->num_pds] = 0;
-			sn->mask[sn->num_pds] = 0;
-		}*/
-		int res = setup_pd(*intf, &sn->pds[sn->num_pds]);
-		if (res < 0) {
-			WARN("Problem creating sniffer for interface %s\n",*intf);
-			free(*intf);
+		strlcpy(sn->interfaces[sn->num_pds],temp_interfaces[j],STR_SIZE);
+		int res = setup_pd(sn->interfaces[sn->num_pds], &sn->pds[sn->num_pds], filter_exp);
+		if ((res < 0)||(sn->pds[sn->num_pds]==NULL)) {
+			WARN("Problem creating sniffer for interface %s\n",sn->interfaces[sn->num_pds]);
 			continue;
 		}
 		sn->offset[sn->num_pds] = get_DLT_offset(sn->pds[sn->num_pds]);
 		if (sn->offset[sn->num_pds]<0) {
-			WARN("Problem getting datalink offset for interface %s\n",*intf);
+			WARN("Problem getting datalink offset for interface %s\n",sn->interfaces[sn->num_pds]);
 			pcap_close(sn->pds[sn->num_pds]);
-			free(*intf);
 			continue;
 		}
-		sn->needs_thread[sn->num_pds] = 1;
+		sn->datalink[sn->num_pds] = pcap_datalink(sn->pds[sn->num_pds]);
+		sn->fd[sn->num_pds] = pcap_get_selectable_fd(sn->pds[sn->num_pds]);
 		sn->num_pds++;
 	}
-	free(temp_interfaces);
-	
-	//struct timeval end; gettimeofday(&end, NULL);
-	//printf("refresh_sniffers_list() t=%f",(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+	for (int i = 0; i<old_sn.num_pds; i++) {
+		if (old_sn.pds[i]!=NULL) pcap_close(old_sn.pds[i]); // tidy up dead sniffers
+	}
+	/*struct timeval end; gettimeofday(&end, NULL);
+	printf("refresh_sniffers_list() t=%f",(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);*/
 
 	return sn->num_pds;
 }
 
-void sigusr1_c_handler(int signum) {
-	printf("signal %d received (SIGUSR1=%d), exiting sniffer thread.\n", signum, SIGUSR1);
-	pthread_exit(NULL);
-}
-
-void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
-	// send pkt to GUI
-	int i = *((int*)args);
-	DEBUG2("sniffed pkt on interface %s(%d), sending to GUI ... %d bytes\n", sn.interfaces[i], i, pkthdr->caplen);
-	const u_char* pkt_proper = pkt + sn.offset[i]; // look past link layer header to pkt itself
-	size_t pkt_proper_len = pkthdr->caplen - sn.offset[i];
+void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
+	// send pkt to GUI.
+	sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
+	printf("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), pkthdr->caplen);
+	const u_char* pkt_proper = pkt + args.sn->offset[args.i]; // look past link layer header to pkt itself
+	size_t pkt_proper_len = pkthdr->caplen - args.sn->offset[args.i];
 	
 	if (dtrace_active()) {
 		// when dtrace is running on receipt of a syn we signal to
 		// dtrace to look for connect() trace info, otherwise
 		// we pass the syn on to client.
-		//const int pcap_off = 14; // ethernet link layer offset
 		int version = (*pkt_proper)>>4; // get IP version
+		int proto;
 		u_char* nexth=NULL; // this will point to TCP/UDP header
 		if (version == 4) {
 			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt_proper;
+			proto=ip->ip_p;
 			nexth=((u_char *)ip + (ip->ip_hl * 4));
 		} else {
 			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt_proper;
+			proto=ip->ip_nh;
 			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
 		}
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
 		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
-		
 		if (syn) { signal_dtrace(); return; }
 	}
 	// before sending data, we recheck client when PID changes
@@ -295,23 +284,19 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 	}
 	pid = current_pid;
 	
-	// take a lock on p_sock2 so that messages from different
-	// threads don't get interleaved.  could use datagram/packet
-	// socket instead to achieve this (probably nicer).
-	pthread_mutex_lock(&pcap_mutex);
-	if (p_sock2<0) goto stop; // socket is closed, bail
+	if (p_sock2<0) {printf("p_sock2 prob\n");goto stop; } // socket is closed, bail
 	if (send(p_sock2, pkthdr, sizeof(struct pcap_pkthdr),0)<0) goto err;
+	if (send(p_sock2, &args.sn->datalink[args.i], sizeof(int),0)<0) goto err;
 	if (send(p_sock2, &pkt_proper_len, sizeof(size_t),0)<0) goto err;
 	if (send(p_sock2, pkt_proper, pkt_proper_len,0)<0) goto err;
-	pthread_mutex_lock(&pcap_mutex);
 	
 	// periodically log pcap stats ... we don't want to be seeing too many pkt drops
 	time_t stats_now = time(NULL);
 	if (stats_now-stats_time > 600) {
 		struct pcap_stat stats;
 		stats_time = stats_now;
-		pcap_stats(sn.pds[i], &stats);
-		INFO("pcap stats for intf %s (%d): recvd=%d, dropped=%d, if_dropped=%d\n",sn.interfaces[i],i,
+		pcap_stats(args.sn->pds[args.i], &stats);
+		INFO("pcap stats for intf %s (%d): recvd=%d, dropped=%d, if_dropped=%d\n",args.sn->interfaces[args.i],args.i,
 		stats.ps_recv,stats.ps_drop,stats.ps_ifdrop);
 		fflush(stdout);
 	}
@@ -328,45 +313,57 @@ stop:
 	// safer to exit them all when one fails, even though it will
 	// be flagged as a serious fault by GUI client if the client itself
 	// didn't close the connection.
-	pthread_mutex_unlock(&pcap_mutex);
-	pthread_mutex_lock(&sn.sniffer_mutex);
-	for (int j=0; j<sn.num_pds; j++) {
-		pthread_kill(sn.sniffer_threads[j],SIGUSR1);
-		// pcap_breakloop() doesn't work across threads, we need to use a signal.
-		// we'll try it anyway though, in case signal handler failed to install
-		pcap_breakloop(sn.pds[j]);
-	}
-	sn.is_sniffing = 0; // stop interface watcher starting up new threads
-	pthread_mutex_unlock(&sn.sniffer_mutex);
+	are_sniffing = 0; // flag sniffer_loop() to stop
+	pcap_breakloop(args.sn->pds[args.i]);
 }
 
-void *sniffer(void *arg)  {
-	// fire up pcap loop,this will exit when network connection fails/is broken.
-	// no need to take lock here as watcher only ever adds to pd list
-	int i = *((int*)arg);
-	struct bpf_program fp;		// the compiled filter expression
-	bpf_u_int32 mask = 0;
-	//nb: pcap_compile() is not thread safe before ver 1.8.0 of pcap library
-	if (pcap_compile(sn.pds[i], &fp, filter_exp, 0, mask) == -1) {
-		ERR("Couldn't parse pcap filter %s: %s\n", filter_exp, pcap_geterr(sn.pds[i]));
-		return NULL;
+void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp)  {
+	// pcap sniffer loop,this will exit when network connection fails/is broken.
+	sniffers_t sn; memset(&sn,0,sizeof(sn));
+	sniffer_callback_args_t args[MAX_INTS];
+	for (int i = 0; i<MAX_INTS; i++) {args[i].sn = &sn; args[i].i=i; }
+	INFO("Starting %s sniffers on: ", tag);
+	refresh_sniffers_list(&sn, filter_exp);
+	for (int i=0; i<sn.num_pds; i++) {
+		printf("%s ",sn.interfaces[i]);
 	}
-	if (pcap_setfilter(sn.pds[i], &fp) == -1) {
-		ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(sn.pds[i]));
-		return NULL;
+	printf("\n");
+	*running = 1;
+	while(*running) {
+		refresh_sniffers_list(&sn, filter_exp); // this call is quite cheap
+		struct timeval timeout;
+		timeout.tv_sec = 1; timeout.tv_usec = 0; // 1sec timeout for select()
+		fd_set readfds; FD_ZERO(&readfds);
+		int maxfd = 0;
+		for (int i=0; i<sn.num_pds; i++) {
+			if (sn.fd[i]>maxfd) maxfd = sn.fd[i];
+			FD_SET(sn.fd[i],&readfds);
+			pcap_setnonblock(sn.pds[i],1,NULL);
+		}
+		// nb: we won't block here indefinitely due to the timeout.  that way if a new
+		// interface comes up we'll definitely start to monitor it (otherwise without timeout
+		// we might block here indefinitely and never add new interface to select())
+		int res = select(maxfd+1, &readfds, NULL, NULL, &timeout);
+		if (res<0) {
+			WARN("%s sniffer loop select: %s (res=%d)", tag, strerror(errno), res);
+			continue;
+		}
+		for (int i=0; i<sn.num_pds; i++) {
+			if (FD_ISSET(sn.fd[i],&readfds)) {
+				
+				int n=pcap_dispatch(sn.pds[i], -1,	callback, (u_char*)&args[i]);
+				if (n == PCAP_ERROR) ERR("%s sniffer loop pcap_dispatch: %s\n", tag, pcap_geterr(sn.pds[i]));
+				//printf("got %d pkts for %d\n",n,i);
+			}
+			if (!*running) break;
+		}
 	}
-	// setup handler to exit thread on SIGUSR1 signal, use this to break out of
-	// pcap_loop()
-	struct sigaction action;
-	memset(&action, 0, sizeof(action));
-	sigemptyset(&action.sa_mask);
-	action.sa_handler = sigusr1_c_handler;
-	if (sigaction(SIGUSR1, &action, NULL)<0) WARN("Problem setting SIGUSR1 handler for sniffer: %s",strerror(errno));
-	// enter sniffer loop
-	if (pcap_loop(sn.pds[i], -1,	sniffer_callback, (u_char*)&i)==PCAP_ERROR){	// this blocks
-		ERR("sniffer pcap_loop: %s\n", pcap_geterr(sn.pds[i]));
+	INFO2("Exited %s sniffer loop.\n", tag);
+	//tidy up
+	for (int i=0; i<sn.num_pds; i++) {
+		if (sn.pds[i]) pcap_close(sn.pds[i]);
 	}
-	return NULL;
+
 }
 
 void *listener(void *ptr) {
@@ -395,124 +392,25 @@ void *listener(void *ptr) {
 
 		stats_time = time(NULL);
 		// start up a sniffer for each interface.
-		// take lock to stop watcher changing sn.num_pds
-		pthread_mutex_lock(&sn.sniffer_mutex);
-		sn.is_sniffing = 1;
-		int int_num[MAX_INTS];
-		refresh_sniffers_list(&sn);
-		if (sn.num_pds>0) {
-			INFO("Starting pcap sniffers: ");
-			for (int i = 0; i<sn.num_pds; i++) {
-				printf("%s ", sn.interfaces[i]);
-				int_num[i] = i;
-				pthread_create(&sn.sniffer_threads[i], NULL, sniffer, &int_num);
-				sn.needs_thread[i]=0;
-			}
-			printf("\n");
-			pthread_mutex_unlock(&sn.sniffer_mutex);
-		} else {
-			// no interfaces are up, sit here and wait -- interface_watcher
-			// thread will keep an eye out for changes in interface status.
-			// nb: if interfaces go down once threads are started it ok,
-			// pcap keeps listening and reactivates when the interface
-			// comes back up, so will only exit join upon an error in one
-			// of the threads -- only likely cause of this is GUI client
-			// closing connection i.e. going away.
+		if (get_interfaces(NULL) == 0) {
+			// no interfaces are up, sit here and wait.
 			// polling loop here is easy but seems a bit clunky ...
 			INFO("No interfaces up, pcap loop waiting ...\n");
-			while (sn.num_pds==0) {
-				pthread_mutex_unlock(&sn.sniffer_mutex);
+			while (get_interfaces(NULL)==0) {
 				sleep(1);
-				pthread_mutex_lock(&sn.sniffer_mutex);
 			}
-			pthread_mutex_unlock(&sn.sniffer_mutex);
-			INFO("Interfaces up, pcap loop continuing to join\n");
+			INFO("Interfaces up, pcap loop continuing.\n");
 		}
-		// and now wait here until all the sniffers finish.
-		// nb: interface_watcher thread only adds to our list of sniffers,
-		// it never deletes, so this join loop is safe.
-		pthread_mutex_lock(&sn.sniffer_mutex);
-		for (int i = 0; i<sn.num_pds; i++) {
-			pthread_mutex_unlock(&sn.sniffer_mutex);
-			pthread_join(sn.sniffer_threads[i], NULL);
-			pthread_mutex_lock(&sn.sniffer_mutex);
-		}
-		sn.is_sniffing = 0; // stop watcher starting new threads
-		free_sniffers(&sn);
-		pthread_mutex_unlock(&sn.sniffer_mutex);
+		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp);
 		close(p_sock2);
 	}
 	return NULL;
 }
 
-void *interface_watcher(void *ptr) {
-	int prev_num_pds=0;
-	for(;;) {
-		// check for changes to the set of available interfaces
-		// (wifi has come up, a usb adapter might have been
-		// added/removed, a VPN tun might have been added/removed etc)
-		// we leave already running sniffers alone, as ok if
-		// interface is down, but start new threads as needed.
-
-		// take lock as refresh_sniffers_list() might change sn.num_pds
-		pthread_mutex_lock(&sn.sniffer_mutex);
-		if (sn.is_sniffing) { // active just now
-			refresh_sniffers_list(&sn);
-			if (sn.num_pds != prev_num_pds) INFO("interface watcher: ");
-			// start up a sniffer for any new interfaces
-			if (sn.num_pds == 0) {
-				if (sn.num_pds != prev_num_pds) printf("no interfaces");
-			}
-			int int_num[MAX_INTS];
-			for (int i = 0; i<sn.num_pds; i++) {
-				if (sn.num_pds != prev_num_pds) printf("%s ", sn.interfaces[i]);
-				if (!sn.needs_thread[i]) continue;
-				if (sn.num_pds != prev_num_pds) printf("(new) ");
-				int_num[i] = i;
-				pthread_create(&sn.sniffer_threads[i], NULL, sniffer, &int_num);
-				sn.needs_thread[i] = 0;
-			}
-			if (sn.num_pds != prev_num_pds) printf("\n");
-			prev_num_pds = sn.num_pds;
-		}
-		pthread_mutex_unlock(&sn.sniffer_mutex);
-		// we poll interface state as doesn't seem to be any nicer way
-		// to do it (no kqueue API on macos for network devices).
-		struct timespec t;
-		clock_gettime(CLOCK_REALTIME, &t);
-		t.tv_sec += PCAP_REFRESH_INTERVAL;
-		pthread_mutex_lock(&watcher_mutex);
-		int res = 0;
-		while ((wakeup==0) && (res != ETIMEDOUT)) {
-			res = pthread_cond_timedwait(&watcher_cond, &watcher_mutex, &t);
-			if ((res!=0) && (res!=ETIMEDOUT)) {
-				WARN("interface_watcher() cond error: %s", strerror(errno));
-			}
-		}
-		wakeup = 0;
-		pthread_mutex_unlock(&watcher_mutex);
-		//sleep(PCAP_REFRESH_INTERVAL);
-	}
-}
-
-void signal_interface_watcher() {
-	// ask watcher to refresh pid_list
-	pthread_mutex_lock(&watcher_mutex);
-	wakeup = 1;
-	pthread_cond_signal(&watcher_cond);
-	pthread_mutex_unlock(&watcher_mutex);
-	//printf("signalled watcher\n");
-}
-
 void start_listener() {
-	sn.is_sniffing = 0; // initialise to idle state
-	// watch available interfaces and maintain list of
-	// sniffers
-	pthread_create(&interface_watcher_thread, NULL, interface_watcher, NULL);
-	INFO("Interface watcher started\n");
 	// start listening for requests to receive pcap info
 	p_sock = bind_to_port(PCAP_PORT,2);
-	INFO("Now listening on localhost port %d (%s, if version <1.8.0 then pcap_compile() is not thread safe!)\n", PCAP_PORT, pcap_lib_version());
+	INFO("Now listening on localhost port %d (%s)\n", PCAP_PORT, pcap_lib_version());
 	pthread_create(&listener_thread, NULL, listener, NULL);
 }
 

@@ -314,3 +314,31 @@ char* get_file_modify_time(const char *path) {
     strftime(date_temp,STR_SIZE,"%d %b %H:%M:%S %Y",localtime(&attr.st_mtime));
     return date_temp;
 }
+
+int is_ppp(int af, struct in6_addr *addr2) {
+	struct ifaddrs *ifap;
+	if (getifaddrs(&ifap)<0) {
+		ERR("Couldn't get list of interfaces from getifaddrs(): %s", strerror(errno));
+		return 0;
+	}
+	struct ifaddrs *dev;
+	for(dev=ifap; dev; dev=dev->ifa_next) {
+		DEBUG2("interface %s ...",dev->ifa_name);
+		struct sockaddr *addr = dev->ifa_addr;
+		if (af != addr->sa_family) continue;
+		if (af == AF_INET) {
+			if (((struct sockaddr_in*)addr)->sin_addr.s_addr != ((struct in_addr*)addr2)->s_addr)
+				continue;
+		} else {
+			if (memcmp(&((struct sockaddr_in6*)addr)->sin6_addr.s6_addr, &addr2->s6_addr, 16)!=0) continue;
+		}
+		// have found interface with matching address
+		if (dev-> ifa_flags & IFF_UP)
+			return ((dev-> ifa_flags & IFF_POINTOPOINT) != 0);
+		else
+			return 0;
+	}
+	freeifaddrs(ifap);
+	return 0;
+}
+

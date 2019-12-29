@@ -5,9 +5,10 @@ short term:
 
 longer term:
 - use of network extensions, only for catalina onwards though
-- sandbox currently prevents calls to proc_info.  until that's fixed we can't run app inside sandbox
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - compress log samples uploaded to server?
+- add socks interface that is filtered.  can be interposed between ssh tunnel etc.  what about filtering VPNs ?
 
 
 
+Sun Dec 29 16:30:00 2019: signal 1 (SIGHUP=1) received, reloading logs.
