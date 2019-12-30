@@ -333,8 +333,10 @@ int is_ppp(int af, struct in6_addr *addr2) {
 			if (memcmp(&((struct sockaddr_in6*)addr)->sin6_addr.s6_addr, &addr2->s6_addr, 16)!=0) continue;
 		}
 		// have found interface with matching address
-		if (dev-> ifa_flags & IFF_UP)
-			return ((dev-> ifa_flags & IFF_POINTOPOINT) != 0);
+		u_int flags = dev-> ifa_flags;
+		freeifaddrs(ifap);
+		if (flags & IFF_UP)
+			return ((flags & IFF_POINTOPOINT) != 0);
 		else
 			return 0;
 	}

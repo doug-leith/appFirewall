@@ -1,14 +1,11 @@
 TO DO
 
 short term:
-- VPN testing.  does catcher go crazy with vpn? no route to host etc
+- figure out why sending RSTs to self fails with openvpn tun
 
 longer term:
 - use of network extensions, only for catalina onwards though
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - compress log samples uploaded to server?
-- add socks interface that is filtered.  can be interposed between ssh tunnel etc.  what about filtering VPNs ?
+- add socks interface that is filtered.  can be interposed between ssh tunnel etc.
 
-
-
-Sun Dec 29 16:30:00 2019: signal 1 (SIGHUP=1) received, reloading logs.

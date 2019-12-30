@@ -7,6 +7,8 @@
 
 #include "send_rst.h"
 
+// nice info on raw sockets: https://sock-raw.org/papers/sock_raw
+
 //globals
 static int sock, s2;
 static libnet_data_t ld_rst;
