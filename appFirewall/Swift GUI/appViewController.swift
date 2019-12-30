@@ -73,9 +73,14 @@ class appViewController: NSViewController {
 		let storyboard = NSStoryboard(name:"Main", bundle:nil)
 		let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
 		popover.contentViewController = controller
+		/*let curSize = controller.view.frame.size
+		let size2 = NSSize(width: curSize.width, height: CGFloat.greatestFiniteMagnitude)
+		let frame = msg.boundingRect(with: size2, options: .usesLineFragmentOrigin)
+		let size = CGSize(width: ceil(frame.size.width)+5, height: ceil(frame.size.height) + 10)
+		popover.contentSize = size*/
 		popover.contentSize = controller.view.frame.size
 		popover.behavior = .transient; popover.animates = false
-		print("popover show")
+
 		popover.delegate = self // so we can catch events
 		popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
 		controller.message(msg:msg)
@@ -194,23 +199,29 @@ class appViewController: NSViewController {
 		appTableView?.enumerateAvailableRowViews(updateTable)
 	}
 	
-	func getTip(ip: String, domain: String, name: String, port: String, blocked_log: Int, domains: String)->String {
+	func getTip(srcIP: String = "", ppp: Bool = false, ip: String, domain: String, name: String, port: String, blocked_log: Int, domains: String)->String {
 		var tip: String = ""
 		var domain_ = domain
 		if (domain.count == 0) {
 			domain_ = ip
 		}
+		var maybe = "blocked"
+		var vpn: String = ""
+		if (ppp) {
+			maybe = "marked as blocked"
+			vpn = "NB: Filtering of VPN connections is currently unreliable.\n"
+		}
 		if (blocked_log == 0) {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was not blocked."
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was not blocked. "
 		} else if (blocked_log == 1) {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was blocked for application '"+name+"' by user black list."
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for application '"+name+"' by user black list. "+vpn
 		} else if (blocked_log == 2) {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was blocked for all applications by hosts file."
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for all applications by hosts file. "+vpn
 		} else {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was blocked for application '"+name+"' by hosts file."
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for application '"+name+"' by hosts file. "+vpn
 		}
 		// add some info on whether IP is shared by multiple domains
-		tip += " Domains associated with this IP address: "+domains
+		tip += "Domains associated with this IP address: "+domains
 		return tip
 	}
 	

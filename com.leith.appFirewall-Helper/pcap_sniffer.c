@@ -253,7 +253,7 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 	// send pkt to GUI.
 	sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
-	printf("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), pkthdr->caplen);
+	DEBUG2("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), pkthdr->caplen);
 	const u_char* pkt_proper = pkt + args.sn->offset[args.i]; // look past link layer header to pkt itself
 	size_t pkt_proper_len = pkthdr->caplen - args.sn->offset[args.i];
 	
@@ -262,15 +262,15 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		// dtrace to look for connect() trace info, otherwise
 		// we pass the syn on to client.
 		int version = (*pkt_proper)>>4; // get IP version
-		int proto;
+		//int proto;
 		u_char* nexth=NULL; // this will point to TCP/UDP header
 		if (version == 4) {
 			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt_proper;
-			proto=ip->ip_p;
+			//proto=ip->ip_p;
 			nexth=((u_char *)ip + (ip->ip_hl * 4));
 		} else {
 			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt_proper;
-			proto=ip->ip_nh;
+			//proto=ip->ip_nh;
 			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
 		}
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
@@ -284,7 +284,7 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	}
 	pid = current_pid;
 	
-	if (p_sock2<0) {printf("p_sock2 prob\n");goto stop; } // socket is closed, bail
+	if (p_sock2<0) {WARN("pcap sned p_sock2<0\n"); goto stop; } // socket is closed, bail
 	if (send(p_sock2, pkthdr, sizeof(struct pcap_pkthdr),0)<0) goto err;
 	if (send(p_sock2, &args.sn->datalink[args.i], sizeof(int),0)<0) goto err;
 	if (send(p_sock2, &pkt_proper_len, sizeof(size_t),0)<0) goto err;

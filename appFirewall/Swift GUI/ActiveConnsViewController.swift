@@ -64,6 +64,7 @@ class ActiveConnsViewController: appViewController {
 		let hashStr = String(cString:c_ptr!)
 		free(c_ptr)
 		let ip = String(cString: &item.dst_addr_name.0)
+		let src = String(cString:&item.src_addr_name.0)
 		var domain = String(cString: &bl_item.domain.0)
 		if (domain.count == 0) { domain = ip }
 		
@@ -75,7 +76,8 @@ class ActiveConnsViewController: appViewController {
 		} else {
 			var blocked_log = blocked
 			if (white==1) { blocked_log = 0; }
-			tip = getTip(ip: ip, domain: domain, name: String(cString: &bl_item.name.0), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
+			let ppp: Bool = (is_ppp(item.raw.af,&item.raw.src_addr)>0) || (is_ppp(item.raw.af,&item.raw.dst_addr)>0)
+			tip = getTip(srcIP: src, ppp: ppp, ip: ip, domain: domain, name: String(cString: &bl_item.name.0), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
 		}
 		
 		if tableColumn == tableView.tableColumns[0] {
