@@ -76,7 +76,7 @@ class ActiveConnsViewController: appViewController {
 		} else {
 			var blocked_log = blocked
 			if (white==1) { blocked_log = 0; }
-			let ppp: Bool = (is_ppp(item.raw.af,&item.raw.src_addr)>0) || (is_ppp(item.raw.af,&item.raw.dst_addr)>0)
+			let ppp = is_ppp(item.raw.af,&item.raw.src_addr,&item.raw.dst_addr)
 			tip = getTip(srcIP: src, ppp: ppp, ip: ip, domain: domain, name: String(cString: &bl_item.name.0), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
 		}
 		

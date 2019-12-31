@@ -199,7 +199,7 @@ class appViewController: NSViewController {
 		appTableView?.enumerateAvailableRowViews(updateTable)
 	}
 	
-	func getTip(srcIP: String = "", ppp: Bool = false, ip: String, domain: String, name: String, port: String, blocked_log: Int, domains: String)->String {
+	func getTip(srcIP: String = "", ppp: Int32 = 0, ip: String, domain: String, name: String, port: String, blocked_log: Int, domains: String)->String {
 		var tip: String = ""
 		var domain_ = domain
 		if (domain.count == 0) {
@@ -207,9 +207,12 @@ class appViewController: NSViewController {
 		}
 		var maybe = "blocked"
 		var vpn: String = ""
-		if (ppp) {
+		if (ppp>0) {
 			maybe = "marked as blocked"
 			vpn = "NB: Filtering of VPN connections is currently unreliable.\n"
+		} else if (ppp<0) {
+			maybe = "marked as blocked"
+			vpn = "Interface has gone down, but connection hasn't noticed yet.\n"
 		}
 		if (blocked_log == 0) {
 			tip = "This connection to "+domain_+" ("+ip+":"+port+") was not blocked. "

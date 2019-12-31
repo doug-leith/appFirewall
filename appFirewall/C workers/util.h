@@ -72,7 +72,7 @@ int robust_inet_pton(int *af, const char * restrict src, void * restrict dst);
 const char* robust_inet_ntop(int *af, const void * restrict src, char * restrict dst, socklen_t size);
 void set_recv_timeout(int sockfd, int timeout);
 void set_snd_timeout(int sockfd, int timeout);
-int is_ppp(int af, struct in6_addr *addr2);
+int is_ppp(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr);
 
 char *trimwhitespace(char *str);
 void redirect_stdout(const char* appLog);

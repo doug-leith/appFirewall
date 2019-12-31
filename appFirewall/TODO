@@ -1,7 +1,7 @@
 TO DO
 
 short term:
-- figure out why sending RSTs to self fails with openvpn tun
+- figure out why sending RSTs to self fails with openvpn tun.  openvpn uses weird routing setup, which might be the problem.
 
 longer term:
 - use of network extensions, only for catalina onwards though

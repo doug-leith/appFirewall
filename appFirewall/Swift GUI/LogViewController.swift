@@ -92,7 +92,7 @@ class LogViewController: appViewController {
 		let hashStr = String(cString:c_ptr!)
 		free(c_ptr)
 
-		let ppp: Bool = (is_ppp(item.raw.af,&item.raw.src_addr)>0) || (is_ppp(item.raw.af,&item.raw.dst_addr)>0)
+		let ppp = is_ppp(item.raw.af,&item.raw.src_addr,&item.raw.dst_addr)
 		let tip = getTip(ppp:ppp, ip: String(cString:get_filter_log_addr_name(Int32(r))), domain: String(cString: &item.bl_item.domain.0), name: String(cString: &item.bl_item.name.0), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
 
 		var cellIdentifier: String = ""

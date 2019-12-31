@@ -315,12 +315,7 @@ char* get_file_modify_time(const char *path) {
     return date_temp;
 }
 
-int is_ppp(int af, struct in6_addr *addr2) {
-	struct ifaddrs *ifap;
-	if (getifaddrs(&ifap)<0) {
-		ERR("Couldn't get list of interfaces from getifaddrs(): %s", strerror(errno));
-		return 0;
-	}
+int find_if(struct ifaddrs *ifap, int af, struct in6_addr *addr2) {
 	struct ifaddrs *dev;
 	for(dev=ifap; dev; dev=dev->ifa_next) {
 		DEBUG2("interface %s ...",dev->ifa_name);
@@ -334,13 +329,31 @@ int is_ppp(int af, struct in6_addr *addr2) {
 		}
 		// have found interface with matching address
 		u_int flags = dev-> ifa_flags;
-		freeifaddrs(ifap);
 		if (flags & IFF_UP)
 			return ((flags & IFF_POINTOPOINT) != 0);
 		else
-			return 0;
+			return -1;  // interface is down
 	}
+	return -2; // interface not found, its a remote address.
+}
+
+int is_ppp(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr) {
+	struct ifaddrs *ifap;
+	if (getifaddrs(&ifap)<0) {
+		ERR("Couldn't get list of interfaces from getifaddrs(): %s", strerror(errno));
+		return 0;
+	}
+	int res1,res2;
+	res1 = find_if(ifap, af, src_addr);
+	if (res1>=0) { // found matching interface, return PPP status
+		freeifaddrs(ifap);
+		return res1;
+	}
+	res2 = find_if(ifap, af, dst_addr);
 	freeifaddrs(ifap);
-	return 0;
+	if (res2>=0) { // found matching interface, return PPP status
+		return res2;
+	}
+	return -1; // interface is down or has gone away
 }
 

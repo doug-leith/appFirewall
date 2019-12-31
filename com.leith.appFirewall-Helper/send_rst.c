@@ -9,6 +9,16 @@
 
 // nice info on raw sockets: https://sock-raw.org/papers/sock_raw
 
+/*
+ SO_DONTROUTE indicates that outgoing messages should bypass the standard
+ routing facilities.  Instead, messages are	directed to the	appropriate
+ network interface according to the	network	portion	of the destination ad-
+ dress.
+ 
+ from freebsd source:
+ #define IP_ROUTETOIF   SO_DONTROUTE
+ */
+ 
 //globals
 static int sock, s2;
 static libnet_data_t ld_rst;
@@ -56,6 +66,12 @@ void init_libnet(libnet_data_t *ld) {
 	if (setsockopt(ld->l4_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
 		WARN("libnet setsockopt IP_HDRINCL failed, won't be able to send TCP RST packets to self: %s\n", strerror(errno));
 	}
+	/*
+	// thought this might help with VPNs, but no use
+	n=1;
+	if (setsockopt(ld->l4_hdr->fd, SOL_SOCKET, SO_DONTROUTE, &n, sizeof(n))<0) {
+		WARN("libnet setsockopt SO_DONTROUTE failed: %s\n", strerror(errno));
+	}*/
 	
 	ld->l6_hdr=libnet_init(LIBNET_RAW6,NULL,err_buf);
 	if (ld->l6_hdr==NULL) {
