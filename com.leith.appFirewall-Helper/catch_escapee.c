@@ -20,9 +20,6 @@
 static pthread_t catcher_thread; // handle to catcher thread
 static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
-static pthread_cond_t catcher_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t catcher_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
-static int wakeup = 0;
 static int catcher_sniffing = 0;
 static libnet_data_t ld, ld_prompt;
 
@@ -104,8 +101,6 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t port, conn_raw_t *cr
 
 void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 
-	if (!catcher_sniffing) return;
-	
 	// we got a pkt, let's process it ...
 	uint16_t target_dport = a.target_dport;
 	// should take lock on a.pkt_count, but its just for stats
@@ -176,27 +171,32 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	snd_rst(0,&cr,0,&ld);
 }
 
+void sigusr1_handler(int signum) {
+	// use signal to force exit of sniffer_loop
+	pthread_exit(NULL);
+}
+
 void *catcher(void *ptr) {
 	char* filter = ptr;
-	for (;;) {
-		pthread_mutex_lock(&catcher_mutex);
-		// release mutex and wait for signal to wake up
-		while (wakeup==0) {
-			if (pthread_cond_wait(&catcher_cond, &catcher_mutex)!=0) {
-				WARN("catcher_watcher() cond error: %s", strerror(errno));
-			}
-		}
-		wakeup=0;
-		pthread_mutex_unlock(&catcher_mutex);
-		
-		// fire up sniffers on each interface
-		if (get_interfaces(NULL) == 0) {
-			// shouldn't happen since we've already checked for this, so just being careful
-			WARN("No valid interfaces for catcher to sniff\n");
-		} else {
-			sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter);
-		}
+
+	// setup signal handler
+	struct sigaction action;
+	memset(&action, 0, sizeof(action));
+	sigemptyset(&action.sa_mask);
+	action.sa_handler = sigusr1_handler;
+	if (sigaction(SIGUSR1, &action, NULL)<0) {
+		WARN("Problem setting SIGUSR1 handler in catcher: %s",strerror(errno));
+		return NULL;
 	}
+		
+	// fire up sniffers on each interface
+	if (get_interfaces(NULL) == 0) {
+		// shouldn't happen since we've already checked for this, so just being careful
+		WARN("No valid interfaces for catcher to sniff\n");
+	} else {
+		sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter);
+	}
+	return NULL;
 }
 
 void *catcher_listener(void *ptr) {
@@ -207,9 +207,7 @@ void *catcher_listener(void *ptr) {
 	init_libnet(&ld);
 	init_libnet(&ld_prompt);
 	memset(&a,0,sizeof(catcher_callback_args_t));
-	wakeup=0;
 	char filter[STR_SIZE];
-	pthread_create(&catcher_thread, NULL, catcher, filter);
 	int prev_pid = -1;
 	for(;;) {
 		INFO("Waiting to accept connection on localhost port %u (catch_escapee) ...\n", CATCHER_PORT);
@@ -276,14 +274,9 @@ void *catcher_listener(void *ptr) {
 			continue;
 		}
 		sprintf(filter,"tcp and host %s and (port %u or port %u) and (tcp[tcpflags]&tcp-rst==0)", dn, c.sport, c.dport);
-		//restart pcap listener thread
+		//start pcap listener thread
 		a.target_dport = target_dport; a.pkt_count=0;
-		printf("signalling catcher\n");
-		pthread_mutex_lock(&catcher_mutex);
-		wakeup = 1;
-		pthread_cond_signal(&catcher_cond);
-		pthread_mutex_unlock(&catcher_mutex);
-		printf("signalled\n");
+		pthread_create(&catcher_thread, NULL, catcher, filter);
 		// if connection is actively sending pkts then catcher thread will sniff
 		// them and use the info to send RSTs.
 		// but if the connection is side the catcher thread has no packets to work
@@ -323,9 +316,6 @@ void *catcher_listener(void *ptr) {
 					ok=1;
 					goto done; // connection has gone away
 				}
-				// suspend, so that target connection gets a chance to react to
-				// our RSTs - is this necessary ?
-				//usleep(WAITTIME);
 				n = tries_per_round; // let's try a bit harder !
 			}
 		}
@@ -339,14 +329,17 @@ void *catcher_listener(void *ptr) {
 		//fcntl(c_sock2, F_SETFL, O_NONBLOCK); // make non-blocking
 		//printf("send c_sock2\n");
 		send(c_sock2, &ok, 1, 0);
-		// stop pcap listeners
-		catcher_sniffing = 0;
+		// stop pcap listeners.
+		pthread_kill(catcher_thread,SIGUSR1);
+		pthread_join(catcher_thread,NULL);
 		// and tidy up
 		close(c_sock2);
 		continue;
 	err:
 		INFO("Connection on port %u for %d %s ended (catch_escapee): %s\n", prev_pid, CATCHER_PORT, dn, strerror(errno));
-		catcher_sniffing = 0;
+		// stop pcap listeners.
+		pthread_kill(catcher_thread,SIGUSR1);
+		pthread_join(catcher_thread,NULL);
 		close(c_sock2);
 	}
 	return NULL;

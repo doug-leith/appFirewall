@@ -20,7 +20,7 @@
 #define PCAP_PORT 3
 #define MAX_INTS 5 // max number of interfaces to monitor
 #define STR_SIZE 1024
-#define PCAP_REFRESH_INTERVAL 5 // check if interfaces have changed
+#define SNIFFER_LOOP_TIMEOUT 1 // 1 sec
 
 typedef struct sniffers_t {
 	pcap_t *pds[MAX_INTS];  // pcap listener
