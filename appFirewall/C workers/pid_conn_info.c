@@ -699,7 +699,11 @@ void *catch_escapee(void *ptr) {
 	signal(SIGPIPE, SIG_IGN);
 
 	ssize_t res;
+	int vpn = is_ppp(e->raw.af, &e->raw.src_addr, &e->raw.dst_addr);
+	if (vpn < 0) {WARN("escapee: interface down/gone away\n"); goto stop;}
+	uint8_t vpn_bool = (vpn>0);
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	if ( (res=send(c_sock, &vpn_bool, sizeof(uint8_t),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->pid, sizeof(int),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.af, sizeof(int),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.dst_addr, sizeof(struct in6_addr),0) )<=0) goto err;
@@ -735,6 +739,7 @@ void *catch_escapee(void *ptr) {
 	
 err:
 	WARN("write escapee: %s", strerror(errno));
+stop:
 	close(c_sock);
 	TAKE_LOCK(&escapee_mutex,"catch_escapee #3");
 	del_item(&escapee_list,e);

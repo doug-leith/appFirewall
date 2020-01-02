@@ -22,6 +22,7 @@ static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
 static int catcher_sniffing = 0;
 static libnet_data_t ld, ld_prompt;
+sniffers_t sn_esc;
 
 typedef struct catcher_callback_args_t {
 	uint16_t target_dport;
@@ -101,6 +102,8 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t port, conn_raw_t *cr
 
 void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 
+	if (!catcher_sniffing) return;
+	
 	// we got a pkt, let's process it ...
 	uint16_t target_dport = a.target_dport;
 	// should take lock on a.pkt_count, but its just for stats
@@ -173,28 +176,29 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 
 void sigusr1_handler(int signum) {
 	// use signal to force exit of sniffer_loop
-	pthread_exit(NULL);
+	catcher_sniffing = 0;
+	//pthread_exit(NULL); // occasionally get fault if call this from signal handler
+}
+
+void stop_catcher() {
+	pthread_kill(catcher_thread,SIGUSR1);
+	//printf("catcher join %d ...\n", catcher_sniffing);
+	pthread_join(catcher_thread,NULL);
+	//printf("catcher joined\n");
+	for (int i=0; i<sn_esc.num_pds; i++) {
+		if (sn_esc.pds[i]) pcap_close(sn_esc.pds[i]);
+		sn_esc.pds[i] = NULL;
+	}
 }
 
 void *catcher(void *ptr) {
 	char* filter = ptr;
-
-	// setup signal handler
-	struct sigaction action;
-	memset(&action, 0, sizeof(action));
-	sigemptyset(&action.sa_mask);
-	action.sa_handler = sigusr1_handler;
-	if (sigaction(SIGUSR1, &action, NULL)<0) {
-		WARN("Problem setting SIGUSR1 handler in catcher: %s",strerror(errno));
-		return NULL;
-	}
-		
 	// fire up sniffers on each interface
 	if (get_interfaces(NULL) == 0) {
 		// shouldn't happen since we've already checked for this, so just being careful
 		WARN("No valid interfaces for catcher to sniff\n");
 	} else {
-		sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter);
+		sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter, &sn_esc);
 	}
 	return NULL;
 }
@@ -209,6 +213,18 @@ void *catcher_listener(void *ptr) {
 	memset(&a,0,sizeof(catcher_callback_args_t));
 	char filter[STR_SIZE];
 	int prev_pid = -1;
+	
+	// setup signal handler for stopping catcher thread
+	struct sigaction action;
+	memset(&action, 0, sizeof(action));
+	sigemptyset(&action.sa_mask);
+	//action.sa_flags = SA_RESTART;
+	action.sa_handler = sigusr1_handler;
+	if (sigaction(SIGUSR1, &action, NULL)<0) {
+		WARN("Problem setting SIGUSR1 handler in catcher: %s",strerror(errno));
+		return NULL;
+	}
+	
 	for(;;) {
 		INFO("Waiting to accept connection on localhost port %u (catch_escapee) ...\n", CATCHER_PORT);
 		if ((c_sock2 = accept(c_sock, (struct sockaddr *)&remote, &len)) <= 0) {
@@ -229,12 +245,13 @@ void *catcher_listener(void *ptr) {
 		struct timeval start; gettimeofday(&start, NULL);
 		int8_t ok=0;
 
-		ssize_t res; int af, pid;
+		ssize_t res; int af, pid; uint8_t vpn;
 		struct in6_addr dst;
 		memset(&dst,0,sizeof(struct in6_addr));
 		uint16_t target_dport=0;
 		uint32_t ack;
 		set_recv_timeout(c_sock2, RECV_TIMEOUT); // to be safe, will eventually timeout of read
+		if ( (res=readn(c_sock2, &vpn, sizeof(uint8_t)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &pid, sizeof(int)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &af, sizeof(int)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &dst, sizeof(struct in6_addr)) )<=0) goto err;
@@ -276,6 +293,7 @@ void *catcher_listener(void *ptr) {
 		sprintf(filter,"tcp and host %s and (port %u or port %u) and (tcp[tcpflags]&tcp-rst==0)", dn, c.sport, c.dport);
 		//start pcap listener thread
 		a.target_dport = target_dport; a.pkt_count=0;
+		catcher_sniffing = 1;
 		pthread_create(&catcher_thread, NULL, catcher, filter);
 		// if connection is actively sending pkts then catcher thread will sniff
 		// them and use the info to send RSTs.
@@ -292,7 +310,7 @@ void *catcher_listener(void *ptr) {
 		// stop.
 		//#define WAITTIME 1000 // 1ms
 		#define TRIES 33 // 32 plus 1 for initial probe with only INIT_RSTs rst's
-		#define INIT_RSTs 5
+		#define INIT_RSTs 10
 		#define MAXSEQ 0xFFFFFFFF // 2^32-1
 		uint32_t tries_per_round = MAXSEQ/win/(TRIES-1);
 		int n=INIT_RSTs;  // initial number of RSTs, enough if seq is right
@@ -300,14 +318,22 @@ void *catcher_listener(void *ptr) {
 		// that way if the window size is large enough we catch it on
 		// first round i.e. quicker, otherwise on second round
 		printf("starting RST loop\n");
+		int first = 1;
 		for (int k=0; k<2; k++) {
 			c.ack = ack + k*win/2;
 			for (int i=0; i<TRIES; i++) {
 				for (int j=0; j<n; j++){
-					// just send RSTs to self, so don't flood internet
-					int res = snd_rst(0,&c,1,&ld_prompt);
+					if (first) {
+						// for first round of RSTs we're more aggressive and also send to remote
+						//res = snd_rst(0,&c,0,&ld_prompt);
+						res = snd_rst(0,&c,1,&ld_prompt);
+						c.ack += win/2;
+					} else {
+						// just send RSTs to self, so don't flood internet
+						res = snd_rst(0,&c,1,&ld_prompt);
+						c.ack += win;
+					}
 					if (res<0) goto done; // problem
-					c.ack += win; // ack might be stale, so advance it by a few windows
 				}
 				conn_raw_t c_temp;
 				if (find_fds(pid, af, dst, target_dport, &c_temp)<0) {
@@ -316,6 +342,8 @@ void *catcher_listener(void *ptr) {
 					ok=1;
 					goto done; // connection has gone away
 				}
+				if (vpn) goto done;
+				first = 0;
 				n = tries_per_round; // let's try a bit harder !
 			}
 		}
@@ -327,19 +355,16 @@ void *catcher_listener(void *ptr) {
 		}
 		// tell GUI we're done ...
 		//fcntl(c_sock2, F_SETFL, O_NONBLOCK); // make non-blocking
-		//printf("send c_sock2\n");
 		send(c_sock2, &ok, 1, 0);
 		// stop pcap listeners.
-		pthread_kill(catcher_thread,SIGUSR1);
-		pthread_join(catcher_thread,NULL);
+		stop_catcher();
 		// and tidy up
 		close(c_sock2);
 		continue;
 	err:
 		INFO("Connection on port %u for %d %s ended (catch_escapee): %s\n", prev_pid, CATCHER_PORT, dn, strerror(errno));
 		// stop pcap listeners.
-		pthread_kill(catcher_thread,SIGUSR1);
-		pthread_join(catcher_thread,NULL);
+		stop_catcher();
 		close(c_sock2);
 	}
 	return NULL;

@@ -317,53 +317,59 @@ stop:
 	pcap_breakloop(args.sn->pds[args.i]);
 }
 
-void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp)  {
+void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn)  {
 	// pcap sniffer loop,this will exit when network connection fails/is broken.
-	sniffers_t sn; memset(&sn,0,sizeof(sn));
+	sniffers_t sn_local;
+	if (sn == NULL) sn=&sn_local;
+	memset(sn,0,sizeof(sniffers_t));
 	sniffer_callback_args_t args[MAX_INTS];
-	for (int i = 0; i<MAX_INTS; i++) {args[i].sn = &sn; args[i].i=i; }
+	for (int i = 0; i<MAX_INTS; i++) {args[i].sn = sn; args[i].i=i; }
 	INFO("Starting %s sniffers on: ", tag);
-	refresh_sniffers_list(&sn, filter_exp);
-	for (int i=0; i<sn.num_pds; i++) {
-		printf("%s ",sn.interfaces[i]);
+	refresh_sniffers_list(sn, filter_exp);
+	for (int i=0; i<sn->num_pds; i++) {
+		printf("%s ",sn->interfaces[i]);
 	}
 	printf("\n");
-	*running = 1;
+	//*running = 1;
 	while(*running) {
-		refresh_sniffers_list(&sn, filter_exp); // this call is quite cheap
+		refresh_sniffers_list(sn, filter_exp); // this call is quite cheap
 		struct timeval timeout;
 		timeout.tv_sec = SNIFFER_LOOP_TIMEOUT; timeout.tv_usec = 0; // timeout for select()
 		fd_set readfds; FD_ZERO(&readfds);
 		int maxfd = 0;
-		for (int i=0; i<sn.num_pds; i++) {
-			if (sn.fd[i]>maxfd) maxfd = sn.fd[i];
-			FD_SET(sn.fd[i],&readfds);
-			pcap_setnonblock(sn.pds[i],1,NULL);
+		for (int i=0; i<sn->num_pds; i++) {
+			if (sn->fd[i]>maxfd) maxfd = sn->fd[i];
+			FD_SET(sn->fd[i],&readfds);
+			pcap_setnonblock(sn->pds[i],1,NULL);
 		}
 		// nb: we won't block here indefinitely due to the timeout.  that way if a new
 		// interface comes up we'll definitely start to monitor it (otherwise without timeout
 		// we might block here indefinitely and never add new interface to select()).
 		// can also use signal() to break out of select() early if needed.
 		int res = select(maxfd+1, &readfds, NULL, NULL, &timeout);
-		if (res == EINTR) continue; // signal interrupted select()
 		if (res<0) { // res=0 on timeout, <0 on error
-			WARN("%s sniffer loop select: %s (res=%d)", tag, strerror(errno), res);
+			if (errno == EINTR) { // signal interrupted select(), its normal
+				//printf("select() signal %d\n", *running);
+			} else {
+				WARN("%s sniffer loop select: %s (res=%d)\n", tag, strerror(errno), res);
+			}
 			continue;
 		}
-		for (int i=0; i<sn.num_pds; i++) {
-			if (FD_ISSET(sn.fd[i],&readfds)) {
+		for (int i=0; i<sn->num_pds; i++) {
+			if (FD_ISSET(sn->fd[i],&readfds)) {
 				
-				int n=pcap_dispatch(sn.pds[i], -1,	callback, (u_char*)&args[i]);
-				if (n == PCAP_ERROR) ERR("%s sniffer loop pcap_dispatch: %s\n", tag, pcap_geterr(sn.pds[i]));
+				int n=pcap_dispatch(sn->pds[i], -1,	callback, (u_char*)&args[i]);
+				if (n == PCAP_ERROR) ERR("%s sniffer loop pcap_dispatch: %s\n", tag, pcap_geterr(sn->pds[i]));
 				//printf("got %d pkts for %d\n",n,i);
 			}
-			if (!*running) break;  // don't both with lock, doesn't matter if this fails
+			if (!*running) break;  
 		}
 	}
 	INFO2("Exited %s sniffer loop.\n", tag);
 	//tidy up
-	for (int i=0; i<sn.num_pds; i++) {
-		if (sn.pds[i]) pcap_close(sn.pds[i]);
+	for (int i=0; i<sn->num_pds; i++) {
+		if (sn->pds[i]) pcap_close(sn->pds[i]);
+		sn->pds[i] = NULL;
 	}
 
 }
@@ -403,7 +409,8 @@ void *listener(void *ptr) {
 			}
 			INFO("Interfaces up, pcap loop continuing.\n");
 		}
-		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp);
+		are_sniffing = 1;
+		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp, NULL);
 		close(p_sock2);
 	}
 	return NULL;

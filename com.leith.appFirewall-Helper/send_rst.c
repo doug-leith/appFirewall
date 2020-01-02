@@ -66,12 +66,6 @@ void init_libnet(libnet_data_t *ld) {
 	if (setsockopt(ld->l4_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
 		WARN("libnet setsockopt IP_HDRINCL failed, won't be able to send TCP RST packets to self: %s\n", strerror(errno));
 	}
-	/*
-	// thought this might help with VPNs, but no use
-	n=1;
-	if (setsockopt(ld->l4_hdr->fd, SOL_SOCKET, SO_DONTROUTE, &n, sizeof(n))<0) {
-		WARN("libnet setsockopt SO_DONTROUTE failed: %s\n", strerror(errno));
-	}*/
 	
 	ld->l6_hdr=libnet_init(LIBNET_RAW6,NULL,err_buf);
 	if (ld->l6_hdr==NULL) {
@@ -94,146 +88,104 @@ void free_libnet(libnet_data_t *ld) {
 	if (ld->l6_hdr) libnet_destroy(ld->l6_hdr);
 }
 
+libnet_ptag_t append_ipheader(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr, libnet_t *l, libnet_ptag_t *ip_ptag, uint16_t len) {
+	// construct IP header for RST packet to remote host
+	if (af==AF_INET) {
+		uint32_t d,s;
+		memcpy(&s,&src_addr->s6_addr,4);
+		memcpy(&d,&dst_addr->s6_addr,4);
+		//libnet_build_ipv4(uint16_t ip_len, uint8_t tos, uint16_t id, uint16_t frag,
+		//uint8_t ttl, uint8_t prot, uint16_t sum, uint32_t src, uint32_t dst,
+		//const uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag)
+		*ip_ptag = libnet_build_ipv4(LIBNET_IPV4_H+LIBNET_TCP_H+len,
+																 0, 0, 0, 64, IPPROTO_TCP,0,
+																 s, d,
+																 NULL, 0, l, *ip_ptag);
+	} else {
+		//libnet_build_ipv6(uint8_t tc, uint32_t fl, uint16_t len, uint8_t nh,
+		//uint8_t hl, struct libnet_in6_addr src, struct libnet_in6_addr dst,
+		//const uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag)
+		struct libnet_in6_addr s, d;
+		memcpy(&s,src_addr,16);
+		memcpy(&d,dst_addr,16);
+		*ip_ptag = libnet_build_ipv6(0,0,0,
+																 IPPROTO_TCP,64,
+																 s, d,
+																 NULL, 0, l, *ip_ptag);
+	}
+	return *ip_ptag;
+}
+
 int snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 
 	// send RSTs to specified connection
-	libnet_ptag_t *tcp_ptag, *ip_ptag;
-	libnet_t *l=NULL;
-	if (c->af==AF_INET) {
-		// ipv4
-		l = ld->l4;
-		tcp_ptag=&ld->tcp4_ptag; ip_ptag=&ld->ip4_ptag;
-	} else {
-		// ipv6
-		l= ld->l6;
-		tcp_ptag=&ld->tcp6_ptag; ip_ptag=&ld->ip6_ptag;
+	libnet_ptag_t *tcp_ptag, *ip_ptag, *tcp_hdr_ptag, *ip_hdr_ptag;
+	libnet_t *l=NULL, *l_hdr=NULL;
+	if (c->af==AF_INET) {// ipv4
+		l = ld->l4; tcp_ptag=&ld->tcp4_ptag; ip_ptag=&ld->ip4_ptag;
+		l_hdr = ld->l4_hdr; tcp_hdr_ptag=&ld->tcp4_hdr_ptag; ip_hdr_ptag=&ld->ip4_hdr_ptag;
+	} else { // ipv6
+		l= ld->l6; tcp_ptag=&ld->tcp6_ptag; ip_ptag=&ld->ip6_ptag;
+		l_hdr = ld->l6_hdr; tcp_hdr_ptag=&ld->tcp6_hdr_ptag; ip_hdr_ptag=&ld->ip6_hdr_ptag;
 	}
 	
 	if (!syn && !onlyself && (l!=NULL)) {
-		
-		// construct and send the RST packet to remote
-		// construct tcp header for RST pkt to remote host
-		uint8_t flags=TH_RST;
-		*tcp_ptag = libnet_build_tcp(c->sport,c->dport,c->seq,c->ack,flags,
-																 0, 0, 0, LIBNET_TCP_H, NULL, 0, l, *tcp_ptag);
-		if(*tcp_ptag == -1) {
-			// should never happen
-			ERR("libnet_build_tcp(): %s\n", libnet_geterror(l));
-			free_libnet(ld);
-			// try to repair the error
-			init_libnet(ld);
-			return -1;
+		// this is a bit nasty.  we try to inject data into the connection to
+		// generate an error at the remote which will cause it to reset the connection.
+		// helpful with VPNs where sending RST to self doesn't work, so getting remote
+		// to send RST is good.
+		const char *buf = "drop connection {\n\n\n"; // invalid json and http
+		uint16_t len = (uint16_t)strlen(buf);
+		*tcp_ptag = libnet_build_tcp(
+		c->sport,c->dport,c->seq,c->ack,TH_ACK,
+		4096, 0, 0, LIBNET_TCP_H, (uint8_t*)buf, len, l, *tcp_ptag);
+		append_ipheader(c->af, &c->src_addr, &c->dst_addr, l, ip_ptag, len);
+		if (libnet_write(l)==-1) {
+			WARN("data %s\n",libnet_geterror(l));
 		}
-		
-		// construct IP header for RST packet to remote host
-		if (c->af==AF_INET) {
-			uint32_t d,s;
-			memcpy(&s,&c->src_addr.s6_addr,4);
-			memcpy(&d,&c->dst_addr.s6_addr,4);
-			//libnet_build_ipv4(uint16_t ip_len, uint8_t tos, uint16_t id, uint16_t frag,
-			//uint8_t ttl, uint8_t prot, uint16_t sum, uint32_t src, uint32_t dst,
-			//const uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag)
-			*ip_ptag = libnet_build_ipv4(LIBNET_IPV4_H+LIBNET_TCP_H,
-																	 0, 0, 0, 64, IPPROTO_TCP,0,
-																	 s, d,
-																	 NULL, 0, l, *ip_ptag);
-		} else {
-			//libnet_build_ipv6(uint8_t tc, uint32_t fl, uint16_t len, uint8_t nh,
-			//uint8_t hl, struct libnet_in6_addr src, struct libnet_in6_addr dst,
-			//const uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag)
-			struct libnet_in6_addr s, d;
-			memcpy(&s,&c->src_addr,16);
-			memcpy(&d,&c->dst_addr,16);
-			*ip_ptag = libnet_build_ipv6(0,0,0,
-																	 IPPROTO_TCP,64,
-																	 s, d,
-																	 NULL, 0, l, *ip_ptag);
-		}
-		
-		if(*ip_ptag == -1) {
-			// should never happen
-			ERR("libnet_build %s\n", libnet_geterror(l));
-			free_libnet(ld);
-			// try to repair the error
-			init_libnet(ld);
-			return -1;
-		}
-		
-		// and send the packet
-		if (libnet_write(l) < 0) {
-			// problem writing to raw socket
-			WARN("libnet_write() %s\n", libnet_geterror(l));
-			libnet_diag_dump_context(l);
-			free_libnet(ld);
-			// try to repair
-			init_libnet(ld);
-			return -1;
-		} else {
-			// and send again, in case first one is lost
-			if (libnet_write(l) < 0) {
-				// problem writing to raw socket
-				WARN("libnet_write2() %s\n", libnet_geterror(l));
-				free_libnet(ld);
-				// try to repair
-				init_libnet(ld);
-				return -1;
-			}
-		}
-		
-	} // end !syn && ! self
 	
-	if ((c->af==AF_INET)&&(ld->l4_hdr!=NULL)){
-		// now construct TCP RST packet to send to self
-		// construct tcp header for RST pkt to remote host
+		// send RST to remote
 		uint8_t flags=TH_RST;
-		if (syn) { // for a SYN we need to set ack flag in RST
-			flags |= TH_ACK;
-			ld->tcp4_hdr_ptag = libnet_build_tcp(c->dport,c->sport,0,c->seq+1,flags,
-																			 0, 0, 0, LIBNET_TCP_H, NULL, 0, ld->l4_hdr, ld->tcp4_hdr_ptag);
-		} else { // otherwise no need for ack'ing, its only the seq number that matters
-			ld->tcp4_hdr_ptag = libnet_build_tcp(c->dport,c->sport,c->ack+1,c->seq,flags,
-																			 0, 0, 0, LIBNET_TCP_H, NULL, 0, ld->l4_hdr, ld->tcp4_hdr_ptag);
-			//printf("sending rst to self: sport=%u, dport=%u, seq=%u, ack=%u\n",c->dport,c->sport,c->ack+1,c->seq);
+		if ( (*tcp_ptag = libnet_build_tcp(
+												c->sport,c->dport,c->seq+len,c->ack,flags,
+												0, 0, 0, LIBNET_TCP_H, NULL, 0, l, *tcp_ptag))==-1) {
+			ERR("libnet_build_tcp(): %s\n", libnet_geterror(l)); goto err;
 		}
-		uint32_t d,s;
-		memcpy(&s,&c->src_addr.s6_addr,4);
-		memcpy(&d,&c->dst_addr.s6_addr,4);
-		ld->ip4_hdr_ptag = libnet_build_ipv4(LIBNET_IPV4_H+LIBNET_TCP_H,
-																		 0, 0, 0, 64, IPPROTO_TCP,0,
-																		 d, s,
-																		 NULL, 0, ld->l4_hdr, ld->ip4_hdr_ptag);
-		if (libnet_write(ld->l4_hdr) < 0) {
-			// problem writing to raw socket
-			WARN("libnet_write() l4_hdr %s\n", libnet_geterror(ld->l4_hdr));
-			libnet_diag_dump_context(ld->l4_hdr);
-			free_libnet(ld);
-			// try to repair
-			init_libnet(ld);
-			return -1;
+		if (append_ipheader(c->af, &c->src_addr, &c->dst_addr, l, ip_ptag, 0)==-1) {
+			ERR("libnet_build_ip() %s\n", libnet_geterror(l)); goto err;
 		}
-	} else if (ld->l6_hdr!=NULL) {
-		// can't set IP_HDRINCL flag for IPv6, will this even work ?
-		uint8_t flags=TH_RST;
-		if (syn) flags |= TH_ACK;
-		ld->tcp6_hdr_ptag = libnet_build_tcp(c->dport,c->sport,c->ack+1,c->seq,flags,
-																		 0, 0, 0, LIBNET_TCP_H, NULL, 0, ld->l6_hdr, ld->tcp6_hdr_ptag);
-		struct libnet_in6_addr s, d;
-		memcpy(&s,&c->src_addr,16);
-		memcpy(&d,&c->dst_addr,16);
-		ld->ip6_hdr_ptag = libnet_build_ipv6(0,0,0,
-																		 IPPROTO_TCP,64,
-																		 d, s,
-																		 NULL, 0, ld->l6_hdr, ld->ip6_hdr_ptag);
-		if (libnet_write(ld->l6_hdr) < 0) {
-			// problem writing to raw socket
-			WARN("libnet_write() l6_hdr %s\n", libnet_geterror(ld->l6_hdr));
-			free_libnet(ld);
-			// try to repair
-			init_libnet(ld);
-			return -1;
+		
+		// send the packet twice
+		if ((libnet_write(l) < 0) || (libnet_write(l) < 0)) {
+			WARN("libnet_write() %s\n", libnet_geterror(l));
+			//libnet_diag_dump_context(l);
+			goto err;
 		}
+		
+	} // end !syn && !self
+	
+	if (l_hdr == NULL) goto err; // shouldn't happen
+	// send RST to self.  fails with VPNs (at least with openVPN as it
+	// messes up packets sent to self).
+	// nb: needs IP_HDRINCL to be set for this to work in IPV4, can't set IP_HDRINCL
+	// option for IPv6 - so this probably fails for Ipv6.
+	uint8_t flags=TH_RST;
+	if ((*tcp_hdr_ptag = libnet_build_tcp(c->dport,c->sport,c->ack+1,c->seq,flags,
+																	 0, 0, 0, LIBNET_TCP_H, NULL, 0, l_hdr, *tcp_hdr_ptag))==-1) {
+		ERR("libnet_build_tcp_hdr(): %s\n", libnet_geterror(l_hdr)); goto err;
+	}
+	if (append_ipheader(c->af, &c->dst_addr, &c->src_addr, l_hdr, ip_hdr_ptag, 0)==-1) {
+		ERR("libnet_build_ip_hdr() %s\n", libnet_geterror(l)); goto err;
+	}
+	if (libnet_write(l_hdr) < 0) {
+		// problem writing to raw socket
+		WARN("libnet_write() l_hdr %s\n", libnet_geterror(l_hdr)); goto err;
 	}
 	return 1;
+	
+err:
+	free_libnet(ld); init_libnet(ld);
+	return -1;
 }
 
 void rst_accept_loop() {

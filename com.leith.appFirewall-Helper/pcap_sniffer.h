@@ -38,7 +38,7 @@ typedef struct sniffer_callback_args_t {
 
 int refresh_sniffers_list(sniffers_t* sn, char* filter_exp);
 int get_interfaces(char intf[MAX_INTS][STR_SIZE]);
-void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp);
+void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);
 void *listener(void *ptr);
 void start_listener(void);
