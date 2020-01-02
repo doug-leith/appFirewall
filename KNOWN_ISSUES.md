@@ -26,7 +26,7 @@ You can see information on the domains sharing an IP address by hovering your mo
 
 ### Filtering of VPN traffic is unreliable/experimental
 
-Traffic sent via a VPN is logged but blocking of connections is unreliable at the moment, at least when using openvpn (which is all that I've tested).  That means connections which are marked to be blocked may fail to be blocked and so show up in the "Active Connections" tab.   The problem lies in openvpn itself so other VPN clients might be fine.  Fixing this up is on my "to do" list, but low-ish priority at the moment (send me an email if you think it should be higher priority).
+Traffic sent via a VPN is logged but blocking of connections is unreliable at the moment, at least when using openvpn (which is all that I've tested).  That means connections which are marked to be blocked may fail to be blocked and so show up in the "Active Connections" tab.   The problem lies in openvpn itself so other VPN clients might be fine.  
 
 ### Google QUIC connections are not blocked (yet)
 
