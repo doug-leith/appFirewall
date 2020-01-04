@@ -252,6 +252,8 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 
 void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 	// send pkt to GUI.
+	if (!are_sniffing) return;
+	
 	sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
 	DEBUG2("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), pkthdr->caplen);
 	const u_char* pkt_proper = pkt + args.sn->offset[args.i]; // look past link layer header to pkt itself
@@ -313,8 +315,7 @@ stop:
 	// safer to exit them all when one fails, even though it will
 	// be flagged as a serious fault by GUI client if the client itself
 	// didn't close the connection.
-	are_sniffing = 0; // flag sniffer_loop() to stop
-	pcap_breakloop(args.sn->pds[args.i]);
+	are_sniffing = 0; // flag sniffer_loop() to stop. 
 }
 
 void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn)  {
