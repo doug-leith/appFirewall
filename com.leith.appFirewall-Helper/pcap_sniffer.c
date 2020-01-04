@@ -26,7 +26,7 @@ void close_sniffer_sock() {
 	close(p_sock); close(p_sock2);
 }
 
-int get_interfaces(char intf[MAX_INTS][STR_SIZE]) {
+int get_interfaces(char intf[MAX_INTS][STR_SIZE], int use_pktap) {
 	// get list of useful interfaces (IPv4 or IPv6 and not link-local)
 	/*FILE *fp = popen("/sbin/route get default default | /usr/bin/grep interface","r");
 	char* interface=NULL, buf[1024];
@@ -84,8 +84,18 @@ int get_interfaces(char intf[MAX_INTS][STR_SIZE]) {
 			continue; // ignore link local addresses
 		}
 		DEBUG2("addr %s found\n",addr_name);
-		if (intf!=NULL) strlcpy(intf[count],dev->ifa_name,STR_SIZE);
-		DEBUG2("valid interface: %s\n", intf[count]);
+		if (intf!=NULL)  {
+			if (use_pktap) {
+				// prepend interface name with pktap,
+				//strlcpy(intf[count],"pktap,",STR_SIZE);
+				strlcpy(intf[count],"iptap,",STR_SIZE);
+			} else {
+				strlcpy(intf[count],"",STR_SIZE);;
+			}
+			strlcat(intf[count],dev->ifa_name,STR_SIZE);
+		}
+		//if (intf!=NULL) strlcpy(intf[count],dev->ifa_name,STR_SIZE);
+		DEBUG2("valid interface: %s %d\n", intf[count], use_pktap);
 		if (count < MAX_INTS) {
 			count++;
 		} else {
@@ -98,14 +108,8 @@ int get_interfaces(char intf[MAX_INTS][STR_SIZE]) {
 	return count;
 }
 
-int get_DLT_offset(pcap_t *pd) {
-
-	int datalink, offset=0;
-  if ((datalink = pcap_datalink(pd)) < 0){
-    WARN("Cannot obtain datalink information: %s", pcap_geterr(pd));
-    return -1;
-	}
-
+int get_DLT_offset2(int datalink) {
+	int offset=0;
 	switch (datalink) {
 		case DLT_EN10MB:
 			//printf("DLT_EN10MB\n");
@@ -141,6 +145,10 @@ int get_DLT_offset(pcap_t *pd) {
 		case DLT_IPNET:
 			offset = 24;
 			break;
+		case DLT_PKTAP: // apple special header
+			//printf("DLT_PKTAP\n");
+			offset = 0; // dummy, need to read header to find actual offset
+			break;
 		default:
 			ERR("Unknown datalink type: %d\n", datalink);
 			return -1;
@@ -148,7 +156,32 @@ int get_DLT_offset(pcap_t *pd) {
 		return offset;
 }
 
-int setup_pd(char* intf, pcap_t **pd, char* filter_exp) {
+int get_DLT_offset(pcap_t *pd, int use_pktap) {
+
+/*
+	// dump out available link layer types for pd
+	int *l;
+	int n = pcap_list_datalinks(pd,&l);
+	printf("DLTs n=%d:\n",n);
+	for (int i=0; i<n; i++) printf("%d ",l[i]);
+	pcap_free_datalinks(l);
+	printf("\n");*/
+	
+	int datalink;
+  if ((datalink = pcap_datalink(pd)) < 0){
+    WARN("Cannot obtain datalink information: %s", pcap_geterr(pd));
+    return -1;
+	}
+
+	if (use_pktap && (datalink != DLT_PKTAP)) {
+		// TO DO: recover better from this error
+		ERR("PKTAP enabled but DLT (%d) is not DLT_PKTAP (%d)!\n", datalink, DLT_PKTAP);
+		return -1;
+	}
+	return get_DLT_offset2(datalink);
+}
+
+int setup_pd(char* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 	// initialise a pcap listener for an available interfaces
 	char ebuf[PCAP_ERRBUF_SIZE];
 
@@ -158,7 +191,6 @@ int setup_pd(char* intf, pcap_t **pd, char* filter_exp) {
 		return -1;
 	}
 
-	#define SNAPLEN 512 // needs to be big enough to capture dns payload
 	if (pcap_set_snaplen(*pd,SNAPLEN)!=0) {
 		WARN("Couldn't set snaplen on pcap sniffer: %s\n",pcap_geterr(*pd));
 	}
@@ -167,7 +199,9 @@ int setup_pd(char* intf, pcap_t **pd, char* filter_exp) {
 	}
 	#define BUFFER_SIZE 2097152*8  // default is 2M=2097152, but we increase it to 16M
 	pcap_set_buffer_size(*pd, BUFFER_SIZE);
-	
+
+	if (use_pktap) pcap_set_want_pktap(*pd, 1);
+
 	// now that its configured, fire up listener
 	int res;
 	if ((res=pcap_activate(*pd))!=0) {
@@ -180,14 +214,23 @@ int setup_pd(char* intf, pcap_t **pd, char* filter_exp) {
 		}
 	}
 
-	struct bpf_program fp;
-	if (pcap_compile(*pd, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
+	if (use_pktap) {
+		// not sure if this is even needed, 
+		// filters don't seem to work with pktap anyway !
+		if (pcap_set_filter_info(*pd, filter_exp, 0, PCAP_NETMASK_UNKNOWN)<0) {
+			ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
+			return -1;
+		}
+	} else {
+		struct bpf_program fp;
+		if (pcap_compile(*pd, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
 		ERR("Couldn't parse pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
+			return -1;
+		}
+		if (pcap_setfilter(*pd, &fp) == PCAP_ERROR) {
+			ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
 		return -1;
-	}
-	if (pcap_setfilter(*pd, &fp) == PCAP_ERROR) {
-		ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
-		return -1;
+		}
 	}
 	return 1;
 }
@@ -195,12 +238,14 @@ int setup_pd(char* intf, pcap_t **pd, char* filter_exp) {
 int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 	// get an update on the available interfaces ...
 	//struct timeval start; gettimeofday(&start, NULL);
+	
 	char temp_interfaces[MAX_INTS][STR_SIZE];
 	int n=0;
 	sniffers_t old_sn;
 	memcpy(&old_sn,sn,sizeof(sniffers_t));
 	memset(sn,0,sizeof(sniffers_t));
-	if ( (n=get_interfaces(temp_interfaces))<=0) {
+	sn->use_pktap = old_sn.use_pktap;
+	if ( (n=get_interfaces(temp_interfaces,sn->use_pktap))<=0) {
 		return 0;
 	}
 	int i;
@@ -226,12 +271,12 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 			continue;
 		}
 		strlcpy(sn->interfaces[sn->num_pds],temp_interfaces[j],STR_SIZE);
-		int res = setup_pd(sn->interfaces[sn->num_pds], &sn->pds[sn->num_pds], filter_exp);
+		int res = setup_pd(sn->interfaces[sn->num_pds], &sn->pds[sn->num_pds], filter_exp, sn->use_pktap);
 		if ((res < 0)||(sn->pds[sn->num_pds]==NULL)) {
 			WARN("Problem creating sniffer for interface %s\n",sn->interfaces[sn->num_pds]);
 			continue;
 		}
-		sn->offset[sn->num_pds] = get_DLT_offset(sn->pds[sn->num_pds]);
+		sn->offset[sn->num_pds] = get_DLT_offset(sn->pds[sn->num_pds], sn->use_pktap);
 		if (sn->offset[sn->num_pds]<0) {
 			WARN("Problem getting datalink offset for interface %s\n",sn->interfaces[sn->num_pds]);
 			pcap_close(sn->pds[sn->num_pds]);
@@ -254,31 +299,78 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	// send pkt to GUI.
 	if (!are_sniffing) return;
 	
-	sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
-	DEBUG2("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), pkthdr->caplen);
+sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
+
+	int pkt_pid=-1; char *name=NULL; int flags=-1;
+
+	if (args.sn->use_pktap) {
+		// we need to get offset from the PKTAP header itself
+		struct pktap_header *hdr = (struct pktap_header *)pkt;
+		if (hdr->pth_type_next == 0) {
+			// no packet follows header
+			WARN("No packet after PKTAP header (pid=%d)\n",pkt_pid);
+			return;
+		}
+		args.sn->offset[args.i] = hdr->pth_length;
+		pkt_pid = hdr->pth_pid;
+		char buf[MAXCOMLEN];
+		// make sure we have a NUL terminated string ...
+		strlcpy(buf,hdr->pth_comm,MAXCOMLEN);
+		name = trimwhitespace(buf); // seems like this is needed !
+		flags = hdr->pth_flags;
+		// step past the next header (likely ethernet)
+		int dlt = hdr->pth_dlt, offset=get_DLT_offset2(dlt);
+		if (offset<0) {
+			WARN("Problem getting datalink offset for interface %s\n",args.sn->interfaces[args.i]);
+			return; // its a serious error, we should probably close down sniffing
+		}
+		args.sn->offset[args.i] += offset;
+		
+		if ((pkt_pid <=0) || (strnlen(name,MAXCOMLEN)==0)) {
+			// this happens with IGMP and broadcasts
+			return;
+		}
+	}
+
+	//printf("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d, flags=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), flags, pkthdr->caplen);
 	const u_char* pkt_proper = pkt + args.sn->offset[args.i]; // look past link layer header to pkt itself
 	size_t pkt_proper_len = pkthdr->caplen - args.sn->offset[args.i];
 	
-	if (dtrace_active()) {
+	int version = (*pkt_proper)>>4; // get IP version
+	int proto;
+	u_char* nexth=NULL; // this will point to TCP/UDP header
+	if (version == 4) {
+		struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt_proper;
+		proto=ip->ip_p;
+		nexth=((u_char *)ip + (ip->ip_hl * 4));
+	} else {
+		struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt_proper;
+		proto=ip->ip_nh;
+		nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
+	}
+	
+	// filtering doesn't seem to work right with tap header, sigh,
+	// so we do it here
+	if (proto == IPPROTO_TCP) {
+		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
+		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
+		int synack = (tcp->th_flags & (TH_SYN)) && (tcp->th_flags & (TH_ACK));
+		if (args.sn->use_pktap && !synack ) return;
 		// when dtrace is running on receipt of a syn we signal to
 		// dtrace to look for connect() trace info, otherwise
 		// we pass the syn on to client.
-		int version = (*pkt_proper)>>4; // get IP version
-		//int proto;
-		u_char* nexth=NULL; // this will point to TCP/UDP header
-		if (version == 4) {
-			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt_proper;
-			//proto=ip->ip_p;
-			nexth=((u_char *)ip + (ip->ip_hl * 4));
-		} else {
-			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt_proper;
-			//proto=ip->ip_nh;
-			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
-		}
-		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
-		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
-		if (syn) { signal_dtrace(); return; }
+		if ( dtrace_active() && syn) { signal_dtrace(); return; }
+	} else if (proto == IPPROTO_UDP) {
+		struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
+		uint16_t sport=ntohs(udp->uh_sport);
+		uint16_t dport=ntohs(udp->uh_dport);
+		int filt = (sport==443) || (dport==443) || (sport==53) || (dport==53) || (sport==5353) || (dport==5353);
+		if (args.sn->use_pktap && !filt) return;
+	} else {
+		// not TCP or UDP
+		return;
 	}
+	
 	// before sending data, we recheck client when PID changes
 	int current_pid = get_sock_pid(p_sock2, PCAP_PORT);
 	if (current_pid != pid) {
@@ -286,9 +378,13 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	}
 	pid = current_pid;
 	
-	if (p_sock2<0) {WARN("pcap sned p_sock2<0\n"); goto stop; } // socket is closed, bail
+	if (p_sock2<0) {WARN("pcap send p_sock2<0\n"); goto stop; } // socket is closed, bail
 	if (send(p_sock2, pkthdr, sizeof(struct pcap_pkthdr),0)<0) goto err;
-	if (send(p_sock2, &args.sn->datalink[args.i], sizeof(int),0)<0) goto err;
+	if (send(p_sock2, &pkt_pid, sizeof(int),0)<0) goto err;
+	ssize_t len=0;
+	if (name != NULL) len = strnlen(name, MAXCOMLEN);
+	if (send(p_sock2, &len, sizeof(ssize_t),0)<0) goto err;
+	if (len>0) {if (send(p_sock2, name, len,0)<0) goto err;}
 	if (send(p_sock2, &pkt_proper_len, sizeof(size_t),0)<0) goto err;
 	if (send(p_sock2, pkt_proper, pkt_proper_len,0)<0) goto err;
 	
@@ -318,14 +414,15 @@ stop:
 	are_sniffing = 0; // flag sniffer_loop() to stop. 
 }
 
-void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn)  {
+void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn, int use_pktap)  {
 	// pcap sniffer loop,this will exit when network connection fails/is broken.
 	sniffers_t sn_local;
 	if (sn == NULL) sn=&sn_local;
 	memset(sn,0,sizeof(sniffers_t));
+	sn->use_pktap = use_pktap;
 	sniffer_callback_args_t args[MAX_INTS];
 	for (int i = 0; i<MAX_INTS; i++) {args[i].sn = sn; args[i].i=i; }
-	INFO("Starting %s sniffers on: ", tag);
+	INFO("Starting %s sniffers on (use_pktap=%d): ", tag, use_pktap);
 	refresh_sniffers_list(sn, filter_exp);
 	for (int i=0; i<sn->num_pds; i++) {
 		printf("%s ",sn->interfaces[i]);
@@ -401,17 +498,17 @@ void *listener(void *ptr) {
 
 		stats_time = time(NULL);
 		// start up a sniffer for each interface.
-		if (get_interfaces(NULL) == 0) {
+		if (get_interfaces(NULL, USE_PKTAP) == 0) {
 			// no interfaces are up, sit here and wait.
 			// polling loop here is easy but seems a bit clunky ...
 			INFO("No interfaces up, pcap loop waiting ...\n");
-			while (get_interfaces(NULL)==0) {
+			while (get_interfaces(NULL, USE_PKTAP)==0) {
 				sleep(1);
 			}
 			INFO("Interfaces up, pcap loop continuing.\n");
 		}
 		are_sniffing = 1;
-		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp, NULL);
+		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp, NULL, USE_PKTAP);
 		close(p_sock2);
 	}
 	return NULL;

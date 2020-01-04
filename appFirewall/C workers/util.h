@@ -52,6 +52,7 @@ typedef struct {
 	int pidinfo_hits, pidinfo_misses, pidinfo_syn_hits, pidinfo_syn_misses;
 	int pidinfo_cachehits, pidinfo_cachemisses, pidinfo_syn_cachehits, pidinfo_syn_cachemisses;
 	int dtrace_hits, dtrace_misses, dtrace_syn_hits, dtrace_syn_misses;
+	int pktap_hits, pktap_misses, nstat_hits, nstat_misses;
 	int waitinglist_hits, waitinglist_misses;
 	int num_noguess, num_guesses, num_failed_guesses;
 	int fdtab_same, fdtab_changed, fdtab_destchanged;

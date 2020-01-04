@@ -75,7 +75,7 @@ void (^description_callback_block) (CFDictionaryRef) = ^(CFDictionaryRef Desc) {
 		c.raw.dport = ntohs(((struct sockaddr_in6 *)remoteSA)->sin6_port);
 	}
 
-	printf("nstat: %s %s\n", c.name, conn_hash(&c));
+	DEBUG2("nstat: %s %s\n", c.name, conn_hash(&c));
 	add_item(&nstat_cache,&c,sizeof(conn_t));
 };
 

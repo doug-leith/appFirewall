@@ -25,7 +25,10 @@ static libnet_data_t ld, ld_prompt;
 sniffers_t sn_esc;
 
 typedef struct catcher_callback_args_t {
-	uint16_t target_dport;
+	int af;
+	struct in6_addr target_dst;
+	uint16_t target_sport, target_dport;
+	int target_pid;
 	int pkt_count;
 } catcher_callback_args_t;
 static catcher_callback_args_t a;
@@ -105,14 +108,13 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	if (!catcher_sniffing) return;
 	
 	// we got a pkt, let's process it ...
-	uint16_t target_dport = a.target_dport;
 	// should take lock on a.pkt_count, but its just for stats
 	// so ok if corrupted now and then
 	a.pkt_count++; // record number of packets we've sniffed for this connection
 
 	sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
-	int pcap_off = args.sn->offset[args.i];
-	
+	int pcap_off  = args.sn->offset[args.i];
+
 	struct timeval ts = pkthdr->ts;
 	struct timeval start; gettimeofday(&start, NULL);
 	double t=(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
@@ -144,6 +146,7 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	}
 	
 	if (proto != IPPROTO_TCP) return; // shouldn't happen
+	//if (!are_addr_same(af, &src, &a.target_dst) && !are_addr_same(af, &dst, &a.target_dst)) return;
 	
 	struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
 	
@@ -154,7 +157,7 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 
 	conn_raw_t cr;
 	cr.af=af;
-	if (dport == target_dport) {
+	if (dport == a.target_dport) {
 		// outgoing packet
 		cr.src_addr=src; cr.dst_addr=dst;
 		cr.sport=sport; cr.dport=dport;
@@ -162,13 +165,13 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		// ack in RST is really an ack for previous pkt from localhost, not this one.
 		// snd_rst() will add +1 to this value
 		cr.ack=ack-1;
-	} else if (sport == target_dport)  {
+	} else if (sport == a.target_dport) {
 		// incoming packet
 		cr.src_addr=dst; cr.dst_addr=src;
 		cr.sport=dport; cr.dport=sport;
 		cr.seq=ack; cr.ack=seq;
 	} else {
-		WARN("Received packet with mismatched ports, sport=%u/dport=%u but expected dport=%u (catch_escapee)\n",sport,dport,target_dport);
+		WARN("Received packet with mismatched ports, sport=%u/dport=%u but expected sport=%u/dport=%u (catch_escapee)\n",sport,dport,a.target_sport,a.target_dport);
 		return;
 	}
 	snd_rst(0,&cr,0,&ld);
@@ -194,11 +197,11 @@ void stop_catcher() {
 void *catcher(void *ptr) {
 	char* filter = ptr;
 	// fire up sniffers on each interface
-	if (get_interfaces(NULL) == 0) {
+	if (get_interfaces(NULL, 0) == 0) {
 		// shouldn't happen since we've already checked for this, so just being careful
 		WARN("No valid interfaces for catcher to sniff\n");
 	} else {
-		sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter, &sn_esc);
+		sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter, &sn_esc, 0);
 	}
 	return NULL;
 }
@@ -245,25 +248,24 @@ void *catcher_listener(void *ptr) {
 		struct timeval start; gettimeofday(&start, NULL);
 		int8_t ok=0;
 
-		ssize_t res; int af, pid; uint8_t vpn;
-		struct in6_addr dst;
-		memset(&dst,0,sizeof(struct in6_addr));
-		uint16_t target_dport=0;
+		ssize_t res; uint8_t vpn;
+		memset(&a.target_dst,0,sizeof(struct in6_addr));
 		uint32_t ack;
 		set_recv_timeout(c_sock2, RECV_TIMEOUT); // to be safe, will eventually timeout of read
 		if ( (res=readn(c_sock2, &vpn, sizeof(uint8_t)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &pid, sizeof(int)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &af, sizeof(int)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &dst, sizeof(struct in6_addr)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &target_dport, sizeof(uint16_t)) )<=0) goto err;
+		if ( (res=readn(c_sock2, &a.target_pid, sizeof(int)) )<=0) goto err;
+		if ( (res=readn(c_sock2, &a.af, sizeof(int)) )<=0) goto err;
+		if ( (res=readn(c_sock2, &a.target_dst, sizeof(struct in6_addr)) )<=0) goto err;
+		if ( (res=readn(c_sock2, &a.target_sport, sizeof(uint16_t)) )<=0) goto err;
+		if ( (res=readn(c_sock2, &a.target_dport, sizeof(uint16_t)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &ack, sizeof(uint32_t)) )<=0) goto err;
 		
 		char dn[INET6_ADDRSTRLEN];
-		inet_ntop(af, &dst, dn, INET6_ADDRSTRLEN);
-		INFO("Started new connection on port %d (catch_escapee): pid=%d, af=%d, %s:%u, ack=%u\n",CATCHER_PORT,pid, af,dn,target_dport,ack);
+		inet_ntop(a.af, &a.target_dst, dn, INET6_ADDRSTRLEN);
+		INFO("Started new connection on port %d (catch_escapee): pid=%d, af=%d, %s:%u, ack=%u\n",CATCHER_PORT,a.target_pid, a.af,dn,a.target_dport,ack);
 		
 		// do some basic sanity checking
-		if (af!=AF_INET && af!=AF_INET6) {
+		if (a.af!=AF_INET && a.af!=AF_INET6) {
 			WARN("Invalid AF value\n");
 			ok=-1;
 			send(c_sock2, &ok, 1, 0);// just sending 1 byte, shouldn't ever block
@@ -272,9 +274,9 @@ void *catcher_listener(void *ptr) {
 		}
 				
 		conn_raw_t c; memset(&c,0,sizeof(c));
-		res = find_fds(pid, af, dst, target_dport, &c);
+		res = find_fds(a.target_pid, a.af, a.target_dst, a.target_dport, &c);
 		if (res<0) {
-			INFO("Couldn't find PID with those connection details (catch_escapee): %d %s:%u\n",pid,dn,target_dport);
+			INFO("Couldn't find PID with those connection details (catch_escapee): %d %s:%u\n",a.target_pid,dn,a.target_dport);
 			ok=-1;
 			send(c_sock2, &ok, 1, 0);// just sending 1 byte, shouldn't ever block
 			close(c_sock2);
@@ -282,7 +284,7 @@ void *catcher_listener(void *ptr) {
 		}
 
 		// setup sniffers
-		if (get_interfaces(NULL)==0) {
+		if (get_interfaces(NULL,0)==0) {
 			// no interfaces up, move on
 			WARN("catch_escapee() called when no interfaces are up\n");
 			int ok = 0;
@@ -292,7 +294,7 @@ void *catcher_listener(void *ptr) {
 		}
 		sprintf(filter,"tcp and host %s and (port %u or port %u) and (tcp[tcpflags]&tcp-rst==0)", dn, c.sport, c.dport);
 		//start pcap listener thread
-		a.target_dport = target_dport; a.pkt_count=0;
+		a.pkt_count=0;
 		catcher_sniffing = 1;
 		pthread_create(&catcher_thread, NULL, catcher, filter);
 		// if connection is actively sending pkts then catcher thread will sniff
@@ -336,9 +338,9 @@ void *catcher_listener(void *ptr) {
 					if (res<0) goto done; // problem
 				}
 				conn_raw_t c_temp;
-				if (find_fds(pid, af, dst, target_dport, &c_temp)<0) {
+				if (find_fds(a.target_pid, a.af, a.target_dst, a.target_dport, &c_temp)<0) {
 					struct timeval end; gettimeofday(&end, NULL);
-					INFO("connection %d %s:%u has STOPPED, pkts sniffed=%d, count %d, time taken %fs.\n",pid,dn,target_dport,a.pkt_count,i,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+					INFO("connection %d %s:%u has STOPPED, pkts sniffed=%d, count %d, time taken %fs.\n",a.target_pid,dn,a.target_dport,a.pkt_count,i,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
 					ok=1;
 					goto done; // connection has gone away
 				}
@@ -351,7 +353,7 @@ void *catcher_listener(void *ptr) {
 		printf("finished RST loop\n");
 		if (ok != 1) {
 			struct timeval end; gettimeofday(&end, NULL);
-			INFO("FAILED to stop connection %d %s:%u, pkts sniffed=%d, time taken %fs\n",pid,dn,target_dport,a.pkt_count,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+			INFO("FAILED to stop connection %d %s:%u, pkts sniffed=%d, time taken %fs\n",a.target_pid,dn,a.target_dport,a.pkt_count,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
 		}
 		// tell GUI we're done ...
 		//fcntl(c_sock2, F_SETFL, O_NONBLOCK); // make non-blocking

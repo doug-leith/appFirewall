@@ -707,6 +707,7 @@ void *catch_escapee(void *ptr) {
 	if ( (res=send(c_sock, &e->pid, sizeof(int),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.af, sizeof(int),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.dst_addr, sizeof(struct in6_addr),0) )<=0) goto err;
+	if ( (res=send(c_sock, &e->raw.sport, sizeof(uint16_t),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.dport, sizeof(uint16_t),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.ack, sizeof(uint32_t),0) )<=0) goto err;
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send

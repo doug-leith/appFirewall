@@ -32,7 +32,7 @@ int udp_cache_size=0, udp_cache_start=0;
 //--------------------------------------------------------
 // private functions
 
-bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
+bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char* pkt_name) {
 	// create a new blocklist item from raw connection info (assumed to be
 	// outgoing connection, so src is local and dst is remote)
 	// populates all of blocklist item, including PID name and domain name
@@ -47,39 +47,54 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 
 	int pid;
 	
-	int res2 =lookup_nstat(cr, c.name, &pid);
-	if (res2 == 0) {
-		printf("%s:%u->%s:%u NOT found in nstat cache\n", src,cr->sport,c.addr_name,cr->dport);
-	
-		// can we get PID from dtrace cache ?
-		int res=lookup_dtrace(cr, c.name, &pid);
-		if (res==0) { // rare when dtrace is active, otherwise boring
-			INFO2("%s:%u->%s:%u NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
-			if (syn)
-				stats.dtrace_syn_misses++;
-			else
-				stats.dtrace_misses++;
-			// try to get PID info from /proc
-			// nb: >90% of execution time of create_blockitem_from_addr()
-			// is spent in this find_pid() call, and within that call
-			// find_fds consumes >85% of execution time
-			res=find_pid(cr,c.name,syn);
-			//clock_t end1 = clock();
-			if (res==0) {
-				// we'll now add this conn to waiting list and try again once
-				// /proc has updated or new dtrace info arrives
-				strcpy(c.name,NOTFOUND);
+	if ((pkt_pid>0) && pkt_name && (strnlen(pkt_name,MAXCOMLEN)>0)) {
+		// great, we got the pid and nanme from the pcap header.
+		pid = pkt_pid;
+		strlcpy(c.name,pkt_name,MAXCOMLEN);
+		cache_pid(pid, c.name);
+		stats.pktap_hits++;
+		printf("%s:%u->%s:%u found from PKTAP: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
+	} else {
+		stats.pktap_misses++;
+		// start by trying netstat info ...
+		printf("%s:%u->%s:%u NOT found from PKTAP.\n",src,cr->sport,c.addr_name,cr->dport);
+		int res2 =lookup_nstat(cr, c.name, &pid);
+		if (res2 == 0) {
+			stats.nstat_misses++;
+			printf("%s:%u->%s:%u NOT found in nstat cache\n", src,cr->sport,c.addr_name,cr->dport);
+		
+			// next try to get PID from dtrace cache ...
+			int res=lookup_dtrace(cr, c.name, &pid);
+			if (res==0) { // rare when dtrace is active, otherwise boring
+				INFO2("%s:%u->%s:%u NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
+				if (syn)
+					stats.dtrace_syn_misses++;
+				else
+					stats.dtrace_misses++;
+				// finally try to get PID info from /proc ...
+				// nb: >90% of execution time of create_blockitem_from_addr()
+				// is spent in this find_pid() call, and within that call
+				// find_fds consumes >85% of execution time
+				res=find_pid(cr,c.name,syn);
+				//clock_t end1 = clock();
+				if (res==0) {
+					// we'll now add this conn to waiting list and try again once
+					// /proc has updated or new dtrace info arrives
+					strcpy(c.name,NOTFOUND);
+				}
+			} else {
+				if (syn)
+					stats.dtrace_syn_hits++;
+				else
+					stats.dtrace_hits++;
+				cache_pid(pid, c.name); // cache successful pid for pidinfo lookup
+				INFO2("%s:%u->%s:%u found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 			}
 		} else {
-			if (syn)
-				stats.dtrace_syn_hits++;
-			else
-				stats.dtrace_hits++;
-			cache_pid(pid, c.name); // cache successful pid for pidinfo lookup
-			INFO2("%s:%u->%s:%u found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
+			stats.nstat_hits++;
+			printf("%s:%u->%s:%u found in nstat cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
+			cache_pid(pid, c.name);
 		}
-	} else {
-		printf("%s:%u->%s:%u found in nstat cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 	}
 	
 	// try to get domain name from DNS cache
@@ -202,7 +217,7 @@ void process_conn_waiting_list(void) {
 			int del=0;
 			
 			// try to get PID name for this connection ...
-			bl_item_t c_w = create_blockitem_from_addr(&cr_w, 0);
+			bl_item_t c_w = create_blockitem_from_addr(&cr_w, 0, -1, NULL);
 
 			if (strcmp(c_w.name,NOTFOUND)==0) {//yet again failed to get PID name
 				if ( (end.tv_sec - cr_w.ts.tv_sec) +(end.tv_usec - cr_w.ts.tv_usec)/1000000.0
@@ -263,7 +278,6 @@ void process_conn_waiting_list(void) {
 
 void *listener(void *ptr) {
 	struct pcap_pkthdr pkthdr;
-	#define SNAPLEN 512 // needs to be big enough to capture dns payload
 	u_char pkt[SNAPLEN];
 	ssize_t res;
 	
@@ -302,18 +316,21 @@ void *listener(void *ptr) {
 			WARN("Sniffer listener: our snaplen %d is too small for received pkt len %d\n",SNAPLEN,pkthdr.caplen);
 			pkthdr.caplen=SNAPLEN; // we truncate packet and hope for the best !
 		}
-		size_t pkt_proper_len=0; int datalink;
-		if ( (res=readn(p_sock, &datalink, sizeof(int)) )<=0) goto err_p;
+		size_t pkt_proper_len=0;
+		int pkt_pid=-1;
+		char pkt_name[MAXCOMLEN]; memset(pkt_name,0,MAXCOMLEN);
+		ssize_t len=0;
+		if ( (res=readn(p_sock, &pkt_pid, sizeof(int)) )<=0) goto err_p;
+		if ( (res=readn(p_sock, &len, sizeof(ssize_t)) )<=0) goto err_p;
+		if (len>0) {
+			if ( (res=readn(p_sock, pkt_name, len) )<=0) goto err_p;
+		} else {
+			printf("pid=%d, len=%zd ...",pkt_pid,len);
+		}
 		if ( (res=readn(p_sock, &pkt_proper_len, sizeof(size_t)) )<=0) goto err_p;
 		if ( (res=readn(p_sock, pkt, (ssize_t)pkt_proper_len) )<=0) goto err_p;
-		//printf("read pkt datalink %d, len %d\n",datalink,pkt_proper_len);
 		
-		// we got a pkt, let's process it ...
-		if ((datalink == DLT_PPP)||(datalink == DLT_PPP_BSDOS)||(datalink == DLT_PPP_ETHER)) {
-			// its a point to point interface, v likely a VPN
-			// - don't do anything special, for now.
-		}
-		
+		// we got a pkt, let's process it ...		
 		// nb: link layer header has already been removed by helper.
 		struct timeval ts = pkthdr.ts;
 		struct timeval start; gettimeofday(&start, NULL);
@@ -343,7 +360,7 @@ void *listener(void *ptr) {
 			memcpy(&dst,&ip->ip_dst,sizeof(struct in6_addr));
 			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
 		}
-		//printf("version %d proto %d (udp=%d, tcp=%d)\n",version,proto,IPPROTO_UDP,IPPROTO_TCP);
+		//printf("version %d proto %d (udp=%d, tcp=%d) %s\n",version,proto,IPPROTO_UDP,IPPROTO_TCP,pkt_name);
 		
 		if (proto == IPPROTO_UDP) {
 			struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
@@ -386,7 +403,7 @@ void *listener(void *ptr) {
 					udp_cache_size++;
 					
 					// carry out PID and DNS lookup
-					bl_item_t c = create_blockitem_from_addr(&cr,0);
+					bl_item_t c = create_blockitem_from_addr(&cr,0,-1,NULL);
 					if (strcmp(c.name,NOTFOUND)==0) {
 						// we seem to often miss process for a UDP pkt, for now
 						// we guess its Chrome.
@@ -423,6 +440,12 @@ void *listener(void *ptr) {
 		}
 
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
+
+		char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
+		inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
+		inet_ntop(af, &src, dn, INET6_ADDRSTRLEN);
+		printf("%s (%d) %s:%d -> %s:%d\n",pkt_name,pkt_pid,sn,ntohs(tcp->th_sport),dn,ntohs(tcp->th_dport));
+
 		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
 		int synack = (tcp->th_flags & (TH_SYN)) && (tcp->th_flags & (TH_ACK));
 		if ( (!syn) && (!synack)) {
@@ -430,7 +453,7 @@ void *listener(void *ptr) {
 			WARN("sniffed tcp pkt is not syn/syn-ack\n");
 			continue;
 		}
-			
+
 		conn_raw_t cr;
 		cr.af=af; cr.udp=0;
 		cr.ts = ts; cr.start = start;
@@ -447,7 +470,7 @@ void *listener(void *ptr) {
 			cr.seq=ntohl(tcp->th_ack); cr.ack=ntohl(tcp->th_seq);
 		}
 		// try to get PID name and domain for this connection ...
-		bl_item_t c = create_blockitem_from_addr(&cr, syn);
+		bl_item_t c = create_blockitem_from_addr(&cr, syn, pkt_pid, pkt_name);
 		
 		if (syn) {
 			// we use syn's to prime the procinfo cache.  if connection is not in
