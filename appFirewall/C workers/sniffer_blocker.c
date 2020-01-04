@@ -44,35 +44,44 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn) {
 	char src[INET6_ADDRSTRLEN];
 	inet_ntop(cr->af, &cr->src_addr, src, INET6_ADDRSTRLEN);
 
-	// can we get PID from dtrace cache ?
+
 	int pid;
-	int res=lookup_dtrace(cr, c.name, &pid);
-	if (res==0) { // rare when dtrace is active, otherwise boring
-		INFO2("%s:%u->%s:%u NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
-		if (syn)
-			stats.dtrace_syn_misses++;
-		else
-			stats.dtrace_misses++;
-		// try to get PID info from /proc
-		// nb: >90% of execution time of create_blockitem_from_addr()
-		// is spent in this find_pid() call, and within that call
-		// find_fds consumes >85% of execution time
-		res=find_pid(cr,c.name,syn);
-		//clock_t end1 = clock();
-		if (res==0) {
-			// we'll now add this conn to waiting list and try again once
-			// /proc has updated or new dtrace info arrives
-			strcpy(c.name,NOTFOUND);
+	
+	int res2 =lookup_nstat(cr, c.name, &pid);
+	if (res2 == 0) {
+		printf("%s:%u->%s:%u NOT found in nstat cache\n", src,cr->sport,c.addr_name,cr->dport);
+	
+		// can we get PID from dtrace cache ?
+		int res=lookup_dtrace(cr, c.name, &pid);
+		if (res==0) { // rare when dtrace is active, otherwise boring
+			INFO2("%s:%u->%s:%u NOT found in dtrace cache, trying procinfo ... ", src,cr->sport,c.addr_name,cr->dport);
+			if (syn)
+				stats.dtrace_syn_misses++;
+			else
+				stats.dtrace_misses++;
+			// try to get PID info from /proc
+			// nb: >90% of execution time of create_blockitem_from_addr()
+			// is spent in this find_pid() call, and within that call
+			// find_fds consumes >85% of execution time
+			res=find_pid(cr,c.name,syn);
+			//clock_t end1 = clock();
+			if (res==0) {
+				// we'll now add this conn to waiting list and try again once
+				// /proc has updated or new dtrace info arrives
+				strcpy(c.name,NOTFOUND);
+			}
+		} else {
+			if (syn)
+				stats.dtrace_syn_hits++;
+			else
+				stats.dtrace_hits++;
+			cache_pid(pid, c.name); // cache successful pid for pidinfo lookup
+			INFO2("%s:%u->%s:%u found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 		}
 	} else {
-		if (syn)
-			stats.dtrace_syn_hits++;
-		else
-			stats.dtrace_hits++;
-		cache_pid(pid, c.name); // cache successful pid for pidinfo lookup
-		INFO2("%s:%u->%s:%u found in dtrace cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
+		printf("%s:%u->%s:%u found in nstat cache: %s\n", src,cr->sport,c.addr_name,cr->dport,c.name);
 	}
-
+	
 	// try to get domain name from DNS cache
 	char* dns =lookup_dns_name(cr->af, cr->dst_addr);
 	if (dns!=NULL) {

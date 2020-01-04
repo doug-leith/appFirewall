@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "util.h"
 #include "dtrace.h"
+#include "netstats.h"
 
 #define MAXTRIES 10
 

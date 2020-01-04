@@ -53,6 +53,9 @@
 		9180E181238DECEB007002CB /* codesign.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.c */; };
 		9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9183583623A1BF81008FDBB4 /* appViewController.swift */; };
 		9183583A23A4B86B008FDBB4 /* pgrep.c in Sources */ = {isa = PBXBuildFile; fileRef = 9183583923A4B86B008FDBB4 /* pgrep.c */; };
+		9185AD2923C066F3002AE0D6 /* netstats.c in Sources */ = {isa = PBXBuildFile; fileRef = 9185AD2823C066F3002AE0D6 /* netstats.c */; };
+		9185AD2B23C07069002AE0D6 /* NetworkStatistics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */; };
+		9185AD2C23C07069002AE0D6 /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		919074182397BA7900DE49DE /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919074172397BA7900DE49DE /* Config.swift */; };
 		9190741A2399077100DE49DE /* dns_connlist.dat in Resources */ = {isa = PBXBuildFile; fileRef = 919074192399072500DE49DE /* dns_connlist.dat */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
@@ -97,6 +100,17 @@
 			files = (
 				913315F723B0B0E70003D381 /* appFirewall-loginLaunch.app in CopyFiles */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9185AD2D23C07069002AE0D6 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				9185AD2C23C07069002AE0D6 /* NetworkStatistics.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		91ABB294237734F6007F8FFE /* CopyFiles */ = {
@@ -193,6 +207,9 @@
 		9183583623A1BF81008FDBB4 /* appViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appViewController.swift; sourceTree = "<group>"; };
 		9183583823A4B86B008FDBB4 /* pgrep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pgrep.h; sourceTree = "<group>"; };
 		9183583923A4B86B008FDBB4 /* pgrep.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pgrep.c; sourceTree = "<group>"; };
+		9185AD2723C066F3002AE0D6 /* netstats.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = netstats.h; sourceTree = "<group>"; };
+		9185AD2823C066F3002AE0D6 /* netstats.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = netstats.c; sourceTree = "<group>"; };
+		9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = ../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework; sourceTree = "<group>"; };
 		919074152397B59100DE49DE /* Screenshot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Screenshot.png; sourceTree = "<group>"; };
 		919074172397BA7900DE49DE /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		919074192399072500DE49DE /* dns_connlist.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = dns_connlist.dat; sourceTree = "<group>"; };
@@ -222,6 +239,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9185AD2B23C07069002AE0D6 /* NetworkStatistics.framework in Frameworks */,
 				91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -296,6 +314,7 @@
 		91607BCB236AD6BA002E50A8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */,
 				91494786239F909F00C01432 /* libSystem.B_asan.tbd */,
 				91494783239F907700C01432 /* libSystem_asan.tbd */,
 				91B5909923925620000F418D /* libdtrace.tbd */,
@@ -395,6 +414,8 @@
 				9139F681237D355600600D37 /* circular_list.c */,
 				91ABB26D237680B7007F8FFE /* table.h */,
 				91ABB26C237680B7007F8FFE /* table.c */,
+				9185AD2723C066F3002AE0D6 /* netstats.h */,
+				9185AD2823C066F3002AE0D6 /* netstats.c */,
 			);
 			path = "C workers";
 			sourceTree = "<group>";
@@ -423,6 +444,7 @@
 				91607BAD236AB280002E50A8 /* Resources */,
 				91607C182372EA7D002E50A8 /* CopyFiles */,
 				916ECB2123AFA0EA00023AEA /* CopyFiles */,
+				9185AD2D23C07069002AE0D6 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -563,6 +585,7 @@
 				91607BF3237140A4002E50A8 /* blocklist.c in Sources */,
 				91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */,
 				9180E1702388A91F007002CB /* connection.c in Sources */,
+				9185AD2923C066F3002AE0D6 /* netstats.c in Sources */,
 				9139F67F237BC49A00600D37 /* helper.c in Sources */,
 				9139F685237D8EBB00600D37 /* blocklists.c in Sources */,
 				9180E1662387F407007002CB /* percentile.c in Sources */,
@@ -775,6 +798,10 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "appFirewall/appFirewall-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 			};
 			name = Debug;
 		};
@@ -812,6 +839,10 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "appFirewall/appFirewall-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 			};
 			name = Release;
 		};

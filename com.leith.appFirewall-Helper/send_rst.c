@@ -8,16 +8,6 @@
 #include "send_rst.h"
 
 // nice info on raw sockets: https://sock-raw.org/papers/sock_raw
-
-/*
- SO_DONTROUTE indicates that outgoing messages should bypass the standard
- routing facilities.  Instead, messages are	directed to the	appropriate
- network interface according to the	network	portion	of the destination ad-
- dress.
- 
- from freebsd source:
- #define IP_ROUTETOIF   SO_DONTROUTE
- */
  
 //globals
 static int sock, s2;

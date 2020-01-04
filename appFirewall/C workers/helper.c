@@ -65,6 +65,7 @@ void start_helper_listeners(int_sw dtrace) {
 	// fire up thread that listens for pkts sent by helper
 	start_listener(); // pkt sniffer
 	if (dtrace) start_dtrace_listener(); // dtrace
+	start_netstats();
 }
 
 void stop_helper_listeners() {
