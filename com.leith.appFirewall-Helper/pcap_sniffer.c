@@ -354,11 +354,16 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
 		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
 		int synack = (tcp->th_flags & (TH_SYN)) && (tcp->th_flags & (TH_ACK));
-		if (args.sn->use_pktap && !synack ) return;
-		// when dtrace is running on receipt of a syn we signal to
-		// dtrace to look for connect() trace info, otherwise
-		// we pass the syn on to client.
-		if ( dtrace_active() && syn) { signal_dtrace(); return; }
+		if (args.sn->use_pktap) {
+			// with PKTAP we only pass syn-acks on to client
+			if (!synack) return;
+		} else {
+			// if not using PKTAP then when
+			// dtrace is running on receipt of a syn we signal to
+			// dtrace to look for connect() trace info, otherwise
+			// we pass the syn on to client.
+			if ( dtrace_active() && syn) { signal_dtrace(); return; }
+		}
 	} else if (proto == IPPROTO_UDP) {
 		struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
 		uint16_t sport=ntohs(udp->uh_sport);

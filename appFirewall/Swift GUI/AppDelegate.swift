@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	// private variables
 	// timer for periodic polling ...
 	var timer : Timer = Timer()
+	var timer_logs : Timer = Timer()
 	var timer_stats: Timer = Timer()
 	var count_stats: Int = 0
 	// menubar button ...
@@ -169,12 +170,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// (and if we do it here it might be interrupted by a window
 		// close event and lead to file corruption
 		
-		// check is listener thread (for talking with helper process that
-		// has root priviledge) has run into trouble -- if so, its fatal
+		// check if listener thread (for talking with helper process that
+		// has root privilege) has run into trouble -- if so, its fatal
 		if (Int(check_for_error()) != 0) {
 				exit_popup(msg:String(cString: get_error_msg()), force:Int(get_error_force()))
 				// this call won't return
 		}
+		// update menubar button tooltip
+		if let button = statusItem.button {
+			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
+		}
+	}
+
+	@objc func refreshLogs() {
 		save_log(Config.logName)
 		if (need_log_rotate(logName: Config.logTxtName)) {
 			close_logtxt() // close human-readable log file
@@ -186,13 +194,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			log_rotate(logName: Config.appLogName)
 			redirect_stdout(Config.appLogName); // redirect output to the new log file
 		}
-
-		// update menubar button tooltip
-		if let button = statusItem.button {
-			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
-		}
 	}
-		
+
 	//--------------------------------------------------------
 	// application event handlers
 	
@@ -314,6 +317,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// schedule house-keeping ...
 		timer = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
+		timer_logs = Timer.scheduledTimer(timeInterval: Config.appDelegateFileRefreshTime, target: self, selector: #selector(refreshLogs), userInfo: nil, repeats: true)
+		timer.tolerance = 1 // we don't mind if it runs quite late
+
 		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		

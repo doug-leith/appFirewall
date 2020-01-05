@@ -473,7 +473,8 @@ void *listener(void *ptr) {
 		bl_item_t c = create_blockitem_from_addr(&cr, syn, pkt_pid, pkt_name);
 		
 		if (syn) {
-			// we use syn's to prime the procinfo cache.  if connection is not in
+			// when not using dtrace or pktap we use
+			// syn's to prime the procinfo cache.  if connection is not in
 			// cache we trigger a refresh here.  the hope is that by the time the
 			// synack arrives the connection will be in the cache and we'll avoid
 			// waiting.
@@ -492,10 +493,12 @@ void *listener(void *ptr) {
 			// if on block list, send rst.  otherwise just log conn and move on
 			process_conn(&cr, &c, 1.0, &r_sock, 1);
 		}
-		// refresh pid info (may take a while, so we don't wait here).  serves a dual purpose:
+		// refresh pid info (may take a while, so we don't wait here).  serves a
+		// dual purpose:
 		// 1. if have just added conn to waiting list because can't find the conn in
-		// the current pidinfo list of processes and conns then this will cause the list
-		// to be updated, so that hopefully can now find the conn and take it off waiitng list
+		// the current pidinfo list of processes and conns then this will cause the
+		// list to be updated, so that hopefully can now find the conn and take it
+		// off waiting list
 		// 2. for a conn which we've just processed refresh of pidinfo will cause a
 		// check that conn has really died, and if not will call helper to catch the
 		// "escapee".		
