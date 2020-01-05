@@ -4,15 +4,13 @@ Here's a harsh test for the firewall.   Open a command-line terminal using Comma
 
     for i in {1..20}; do curl http://sb.scorecardresearch.com & done
 
-You should see multiple connections get a "Please visit www.scorecardresearch.com for more information about our program" response.  This is a tough test for the firewall since the connections are very short - just two outgoing packets ([SYN](https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment) and then the HTTP request) and two response packets ([SYN-ACK](https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment) and HTTP response) - and very fast (the connection attempts are all made concurrently due to the & at the end of the curl command).  So this gives an idea of worst case behaviour.
+You might see some connections succeed in getting a "Please visit www.scorecardresearch.com for more information about our program" response.  This is a tough test for the firewall since the connections are very short - just two outgoing packets ([SYN](https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment) and then the HTTP request) and two response packets ([SYN-ACK](https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Connection_establishment) and HTTP response) - and very fast (the connection attempts are all made concurrently due to the & at the end of the curl command).  So this gives an idea of worst case behaviour.
 
 If we'd used HTTPS rather than HTTP then there is a crypto handshake at the start of the connection which is several packets long.  This gives the firewall enough time to close the connection before any data is exchanged.    For example, type the following at the command line:
 
     for i in {1..20}; do curl https://sb.scorecardresearch.com & done
 
-and note the connection is now https, but the setup is otherwise the same as before.  You should see that all of the connections are now blocked during the crypto handshake (an error message "OpenSSL SSL_connect: SSL_ERROR_SYSCALL" is shown).
-
-If you want to improve the firewall's performance with bursts of short connections then you can enable [DTrace](https://en.wikipedia.org/wiki/DTrace), which the firewall can then use to snoop on the [connect()](https://linux.die.net/man/2/connect) syscall that starts a connecti.  This allows the firewall to respond more quickly to new connections.  By default, DTrace is disabled by Apple's [System Integrity Protection](https://en.wikipedia.org/wiki/System_Integrity_Protection) (SIP).  To enable it (but leave the rest of SIP unchanged), reboot into Recovery Mode (hold down ⌘R during boot), launch a shell and run "csrutil enable --without dtrace", reboot and allow machine to boot normally (see this [stackoverflow post](https://apple.stackexchange.com/questions/208762/now-that-el-capitan-is-rootless-is-there-any-way-to-get-dtrace-working/208763#208763)).
+and note the connection is now https, but the setup is otherwise the same as before.  You should see that all of the connections are now consistently blocked during the crypto handshake (an error message "OpenSSL SSL_connect: SSL_ERROR_SYSCALL" is shown).
 
 ### Multiple domains can share the same IP address
 
