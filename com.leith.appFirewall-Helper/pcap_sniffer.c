@@ -93,13 +93,13 @@ int get_interfaces(char intf[MAX_INTS][STR_SIZE], int use_pktap) {
 				strlcpy(intf[count],"",STR_SIZE);;
 			}
 			strlcat(intf[count],dev->ifa_name,STR_SIZE);
+			// check that we don't already have this interface in our list
+			int i;
+			for (i=0; i<count; i++) {
+				if (strcmp(intf[i],intf[count])==0) break;
+			}
+			if (i<count) continue; // duplicate
 		}
-		// check that we don't already have this interface in our list
-		int i;
-		for (i=0; i<count; i++) {
-			if (strcmp(intf[i],intf[count])==0) break;
-		}
-		if (i>=count) continue; // duplicate
 		DEBUG2("valid interface: %s %d\n", intf[count], use_pktap);
 		if (count < MAX_INTS) {
 			count++;
