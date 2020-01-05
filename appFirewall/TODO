@@ -2,6 +2,7 @@ TO DO
 
 short term:
 - why 2% cpu usage by client ?
+- escapee catching slow?
 - check for mem leaks in helper
 
 longer term:

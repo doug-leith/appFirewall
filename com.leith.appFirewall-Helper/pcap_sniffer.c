@@ -299,9 +299,8 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	// send pkt to GUI.
 	if (!are_sniffing) return;
 	
-sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
-
-	int pkt_pid=-1; char *name=NULL; int flags=-1;
+	sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
+	int pkt_pid=-1; char *name=NULL;
 
 	if (args.sn->use_pktap) {
 		// we need to get offset from the PKTAP header itself
@@ -311,28 +310,28 @@ sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
 			WARN("No packet after PKTAP header (pid=%d)\n",pkt_pid);
 			return;
 		}
-		args.sn->offset[args.i] = hdr->pth_length;
+		
 		pkt_pid = hdr->pth_pid;
 		char buf[MAXCOMLEN];
 		// make sure we have a NUL terminated string ...
 		strlcpy(buf,hdr->pth_comm,MAXCOMLEN);
 		name = trimwhitespace(buf); // seems like this is needed !
-		flags = hdr->pth_flags;
+		if ((pkt_pid <=0) || (strnlen(name,MAXCOMLEN)==0)) {
+			// this happens with IGMP and broadcasts
+			return;
+		}
+
 		// step past the next header (likely ethernet)
-		int dlt = hdr->pth_dlt, offset=get_DLT_offset2(dlt);
+		args.sn->offset[args.i] = hdr->pth_length;
+		int offset=get_DLT_offset2(hdr->pth_dlt);
 		if (offset<0) {
 			WARN("Problem getting datalink offset for interface %s\n",args.sn->interfaces[args.i]);
 			return; // its a serious error, we should probably close down sniffing
 		}
 		args.sn->offset[args.i] += offset;
-		
-		if ((pkt_pid <=0) || (strnlen(name,MAXCOMLEN)==0)) {
-			// this happens with IGMP and broadcasts
-			return;
-		}
 	}
 
-	//printf("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d, flags=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), flags, pkthdr->caplen);
+	//printf("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), pkthdr->caplen);
 	const u_char* pkt_proper = pkt + args.sn->offset[args.i]; // look past link layer header to pkt itself
 	size_t pkt_proper_len = pkthdr->caplen - args.sn->offset[args.i];
 	
