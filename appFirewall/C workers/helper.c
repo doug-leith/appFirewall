@@ -61,11 +61,11 @@ int connect_to_helper(int port, int quiet) {
 	return sock;
 }
 
-void start_helper_listeners(int_sw dtrace) {
+void start_helper_listeners(int_sw dtrace, int_sw nstat) {
 	// fire up thread that listens for pkts sent by helper
 	start_listener(); // pkt sniffer
 	if (dtrace) start_dtrace_listener(); // dtrace
-	start_netstats();
+	if (nstat) start_netstats();
 }
 
 void stop_helper_listeners() {

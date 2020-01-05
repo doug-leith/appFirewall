@@ -281,17 +281,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		UserDefaults.standard.register(defaults: ["log_show_blocked":3])
 					
 		// set whether to use dtrace assistance or not
-		UserDefaults.standard.register(defaults: ["dtrace": 1])
+		UserDefaults.standard.register(defaults: ["dtrace": Config.enableDtrace])
 		let sipEnabled = isSIPEnabled()
 		print("SIP enabled: ",sipEnabled)
 		var dtrace = UserDefaults.standard.integer(forKey: "dtrace")
 		if (sipEnabled) { dtrace = 0 } // dtrace doesn't work with SIP
-		if ((Config.enableDtrace > 0) && (dtrace > 0)) {
+		if (dtrace > 0) {
 			print("Dtrace enabled")
 		} else {
 			dtrace = 0
 			print("Dtrace disabled")
 		}
+		// set whether Nstat assistance is used
+		UserDefaults.standard.register(defaults: ["nstat": Config.enableNstat])
+		let nstat = UserDefaults.standard.integer(forKey: "nstat")
+		if (nstat>0) {
+			print("Nstat enabled")
+		} else {
+			print("Nstat disabled")
+		}
+		
 		// reload state
 		load_state()
 		Config.initLoad()
@@ -299,7 +308,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// start listeners
 		// this can be slow since it blocks while making network connection to helper
     DispatchQueue.global(qos: .background).async {
-			start_helper_listeners(Int32(dtrace))
+			start_helper_listeners(Int32(dtrace), Int32(nstat))
 		}
 		
 		// schedule house-keeping ...

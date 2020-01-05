@@ -1,7 +1,8 @@
 TO DO
 
 short term:
-- figure out why sending RSTs to self fails with openvpn tun.  openvpn uses weird routing setup, which might be the problem.
+- why 2% cpu usage by client ?
+- check for mem leaks in helper
 
 longer term:
 - use of network extensions, only for catalina onwards though

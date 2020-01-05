@@ -20,7 +20,7 @@ void start_listener(void); // sniffer_blocker.h
 void stop_listener(void); // sniffer_blocker.h
 
 // swift interface
-void start_helper_listeners(int_sw dtrace);
+void start_helper_listeners(int_sw dtrace, int_sw nstat);
 void stop_helper_listeners(void);
 
 #endif /* helper_h */
