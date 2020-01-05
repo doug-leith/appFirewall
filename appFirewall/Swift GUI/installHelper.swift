@@ -165,6 +165,12 @@ func start_helper(force: Bool) {
 		}else{
 			print(kHelperToolName+" installed successfully")
 			AuthorizationFree(authRef!, [])
+			// wait for helper to start
+			var count = 0
+			while (count<10) && (!is_helper_running(Name: kHelperToolName)) {
+				sleep(1)
+				count += 1
+			}
 		}
 	}
 }
