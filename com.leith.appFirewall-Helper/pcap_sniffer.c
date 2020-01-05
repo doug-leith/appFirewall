@@ -255,6 +255,8 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 	}
 	int i;
 	for (int j=0; j<n; j++) {
+		// there's an assumption here that each interface appears at most
+		// once in interfaces list, we enforce this via get_interfaces()
 		for (i = 0; i<old_sn.num_pds; i++) {
 			if (strcmp(old_sn.interfaces[i], temp_interfaces[j])==0) break;
 		}
