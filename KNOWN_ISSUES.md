@@ -22,9 +22,13 @@ Otherwise some care is needed.  Since the firewall can block connections on a pe
 
 You can see information on the domains sharing an IP address by hovering your mouse over a connection - the tool tip gives connection details, including domains.  The number in brackets after a domain name indicates the number of times that domain name was recently resolved to the IP address.  So we can see, for example, whether one domain name is much more frequent than others.
 
+### Filtering of IPv6 connection unreliable
+
+Filtering of traffic sent over IPv6 is unreliable at the moment.   This is because the raw socket interface (used to send TCP RST packets) for IPv6 doesn't support the full functionality that it does for IPv4.   Let me know if this is a problem, there might be other workarounds.
+
 ### Filtering of VPN traffic is unreliable/experimental
 
-Traffic sent via a VPN is logged but blocking of connections is unreliable at the moment, at least when using openvpn (which is all that I've tested).  That means connections which are marked to be blocked may fail to be blocked and so show up in the "Active Connections" tab.   The problem lies in openvpn itself so other VPN clients might be fine.  
+Traffic sent via a VPN is logged but blocking of connections is also unreliable at the moment, at least when using openvpn (which is all that I've tested).  That means connections which are marked to be blocked may fail to be blocked and so show up in the "Active Connections" tab.   The problem lies in openvpn itself so other VPN clients might be fine.  
 
 ### Google QUIC connections are not blocked (yet)
 
