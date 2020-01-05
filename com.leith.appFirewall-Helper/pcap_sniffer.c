@@ -240,7 +240,7 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 	//struct timeval start; gettimeofday(&start, NULL);
 	
 	char temp_interfaces[MAX_INTS][STR_SIZE];
-	int n=0;
+	int n=0, extra=0;;
 	sniffers_t old_sn;
 	memcpy(&old_sn,sn,sizeof(sniffers_t));
 	memset(sn,0,sizeof(sniffers_t));
@@ -284,8 +284,11 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 		}
 		sn->datalink[sn->num_pds] = pcap_datalink(sn->pds[sn->num_pds]);
 		sn->fd[sn->num_pds] = pcap_get_selectable_fd(sn->pds[sn->num_pds]);
+		if (!extra) {printf("added interface "); extra=1;} else printf(", ");
+		printf("%s (dlt %d)", sn->interfaces[sn->num_pds],sn->datalink[sn->num_pds]);
 		sn->num_pds++;
 	}
+	if (extra) printf("\n");
 	for (int i = 0; i<old_sn.num_pds; i++) {
 		if (old_sn.pds[i]!=NULL) pcap_close(old_sn.pds[i]); // tidy up dead sniffers
 	}
@@ -426,8 +429,9 @@ void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_e
 	sn->use_pktap = use_pktap;
 	sniffer_callback_args_t args[MAX_INTS];
 	for (int i = 0; i<MAX_INTS; i++) {args[i].sn = sn; args[i].i=i; }
-	INFO("Starting %s sniffers on (use_pktap=%d): ", tag, use_pktap);
+	INFO("Starting %s sniffers (use_pktap=%d)\n", tag, use_pktap);
 	refresh_sniffers_list(sn, filter_exp);
+	INFO("%s sniffing on interfaces: ", tag);
 	for (int i=0; i<sn->num_pds; i++) {
 		printf("%s ",sn->interfaces[i]);
 	}
