@@ -62,11 +62,10 @@ void init_libnet(libnet_data_t *ld) {
 		ERR("libnet_init() IPv6 failed, won't be able to kill network connections: %s\n", err_buf);
 	}
 	
-	// doesn't seem to work for IPv6, sigh
-	/*if (setsockopt(l6_hdr->fd, IPPROTO_IP, IP_HDRINCL, &n, sizeof(n))<0) {
-		ERR("setsockopt IP_HDRINCL failed: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}*/
+	n = 1;
+	if (setsockopt(ld->l6_hdr->fd, IPPROTO_IPV6, IP_HDRINCL, &n, sizeof(n))<0) {
+		ERR("setsockopt() IPv6 IP_HDRINCL failed, won't be able to send TCP RST packets to self: %s\n", strerror(errno));
+	}
 
 }
 
@@ -98,8 +97,8 @@ libnet_ptag_t append_ipheader(int af, struct in6_addr *src_addr, struct in6_addr
 		struct libnet_in6_addr s, d;
 		memcpy(&s,src_addr,16);
 		memcpy(&d,dst_addr,16);
-		*ip_ptag = libnet_build_ipv6(0,0,0,
-																 IPPROTO_TCP,64,
+		*ip_ptag = libnet_build_ipv6(0,0,LIBNET_TCP_H,
+																 IPPROTO_TCP, 64,
 																 s, d,
 																 NULL, 0, l, *ip_ptag);
 	}
@@ -121,9 +120,9 @@ int snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 	
 	if (!syn && !onlyself && (l!=NULL)) {
 		// this is a bit nasty.  we try to inject data into the connection to
-		// generate an error at the remote which will cause it to reset the connection.
-		// helpful with VPNs where sending RST to self doesn't work, so getting remote
-		// to send RST is good.
+		// generate an error at the remote which will cause it to reset the
+		// connection. helpful with VPNs where sending RST to self doesn't work, so
+		// getting remote to send RST is good.
 		const char *buf = "drop connection {\n\n\n"; // invalid json and http
 		uint16_t len = (uint16_t)strlen(buf);
 		*tcp_ptag = libnet_build_tcp(
@@ -157,8 +156,7 @@ int snd_rst(int syn, conn_raw_t* c, int onlyself, libnet_data_t *ld) {
 	if (l_hdr == NULL) goto err; // shouldn't happen
 	// send RST to self.  fails with VPNs (at least with openVPN as it
 	// messes up packets sent to self).
-	// nb: needs IP_HDRINCL to be set for this to work in IPV4, can't set IP_HDRINCL
-	// option for IPv6 - so this probably fails for Ipv6.
+	// nb: needs IP_HDRINCL to be set for this to work
 	uint8_t flags=TH_RST;
 	if ((*tcp_hdr_ptag = libnet_build_tcp(c->dport,c->sport,c->ack+1,c->seq,flags,
 																	 0, 0, 0, LIBNET_TCP_H, NULL, 0, l_hdr, *tcp_hdr_ptag))==-1) {

@@ -24,7 +24,7 @@ You can see information on the domains sharing an IP address by hovering your mo
 
 ### Filtering of IPv6 connections unreliable
 
-Filtering of traffic sent over IPv6 is unreliable at the moment.   This is because the raw socket interface (used to send TCP RST packets) for IPv6 doesn't support the full functionality that it does for IPv4.   Let me know if this is a problem, there might be other workarounds.
+Filtering of traffic sent over IPv6 is unreliable.   This is because the raw socket interface (used to send TCP RST packets) on MAC OS for IPv6 doesn't support the IP_HDRINCL functionality that it does for IPv4.   
 
 ### Filtering of VPN traffic is unreliable/experimental
 
