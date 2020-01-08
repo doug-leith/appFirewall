@@ -195,3 +195,14 @@ char *trimwhitespace(char *str) {
 
   return str;
 }
+
+inline int is_ipv4_localhost(struct in6_addr* addr){
+	const uint32_t dst_addr=((struct in_addr*)addr)->s_addr;
+	return (dst_addr==htonl(INADDR_LOOPBACK))
+					|| (dst_addr==htonl(INADDR_ANY));
+}
+
+inline int is_ipv6_localhost(struct in6_addr* addr){
+	// is in6addr_loopback in host or network byte order ?
+	return memcmp(&addr->s6_addr,&in6addr_loopback.s6_addr,16)==0;
+}

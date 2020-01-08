@@ -276,7 +276,7 @@ void *dtrace(void *ptr) {
 			close(d_sock2); d_sock2=-1;
 			continue;
 		}
-		pid = get_sock_pid(d_sock2, PCAP_PORT);
+		pid = get_sock_pid(d_sock2, DTRACE_PORT);
 		
 		// open pipe for receiving dtrace output
 		INFO("Starting dtrace ...\n");

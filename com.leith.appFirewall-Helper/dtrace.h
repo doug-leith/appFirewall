@@ -15,8 +15,7 @@
 #include <pthread.h>
 #include <dtrace.h>
 #include "util.h"
-#include "pcap_sniffer.h"
-#include "send_rst.h"
+#include "libnet.h"
 
 #define DTRACE_PORT 4
 

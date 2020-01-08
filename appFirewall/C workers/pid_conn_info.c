@@ -615,6 +615,7 @@ void find_escapees() {
 		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c.raw.udp==0)) {
 			// its an active connection that is supposed to have been blocked
 			int vpn = is_ppp(c.raw.af, &c.raw.src_addr, &c.raw.dst_addr);
+			//vpn=1; //disable catching
 			TAKE_LOCK(&escapee_mutex,"find_fds escapee_mutex");
 			int is_escapee = (!in_list(&escapee_list,&c,0)) && (escapee_thread_count<ESCAPEEMAX);
 			pthread_mutex_unlock(&escapee_mutex);
@@ -702,7 +703,7 @@ void *catch_escapee(void *ptr) {
 	int vpn = is_ppp(e->raw.af, &e->raw.src_addr, &e->raw.dst_addr);
 	if (vpn < 0) {WARN("escapee: interface down/gone away\n"); goto stop;}
 	uint8_t vpn_bool = (vpn>0);
-	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
 	if ( (res=send(c_sock, &vpn_bool, sizeof(uint8_t),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->pid, sizeof(int),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.af, sizeof(int),0) )<=0) goto err;
@@ -710,8 +711,9 @@ void *catch_escapee(void *ptr) {
 	if ( (res=send(c_sock, &e->raw.sport, sizeof(uint16_t),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.dport, sizeof(uint16_t),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.ack, sizeof(uint32_t),0) )<=0) goto err;
-	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
-	int8_t ok=0; read(c_sock, &ok, 1); // wait here until helper is done
+	int8_t ok=0;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
 	// remove escapee from active list, will be re-added if conn still exists
 	// next time find_fds() is called.
 	struct timeval end; gettimeofday(&end, NULL);

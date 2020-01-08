@@ -92,13 +92,13 @@ void start_netstats() {
 																						 //&_dispatch_main_q,
 																						 nstat_q,
 																						 callback_block);
-	int rc = NStatManagerSetFlags(nm, 0);
+	NStatManagerSetFlags(nm, 0);
 
 	// This is a really cool undocumented feature of NetworkStatistics.framework
 	// Which will give you the actual control socket data output.
-	int fd = open ("/tmp/nettop.trace", O_RDWR| O_CREAT | O_TRUNC);
-	rc = NStatManagerSetInterfaceTraceFD(nm, fd);
+	int fd = open ("/tmp/nettop.trace", O_RDWR| O_CREAT | O_TRUNC, 0644);
+	NStatManagerSetInterfaceTraceFD(nm, fd);
 
 	//if (wantUDP) { rc = NStatManagerAddAllUDPWithFilter (nm, 0 , 0);}
-	rc = NStatManagerAddAllTCPWithFilter (nm, 0 , 0);
+	NStatManagerAddAllTCPWithFilter (nm, 0 , 0);
 }

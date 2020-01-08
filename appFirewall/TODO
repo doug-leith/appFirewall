@@ -1,6 +1,9 @@
 TO DO
 
 short term:
+- suppress dns snaplen warnings -- log some stats instead when mDNS
+- catcher reports "failed" when conn actually stopped
+- catched called when conn already gone away (escapee timeout too short ?)
 
 longer term:
 - use of network extensions, only for catalina onwards though

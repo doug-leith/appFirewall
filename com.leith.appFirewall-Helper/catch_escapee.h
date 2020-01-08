@@ -12,8 +12,10 @@
 #include <unistd.h>
 #include <libproc.h>
 #include <fcntl.h>
-#include "pcap_sniffer.h"
 #include "send_rst.h"
+#include "util.h"
+#include "conn.h"
+
 
 #define CATCHER_PORT 5
 

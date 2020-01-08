@@ -26,9 +26,9 @@ void close_sniffer_sock() {
 	close(p_sock); close(p_sock2);
 }
 
-int get_interfaces(char intf[MAX_INTS][STR_SIZE], int use_pktap) {
-	// get list of useful interfaces (IPv4 or IPv6 and not link-local)
-	/*FILE *fp = popen("/sbin/route get default default | /usr/bin/grep interface","r");
+char* get_default_route_intf() {
+	// get the interface used by default route
+	FILE *fp = popen("/sbin/route get default default | /usr/bin/grep interface","r");
 	char* interface=NULL, buf[1024];
 	if (fp != NULL) {
   	if (fgets(buf, sizeof(buf), fp)!=NULL) {
@@ -41,76 +41,165 @@ int get_interfaces(char intf[MAX_INTS][STR_SIZE], int use_pktap) {
 	}
 	if (interface) {
 		INFO("found default route interface: %s\n",interface);
-		intf = interface;
-	} else {
-  // try using getifaddrs().  this will likely fail too if
-  // call to route didn't work
-  */
-  
-  // we add a listener to every IPv4/IPv6 interface
+		return interface;
+	}	else
+		return NULL;
+}
+
+void print_sockaddr(struct sockaddr* daddr) {
+	char addr_name[INET6_ADDRSTRLEN];
+	if (daddr->sa_family == AF_INET) {
+		inet_ntop(daddr->sa_family, &((struct sockaddr_in*)daddr)->sin_addr, addr_name, INET6_ADDRSTRLEN);
+	} else if (daddr->sa_family == AF_INET6) {
+		inet_ntop(daddr->sa_family, &((struct sockaddr_in6*)daddr)->sin6_addr, addr_name, INET6_ADDRSTRLEN);
+	}
+	printf("%s\n",addr_name);
+}
+
+int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
+	// get list of useful interfaces (IPv4 or IPv6, up and not link-local)
 	struct ifaddrs *ifap;
 	if (getifaddrs(&ifap)<0) {
 		ERR("Couldn't get list of interfaces from getifaddrs() for pcap sniffer: %s", strerror(errno));
-		// should this be fatal ?
-		return -1;
+		return -1; // should this be fatal ?
 	}
 	struct ifaddrs *dev;
-	int count=0;
+	int count=0, temp_count=0;
+	uint8_t temp_eth[MAX_MACS][ETHER_ADDR_LEN];
+	char temp_ifname[MAX_MACS][STR_SIZE];
 	for(dev=ifap; dev; dev=dev->ifa_next) {
 		DEBUG2("interface %s ...",dev->ifa_name);
-		if (dev-> ifa_flags & IFF_LOOPBACK) {DEBUG2("loopback\n"); continue;}
-		// point to point link is likely a vpn, so let's listen to it
-		//if (dev-> ifa_flags & IFF_POINTOPOINT) {DEBUG2("point to point\n"); continue;}
+		if (dev-> ifa_flags&IFF_LOOPBACK) {DEBUG2("loopback\n"); continue;}
 		if (dev->ifa_flags&IFF_NOARP) {DEBUG2("no ARP\n"); continue;}
 		if ((dev->ifa_flags&IFF_UP)==0) {DEBUG2("not up\n"); continue;}
 		if ((dev->ifa_flags&IFF_BROADCAST)==0) {
-			if (!(dev-> ifa_flags & IFF_POINTOPOINT)) {
-				DEBUG2("no valid broadcast addr\n");
-				continue;
-			}
+			// point to point link is likely a vpn, so let's listen to it
+			if (!(dev-> ifa_flags & IFF_POINTOPOINT)) { DEBUG2("no valid broadcast addr\n"); continue;}
 		}
 		//if (!dev->ifa_netmask) {printf("no valid netmask\n"); continue;}
-		struct sockaddr *addr = dev->ifa_addr;
+		struct sockaddr *daddr = dev->ifa_addr;
+		int af = daddr->sa_family;
+		if (af == AF_LINK) {
+			// extract the MAC address
+			if (temp_count >= MAX_MACS) {
+				WARN("get_interfaces() number of MAC addresses is >%d\n",MAX_MACS);
+				continue;
+			}
+			uint8_t* ptr = (uint8_t*)LLADDR((struct sockaddr_dl *)(dev)->ifa_addr);
+			memcpy(temp_eth[temp_count],ptr,ETHER_ADDR_LEN);
+			strlcpy(temp_ifname[temp_count],dev->ifa_name,STR_SIZE);
+			temp_count++;
+			continue;
+		}
+		if ((af != AF_INET) && (af != AF_INET6)) {DEBUG2("not IPv4/IPv6\n"); continue;}
+
+		// if get to here then its an interesting interface, let's look at the address
 		char addr_name[INET6_ADDRSTRLEN];
-		if (addr->sa_family == AF_INET) {
-			inet_ntop(addr->sa_family, &((struct sockaddr_in*)addr)->sin_addr, addr_name, INET6_ADDRSTRLEN);
-		} else if (addr->sa_family == AF_INET6) {
-			inet_ntop(addr->sa_family, &((struct sockaddr_in6*)addr)->sin6_addr, addr_name, INET6_ADDRSTRLEN);
-		} else {DEBUG2("not IPv4/IPv6\n"); continue;}
+		if (af == AF_INET) {
+			if ( ((struct sockaddr_in*)daddr)->sin_addr.s_addr == htonl(INADDR_ANY)) continue;
+			inet_ntop(af, &((struct sockaddr_in*)daddr)->sin_addr, addr_name, INET6_ADDRSTRLEN);
+		} else { // IPv6
+			inet_ntop(af, &((struct sockaddr_in6*)daddr)->sin6_addr, addr_name, INET6_ADDRSTRLEN);
+		}
 		char* mask6="fe80:", *mask4="169.254";
 		if ((strncmp(mask6, addr_name, strnlen(mask6,STR_SIZE)) == 0)
 				|| (strncmp(mask4, addr_name, strnlen(mask4,STR_SIZE)) == 0)) {
 			DEBUG2("link local addr\n");
 			continue; // ignore link local addresses
 		}
-		DEBUG2("addr %s found\n",addr_name);
-		if (intf!=NULL)  {
+		DEBUG2("%s addr %s found\n",dev->ifa_name,addr_name);
+		if (intf == NULL)  { // caller has just asked us to count the number of available interfaces
+			count++;
+		} else {  // caller wants interface details
+			char name[STR_SIZE];
 			if (use_pktap) {
 				// prepend interface name with pktap,
-				//strlcpy(intf[count],"pktap,",STR_SIZE);
-				strlcpy(intf[count],"iptap,",STR_SIZE);
+				//strlcpy(name,"pktap,",STR_SIZE);
+				strlcpy(name,"iptap,",STR_SIZE); // we've no need for link-layer header
 			} else {
-				strlcpy(intf[count],"",STR_SIZE);;
+				strlcpy(name,"",STR_SIZE);;
 			}
-			strlcat(intf[count],dev->ifa_name,STR_SIZE);
+			strlcat(name,dev->ifa_name,STR_SIZE);
 			// check that we don't already have this interface in our list
 			int i;
 			for (i=0; i<count; i++) {
-				if (strcmp(intf[i],intf[count])==0) break;
+				if (strcmp(intf[i].name,name)==0) break;
 			}
-			if (i<count) continue; // duplicate
-		}
-		DEBUG2("valid interface: %s %d\n", intf[count], use_pktap);
-		if (count < MAX_INTS) {
-			count++;
-		} else {
-			WARN("get_interfaces() >%d interfaces found\n", MAX_INTS);
-			break;
+			if (i<count) { // found a match, add new address to the list associated with existing interface
+				if (intf[i].num_addr<MAX_INTS) {
+					if (af==AF_INET)
+						memcpy(&intf[i].addr[intf[i].num_addr],dev->ifa_addr,sizeof(struct sockaddr_in));
+					else
+						memcpy(&intf[i].addr[intf[i].num_addr],dev->ifa_addr,sizeof(struct sockaddr_in6));
+					intf[i].num_addr++;
+				} else {
+					WARN("get_interfaces() number of addresses is >%d for interface %s\n",MAX_INTS, dev->ifa_name);
+				}
+			} else { // a new interface, add to our list
+				strlcpy(intf[count].name,name,STR_SIZE);
+				if (af==AF_INET)
+					memcpy(&intf[count].addr[0],dev->ifa_addr,sizeof(struct sockaddr_in));
+				else
+					memcpy(&intf[count].addr[0],dev->ifa_addr,sizeof(struct sockaddr_in6));
+				intf[count].num_addr = 1;
+				if (count < MAX_INTS) {
+					count++;
+				} else {
+					WARN("get_interfaces() >%d interfaces found\n", MAX_INTS);
+					break;
+				}
+			}
 		}
 	}
 	freeifaddrs(ifap);
-	//}
+	// now try to match up the collected list of MAC addresses to the list of interfaces
+	if (intf) {
+		int i,j;
+		for (i=0; i<count; i++) {
+			for (j=0; j<temp_count; j++) {
+				if (strcmp(intf[i].name,temp_ifname[j])==0) break;
+			}
+			if (j<temp_count) memcpy(intf[i].eth,temp_eth[j],ETHER_ADDR_LEN);
+		}
+	}
+	/* for debugging
+	if (intf) {
+		int i,j;
+		for (i=0; i<count; i++) {
+			printf("%s %d\n",intf[i].name,intf[i].num_addr);
+			for (j=0; j<intf[i].num_addr; j++) {
+				print_sockaddr((struct sockaddr*)&intf[i].addr[j]);
+			}
+		}
+	}*/
 	return count;
+}
+
+char* find_intf(conn_raw_t* c, char* str, int len, uint8_t eth[ETHER_ADDR_LEN]) {
+	// find interface used by src of connection (assuming conn is outgoing)
+	interface_t temp_intf[MAX_INTS];
+	int n=0;
+	if ( (n=get_interfaces(temp_intf, 0))<=0) {
+		return 0;
+	}
+	int i,j;
+	for (i=0; i<n; i++) {
+		for (j=0; j<temp_intf[i].num_addr;j++) {
+			if (temp_intf[i].addr[j].ss_family != c->af) continue;
+			if (c->af == AF_INET6) {
+				if (memcmp(&c->src_addr, &((struct sockaddr_in6*)&temp_intf[i].addr[j])->sin6_addr, 16)==0) break;
+			} else {
+				if (memcmp(&c->src_addr, &((struct sockaddr_in*)&temp_intf[i].addr[j])->sin_addr, 4)==0) break;
+			}
+		}
+		if (j<temp_intf[i].num_addr) break;
+	}
+	if (i<n) {
+		strlcpy(str,temp_intf[i].name,len);
+		memcpy(eth,temp_intf[i].eth,ETHER_ADDR_LEN);
+		return str;
+	} else
+		return NULL;
 }
 
 int get_DLT_offset2(int datalink) {
@@ -163,8 +252,8 @@ int get_DLT_offset2(int datalink) {
 
 int get_DLT_offset(pcap_t *pd, int use_pktap) {
 
-/*
-	// dump out available link layer types for pd
+	/*
+	// for debugging, dump out available link layer types for pd
 	int *l;
 	int n = pcap_list_datalinks(pd,&l);
 	printf("DLTs n=%d:\n",n);
@@ -186,12 +275,12 @@ int get_DLT_offset(pcap_t *pd, int use_pktap) {
 	return get_DLT_offset2(datalink);
 }
 
-int setup_pd(char* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
+int setup_pd(interface_t* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 	// initialise a pcap listener for an available interfaces
 	char ebuf[PCAP_ERRBUF_SIZE];
 
 	// create pcap listener
-	if ((*pd = pcap_create(intf, ebuf)) == NULL) {
+	if ((*pd = pcap_create(intf->name, ebuf)) == NULL) {
 		ERR("Couldn't create pcap sniffer %s\n",ebuf);
 		return -1;
 	}
@@ -240,17 +329,17 @@ int setup_pd(char* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 	return 1;
 }
 
-int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
+int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet) {
 	// get an update on the available interfaces ...
 	//struct timeval start; gettimeofday(&start, NULL);
 	
-	char temp_interfaces[MAX_INTS][STR_SIZE];
-	int n=0, extra=0;;
+	interface_t temp_intf[MAX_INTS];
+	int n=0, extra=0;
 	sniffers_t old_sn;
 	memcpy(&old_sn,sn,sizeof(sniffers_t));
 	memset(sn,0,sizeof(sniffers_t));
 	sn->use_pktap = old_sn.use_pktap;
-	if ( (n=get_interfaces(temp_interfaces,sn->use_pktap))<=0) {
+	if ( (n=get_interfaces(temp_intf, sn->use_pktap))<=0) {
 		return 0;
 	}
 	int i;
@@ -258,17 +347,14 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 		// there's an assumption here that each interface appears at most
 		// once in interfaces list, we enforce this via get_interfaces()
 		for (i = 0; i<old_sn.num_pds; i++) {
-			if (strcmp(old_sn.interfaces[i], temp_interfaces[j])==0) break;
+			if (strcmp(old_sn.sn[i].intf.name, temp_intf[j].name)==0) break;
 		}
 		if (i<old_sn.num_pds) {
 			// interface already has an existing sniffer
-			sn->pds[sn->num_pds] = old_sn.pds[i];
-			strlcpy(sn->interfaces[sn->num_pds],old_sn.interfaces[i], STR_SIZE);
-			sn->fd[sn->num_pds] = old_sn.fd[i];
-			sn->datalink[sn->num_pds] = old_sn.datalink[i];
-			sn->offset[sn->num_pds] = old_sn.offset[i];
+			sn->sn[sn->num_pds].pd = old_sn.sn[i].pd;
+			memcpy(&sn->sn[sn->num_pds], &old_sn.sn[i], sizeof(sniffer_t));
 			sn->num_pds++;
-			old_sn.pds[i] = NULL; // mark as copied
+			old_sn.sn[i].pd = NULL; // mark as copied
 			continue;
 		}
 		// a new interface has appeared
@@ -277,31 +363,32 @@ int refresh_sniffers_list(sniffers_t* sn, char* filter_exp) {
 			// TO DO: handle this situation better
 			continue;
 		}
-		strlcpy(sn->interfaces[sn->num_pds],temp_interfaces[j],STR_SIZE);
-		int res = setup_pd(sn->interfaces[sn->num_pds], &sn->pds[sn->num_pds], filter_exp, sn->use_pktap);
-		if ((res < 0)||(sn->pds[sn->num_pds]==NULL)) {
-			WARN("Problem creating sniffer for interface %s\n",sn->interfaces[sn->num_pds]);
+		memcpy(&sn->sn[sn->num_pds].intf, &temp_intf[j], sizeof(interface_t));
+		int res = setup_pd(&sn->sn[sn->num_pds].intf, &sn->sn[sn->num_pds].pd, filter_exp, sn->use_pktap);
+		if ((res < 0)||(sn->sn[sn->num_pds].pd==NULL)) {
+			WARN("Problem creating sniffer for interface %s\n",sn->sn[sn->num_pds].intf.name);
 			continue;
 		}
-		sn->offset[sn->num_pds] = get_DLT_offset(sn->pds[sn->num_pds], sn->use_pktap);
-		if (sn->offset[sn->num_pds]<0) {
-			WARN("Problem getting datalink offset for interface %s\n",sn->interfaces[sn->num_pds]);
-			pcap_close(sn->pds[sn->num_pds]);
+		sn->sn[sn->num_pds].offset = get_DLT_offset(sn->sn[sn->num_pds].pd, sn->use_pktap);
+		if (sn->sn[sn->num_pds].offset<0) {
+			WARN("Problem getting datalink offset for interface %s\n",sn->sn[sn->num_pds].intf.name);
+			pcap_close(sn->sn[sn->num_pds].pd);
 			continue;
 		}
-		sn->datalink[sn->num_pds] = pcap_datalink(sn->pds[sn->num_pds]);
-		sn->fd[sn->num_pds] = pcap_get_selectable_fd(sn->pds[sn->num_pds]);
-		if (!extra) {printf("added interface "); extra=1;} else printf(", ");
-		printf("%s (dlt %d)", sn->interfaces[sn->num_pds],sn->datalink[sn->num_pds]);
+		sn->sn[sn->num_pds].datalink = pcap_datalink(sn->sn[sn->num_pds].pd);
+		sn->sn[sn->num_pds].fd = pcap_get_selectable_fd(sn->sn[sn->num_pds].pd);
+		if (!quiet) {
+			if (!extra) {printf("added interface "); extra=1;} else printf(", ");
+			printf("%s (dlt %d)", sn->sn[sn->num_pds].intf.name,sn->sn[sn->num_pds].datalink);
+		}
 		sn->num_pds++;
 	}
-	if (extra) printf("\n");
+	if (extra && !quiet) printf("\n");
 	for (int i = 0; i<old_sn.num_pds; i++) {
-		if (old_sn.pds[i]!=NULL) pcap_close(old_sn.pds[i]); // tidy up dead sniffers
+		if (old_sn.sn[i].pd!=NULL) pcap_close(old_sn.sn[i].pd); // tidy up dead sniffers
 	}
 	/*struct timeval end; gettimeofday(&end, NULL);
 	printf("refresh_sniffers_list() t=%f",(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);*/
-
 	return sn->num_pds;
 }
 
@@ -311,7 +398,7 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	
 	sniffer_callback_args_t args = *((sniffer_callback_args_t*)raw_args);
 	int pkt_pid=-1; char *name=NULL;
-
+	
 	if (args.sn->use_pktap) {
 		// we need to get offset from the PKTAP header itself
 		struct pktap_header *hdr = (struct pktap_header *)pkt;
@@ -332,18 +419,18 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		}
 
 		// step past the next header (likely ethernet)
-		args.sn->offset[args.i] = hdr->pth_length;
+		args.sn->sn[args.i].offset = hdr->pth_length;
 		int offset=get_DLT_offset2(hdr->pth_dlt);
 		if (offset<0) {
-			WARN("Problem getting datalink offset for interface %s\n",args.sn->interfaces[args.i]);
+			WARN("Problem getting datalink offset for interface %s\n",args.sn->sn[args.i].intf.name);
 			return; // its a serious error, we should probably close down sniffing
 		}
-		args.sn->offset[args.i] += offset;
+		args.sn->sn[args.i].offset += offset;
 	}
 
 	//printf("sniffed pkt on interface %s(%d, datalink %d, offset %d, fd=%d), sending to GUI ... %d bytes\n", args.sn->interfaces[args.i], args.i, args.sn->datalink[args.i], args.sn->offset[args.i], pcap_get_selectable_fd(args.sn->pds[args.i]), pkthdr->caplen);
-	const u_char* pkt_proper = pkt + args.sn->offset[args.i]; // look past link layer header to pkt itself
-	size_t pkt_proper_len = pkthdr->caplen - args.sn->offset[args.i];
+	const u_char* pkt_proper = pkt + args.sn->sn[args.i].offset; // look past link layer header to pkt itself
+	size_t pkt_proper_len = pkthdr->caplen - args.sn->sn[args.i].offset;
 	
 	int version = (*pkt_proper)>>4; // get IP version
 	int proto;
@@ -407,8 +494,8 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	if (stats_now-stats_time > 600) {
 		struct pcap_stat stats;
 		stats_time = stats_now;
-		pcap_stats(args.sn->pds[args.i], &stats);
-		INFO("pcap stats for intf %s (%d): recvd=%d, dropped=%d, if_dropped=%d\n",args.sn->interfaces[args.i],args.i,
+		pcap_stats(args.sn->sn[args.i].pd, &stats);
+		INFO("pcap stats for intf %s (%d): recvd=%d, dropped=%d, if_dropped=%d\n",args.sn->sn[args.i].intf.name,args.i,
 		stats.ps_recv,stats.ps_drop,stats.ps_ifdrop);
 		fflush(stdout);
 	}
@@ -437,23 +524,23 @@ void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_e
 	sniffer_callback_args_t args[MAX_INTS];
 	for (int i = 0; i<MAX_INTS; i++) {args[i].sn = sn; args[i].i=i; }
 	INFO("Starting %s sniffers (use_pktap=%d)\n", tag, use_pktap);
-	refresh_sniffers_list(sn, filter_exp);
-	INFO("%s sniffing on interfaces: ", tag);
+	refresh_sniffers_list(sn, filter_exp,0);
+	INFO("%s sniffing on interface(s): ", tag);
 	for (int i=0; i<sn->num_pds; i++) {
-		printf("%s ",sn->interfaces[i]);
+		printf("%s ",sn->sn[i].intf.name);
 	}
 	printf("\n");
 	//*running = 1;
 	while(*running) {
-		refresh_sniffers_list(sn, filter_exp); // this call is quite cheap
+		refresh_sniffers_list(sn, filter_exp,0); // this call is quite cheap
 		struct timeval timeout;
 		timeout.tv_sec = SNIFFER_LOOP_TIMEOUT; timeout.tv_usec = 0; // timeout for select()
 		fd_set readfds; FD_ZERO(&readfds);
 		int maxfd = 0;
 		for (int i=0; i<sn->num_pds; i++) {
-			if (sn->fd[i]>maxfd) maxfd = sn->fd[i];
-			FD_SET(sn->fd[i],&readfds);
-			pcap_setnonblock(sn->pds[i],1,NULL);
+			if (sn->sn[i].fd>maxfd) maxfd = sn->sn[i].fd;
+			FD_SET(sn->sn[i].fd,&readfds);
+			pcap_setnonblock(sn->sn[i].pd,1,NULL);
 		}
 		// nb: we won't block here indefinitely due to the timeout.  that way if a new
 		// interface comes up we'll definitely start to monitor it (otherwise without timeout
@@ -469,10 +556,10 @@ void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_e
 			continue;
 		}
 		for (int i=0; i<sn->num_pds; i++) {
-			if (FD_ISSET(sn->fd[i],&readfds)) {
+			if (FD_ISSET(sn->sn[i].fd,&readfds)) {
 				
-				int n=pcap_dispatch(sn->pds[i], -1,	callback, (u_char*)&args[i]);
-				if (n == PCAP_ERROR) ERR("%s sniffer loop pcap_dispatch: %s\n", tag, pcap_geterr(sn->pds[i]));
+				int n=pcap_dispatch(sn->sn[i].pd, -1,	callback, (u_char*)&args[i]);
+				if (n == PCAP_ERROR) ERR("%s sniffer loop pcap_dispatch: %s\n", tag, pcap_geterr(sn->sn[i].pd));
 				//printf("got %d pkts for %d\n",n,i);
 			}
 			if (!*running) break;  
@@ -481,8 +568,8 @@ void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_e
 	INFO2("Exited %s sniffer loop.\n", tag);
 	//tidy up
 	for (int i=0; i<sn->num_pds; i++) {
-		if (sn->pds[i]) pcap_close(sn->pds[i]);
-		sn->pds[i] = NULL;
+		if (sn->sn[i].pd) pcap_close(sn->sn[i].pd);
+		sn->sn[i].pd = NULL;
 	}
 
 }

@@ -11,11 +11,13 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <net/if_dl.h>
 #include <pcap.h>
 #include <pthread.h>
 #include <ifaddrs.h>
 #include <sys/select.h>
 #include "util.h"
+#include "conn.h"
 #include "dtrace.h"
 
 // use apple libpcap header, uses private interface and has no
@@ -54,18 +56,30 @@ struct pktap_header {
 
 #define PCAP_PORT 3
 #define MAX_INTS 5 // max number of interfaces to monitor
+#define MAX_MACS 10 // max number of MAC addresses 
 #define STR_SIZE 1024
 #define SNIFFER_LOOP_TIMEOUT 1 // 1 sec
 #define SNAPLEN 512 // needs to be big enough to capture dns payload and allow for PKTAP header (which is around 150B)
-	
+
+typedef struct interface_t {
+	char name[STR_SIZE];
+	int num_addr;
+	struct sockaddr_storage addr[MAX_INTS];
+	uint8_t eth[ETHER_ADDR_LEN];
+} interface_t;
+
+typedef struct sniffer_t {
+	pcap_t *pd;  // pcap listener
+	interface_t intf; // interface to which listener is bound
+	int fd;	// pcap fd used with select()
+	int datalink; // datalink type
+	int offset; // pcap header size
+} sniffer_t;
+
 typedef struct sniffers_t {
-	pcap_t *pds[MAX_INTS];  // pcap listener
-	char interfaces[MAX_INTS][STR_SIZE];
-	int fd[MAX_INTS];
-	int datalink[MAX_INTS];
-	int offset[MAX_INTS];
 	int num_pds;
-	int use_pktap;
+	sniffer_t sn[MAX_INTS];
+	int use_pktap; // using apple PKTAP header with pcap
 } sniffers_t;
 
 typedef struct sniffer_callback_args_t {
@@ -73,8 +87,11 @@ typedef struct sniffer_callback_args_t {
 	int i;
 } sniffer_callback_args_t;
 
-int refresh_sniffers_list(sniffers_t* sn, char* filter_exp);
-int get_interfaces(char intf[MAX_INTS][STR_SIZE], int use_pktap);
+int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet);
+int setup_pd(interface_t *intf, pcap_t **pd, char* filter_exp, int use_pktap);
+int get_interfaces(interface_t intf[MAX_INTS], int use_pktap);
+char* find_intf(conn_raw_t* c, char* str, int len, uint8_t eth[ETHER_ADDR_LEN]);
+
 void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn, int use_pktap);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);
 void *listener(void *ptr);

@@ -126,6 +126,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9135AEF823C3DA7700BBC39F /* conn.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = conn.h; sourceTree = "<group>"; };
 		9139F66E237BB18600600D37 /* dtrace.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dtrace.h; sourceTree = "<group>"; };
 		9139F66F237BB18600600D37 /* dtrace.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dtrace.c; sourceTree = "<group>"; };
 		9139F671237BB1BB00600D37 /* pcap_sniffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pcap_sniffer.h; sourceTree = "<group>"; };
@@ -345,6 +346,7 @@
 				9139F678237BB9A800600D37 /* send_rst.c */,
 				9180E1762389D4DB007002CB /* catch_escapee.h */,
 				9180E174238927A2007002CB /* catch_escapee.c */,
+				9135AEF823C3DA7700BBC39F /* conn.h */,
 			);
 			path = "com.leith.appFirewall-Helper";
 			sourceTree = "<group>";
@@ -790,7 +792,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				OTHER_CFLAGS = "";
 				"OTHER_CFLAGS[arch=*]" = "-Wthread-safety";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
@@ -833,7 +835,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -862,7 +864,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 8;
 				"OTHER_LDFLAGS[arch=*]" = (
 					"-sectcreate",
 					__TEXT,
@@ -894,7 +896,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 8;
 				"OTHER_LDFLAGS[arch=*]" = (
 					"-sectcreate",
 					__TEXT,

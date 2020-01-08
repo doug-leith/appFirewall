@@ -133,8 +133,8 @@ int main(int argc, char *argv[]) {
 
 	// now initialise libnet packet processing data structure
 	//init_libnet();
-	start_libnet();
-	INFO("libnet started\n");
+	start_rst();
+	INFO("rst started\n");
 	
 	start_listener();
 	INFO("pcap listener started\n");
