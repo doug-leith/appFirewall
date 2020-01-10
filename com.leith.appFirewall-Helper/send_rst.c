@@ -35,6 +35,8 @@ IP leith.ie.telnet > snowdrop.55035: Flags [R.], seq 0, ack 3192423601, win 0, l
 //globals
 static int sock, s2;
 static libnet_data_t ld_rst;
+static int select_timeouts=0, select_num=0, select_count=0; // for monitoring IPv6 rate limiting
+static time_t select_time={0};
 
 void close_rst_sock() {
 	close(sock); close(s2);
@@ -82,7 +84,7 @@ void init_libnet(libnet_data_t *ld) {
 	}
 	
 	// no IP_HDRINCL option for IPV6 though, sigh
-	ld->l6_hdr = NULL; memset(ld->last_intf,0,STR_SIZE);
+	ld->l6_hdr = NULL; memset(&ld->last_intf,0,sizeof(interface_t)); ld->pd=NULL;
 }
 
 void free_libnet(libnet_data_t *ld) {
@@ -91,6 +93,7 @@ void free_libnet(libnet_data_t *ld) {
 	if (ld->l6) libnet_destroy(ld->l6);
 	if (ld->l4_hdr) libnet_destroy(ld->l4_hdr);
 	if (ld->l6_hdr) libnet_destroy(ld->l6_hdr);
+	if (ld->pd) pcap_close(ld->pd);
 	memset(ld,0,sizeof(libnet_data_t));
 }
 
@@ -137,15 +140,15 @@ libnet_ptag_t append_ipheader(int af, struct in6_addr *src_addr, struct in6_addr
 	return *ip_ptag;
 }
 
-int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, char* intf, uint8_t eth[ETHER_ADDR_LEN]) {
+int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, interface_t* intf) {
 	// send RST to self.  parameter c contains connection details, assumed to be for an outgoing conn
 	// nb: normally the kernel writes the sender info in packet header itself when we use raw socket.
 	// to avoid this with IPv4 we use the IP_HDRINCL socket option.  this option doesn't exist for
 	// IPv6 though, so for IPv6 we need to send via the link layer (what a pointless hassle !)
 	// nb2: fails with VPNs (at least with openVPN as it messes up packets sent to self).
 
-	char intf_buf[STR_SIZE]; uint8_t eth_buf[ETHER_ADDR_LEN];
-
+	interface_t temp_intf;
+	
 	libnet_ptag_t *tcp_hdr_ptag, *ip_hdr_ptag;
 	libnet_t *l_hdr=NULL;
 	if (c->af==AF_INET) {// ipv4
@@ -154,17 +157,18 @@ int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, char* intf, uint8_t eth[ETH
 		// IPV6 doesn't support IP_HDRINCL flag, so we have to
 		// send to self via link layer.  that means we have to
 		// recreate libnet data struct whenever the interface used changes
-		if ((ld->l6_hdr==NULL) // initial call
-							|| (intf==NULL) || (eth==NULL) // caller would like us to work out the interface for them
-							|| (strcmp(ld->last_intf,intf)!=0) ){ // change in interface being used
+			if ((ld->l6_hdr==NULL) || (ld->pd==NULL) // initial call
+							|| (intf==NULL) // caller would like us to work out the interface for them
+							|| (strcmp(ld->last_intf.name,intf->name)!=0) ){ // change in interface being used
 			// we're opening a /dev/bpf device for link layer pkt injection, its easy to run out of these
 			// so we have to be careful to tidy up and avoid any "leaks"
-			if (ld->l6_hdr) libnet_destroy(ld->l6_hdr);
-			
-			if ((intf==NULL) || (eth==NULL)) {
+			if (ld->l6_hdr) {libnet_destroy(ld->l6_hdr); ld->l6_hdr = NULL;}
+			if (ld->pd) {pcap_close(ld->pd); ld->pd=NULL;}
+			 
+
+			if (intf==NULL) {
 				// caller wants us to figure out which interface to use ourselves
-				char* found = find_intf(c, intf_buf, STR_SIZE, eth_buf);
-				if (!found) {
+				if (!find_intf(c, &temp_intf)) {
 					char sn[INET6_ADDRSTRLEN],dn[INET6_ADDRSTRLEN];
 					inet_ntop(c->af, &c->src_addr, sn, INET6_ADDRSTRLEN);
 					inet_ntop(c->af, &c->dst_addr, dn, INET6_ADDRSTRLEN);
@@ -172,24 +176,40 @@ int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, char* intf, uint8_t eth[ETH
 					goto err;
 				}
 			} else {
-				strlcpy(intf_buf,intf,STR_SIZE);
-				memcpy(eth_buf,eth,ETHER_ADDR_LEN);
+				memcpy(&temp_intf,intf,sizeof(interface_t));
 			}
 			char err_buf[LIBNET_ERRBUF_SIZE];
-			ld->l6_hdr=libnet_init(LIBNET_LINK,intf_buf,err_buf);
+			ld->l6_hdr=libnet_init(LIBNET_LINK,temp_intf.name,err_buf);
 			if (ld->l6_hdr==NULL) {
-				ERR("libnet_init() IPv6 in snd_rst_toself() failed for interface %s, won't be able to kill network connections to self: %s\n", intf_buf, err_buf);
+				ERR("libnet_init() IPv6 in snd_rst_toself() failed for interface %s, won't be able to kill network connections to self: %s\n", temp_intf.name, err_buf);
 				goto err;
 			}
 			ld->tcp6_hdr_ptag = LIBNET_PTAG_INITIALIZER; ld->ip6_hdr_ptag = LIBNET_PTAG_INITIALIZER;
 			ld->eth_ptag = LIBNET_PTAG_INITIALIZER;
-			// remember interface for next time
-			strlcpy(ld->last_intf,intf_buf,STR_SIZE);
-		} else {
-			strlcpy(intf_buf,intf,STR_SIZE);
-			memcpy(eth_buf,eth,ETHER_ADDR_LEN);
-		}
 
+			if (temp_intf.is_eth) {
+				char filter_exp[STR_SIZE], *eth_str;
+				eth_str = ether_ntoa((struct ether_addr*)&temp_intf.eth);
+				sprintf(filter_exp,"ip6 and ether dst %s and ether src %s",eth_str,eth_str);
+				DEBUG2("pcap filter: %s\n",filter_exp);
+				int res=setup_pd(&temp_intf, &ld->pd, filter_exp, 0);
+				if ((res < 0)||(ld->pd==NULL)) {
+					WARN("Problem in snd_rst_toself()creating sniffer for interface %s\n",temp_intf.name); goto err;
+				}
+				pcap_setnonblock(ld->pd,1,NULL);
+			} else {
+				// most likely this will happen with IPv6 tunnels, which are point-to-point interfaces and so
+				// have no MAC address.  we're ok with IP4 tunnels though.
+				// TO DO: handle IPv6 tunnels
+				WARN("Interface %s has no MAC address in snd_rst_toself(), perhaps an IPv6 tunnel?\n",temp_intf.name); goto err;
+			}
+			
+			// remember interface for next time
+			memcpy(&ld->last_intf,&temp_intf,sizeof(interface_t));
+		} else {
+			memcpy(&temp_intf,intf,sizeof(interface_t));
+		}
+		
 		l_hdr = ld->l6_hdr; tcp_hdr_ptag=&ld->tcp6_hdr_ptag; ip_hdr_ptag=&ld->ip6_hdr_ptag;
 	}
 	
@@ -208,16 +228,74 @@ int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, char* intf, uint8_t eth[ETH
 	}
 	if (c->af == AF_INET6) {
 		// add link layer header for IPv6
-		ld->eth_ptag = append_ether6(l_hdr, &ld->eth_ptag, eth_buf);
+		ld->eth_ptag = append_ether6(l_hdr, &ld->eth_ptag, temp_intf.eth);
 		if (ld->eth_ptag<0)  {
 			WARN("append_ether6() in snd_rst_toself(): %s\n", libnet_geterror(l_hdr)); goto err;
 		}
-		/*uint8_t *packet = NULL; uint32_t pkt_len;
-		libnet_pblock_coalesce(l_hdr, &packet, &pkt_len);
-		printf("pkt_len=%d\n",pkt_len);*/
 	}
-	if (libnet_write(l_hdr) < 0) {
+	int res = libnet_write(l_hdr);
+
+	// res is negative if error, else the number of bytes sent
+	if (res <= 0) {
 		WARN("libnet_write() in snd_rst_toself(): %s\n", libnet_geterror(l_hdr)); goto err;
+	} else {
+		// one might suppose that res < pkt size might flag overflow in IPv6
+		// link layer pkt injection, but we always
+		// get res = pkt_size even if injected packet is dropped, so resort
+		// to pcap feedback approach below instead
+		/* uint8_t *packet = NULL; uint32_t pkt_len;
+		libnet_pblock_coalesce(l_hdr, &packet, &pkt_len);
+		if (res != pkt_len) {
+			WARN("libnet_write() in snd_rst_toself() sent %d of pkt %d\n",res,pkt_len);
+		}*/
+	}
+
+	if (c->af == AF_INET6) {
+		// more IPv6 raw socket fun.  link layer writes are unbuffered and so we
+		// need to do some congestion control to limit rate at which we inject
+		// packets.  we use pcap to sniff packets sent from self to self (i.e.
+		// with src and dst MAC addresses the same) and after calling libnet_write()
+		// we wait until something appears -- we expect to sniff
+		// packet twice, once outgoing and once incoming.
+		if (!ld->pd) { // shouldn't happen, but fall back to crude rate limiting
+			sleep(IPV6_SELECT_TIMEOUT);
+		} else {
+			int fd = pcap_get_selectable_fd(ld->pd);
+			fd_set readfds; FD_ZERO(&readfds);FD_SET(fd,&readfds);
+			struct timeval timeout;
+			timeout.tv_sec = 0; timeout.tv_usec = IPV6_SELECT_TIMEOUT; // 1ms
+			ssize_t res=0;
+			while ( (res=select(fd+1, &readfds, NULL, NULL, &timeout))==EINTR);
+			if (res<0) { // res=0 on timeout, <0 on error
+				WARN("snd_rst select: %s (res=%zd)\n", strerror(errno), res);
+			} else {
+				// a timeout means that no packet was sniffed, so timeouts are
+				// an indicator of loss of injected packets and we'd like to
+				// keep the number low
+				if (res==0) select_timeouts++;
+				if (FD_ISSET(fd,&readfds)) {
+					struct pcap_pkthdr buf; const u_char* ptr;
+					int count=0;
+					while ((ptr=pcap_next(ld->pd, &buf))!=NULL) count++;
+					// expect to sniff each RST packet twice (once
+					// outgoing and once incoming), but might see more here
+					// since we'll sniff RSTs sent by every thread.  more
+					// problematic might be if we see less, since that suggests
+					// drops either when injecting packets or when sniffing them.
+					//printf("read %d pkts from pcap\n", count);
+					select_num++; select_count+=count;
+				}
+				// periodically log stats ... we don't want to be seeing too many
+				// timeouts since they likely correspond to link layer losses
+				time_t select_now = time(NULL);
+				if (select_now-select_time > 600) {
+					select_time = select_now;
+					INFO("IPv6 select stats: timeouts=%d (%.2f percent), success=%d (%.2f percent), sniffed pkt count=%d (avg %.2f)\n", select_timeouts, select_timeouts*100.0/(select_timeouts+select_num), select_num, select_num*100.0/(select_timeouts+select_num), select_count, select_count*1.0/select_num);
+					fflush(stdout);
+				}
+
+			}
+		}
 	}
 
 	return 1;
@@ -348,7 +426,7 @@ void rst_accept_loop() {
 			// to use ack number of that ACK in any RST it sends, so we need to increment
 			// c.ack (seq from the SYN-ACK) by 1 over value in the SYN-ACK
 			c.ack++;
-			snd_rst_toself(&c, &ld_rst, NULL, NULL);  // will use c.ack as RST seq number
+			snd_rst_toself(&c, &ld_rst, NULL);  // will use c.ack as RST seq number
 		}
 		// likely UI client has closed its end of the connection, in which
 		// case res=0, otherwise something worse has happened to connection

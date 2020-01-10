@@ -741,7 +741,7 @@ void *catch_escapee(void *ptr) {
 	return NULL;
 	
 err:
-	WARN("write escapee: %s", strerror(errno));
+	WARN("write escapee: %s\n", strerror(errno));
 stop:
 	close(c_sock);
 	TAKE_LOCK(&escapee_mutex,"catch_escapee #3");

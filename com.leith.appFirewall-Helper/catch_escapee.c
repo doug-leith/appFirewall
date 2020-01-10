@@ -23,9 +23,8 @@ static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
 static int catcher_sniffing = 0;
 static libnet_data_t ld, ld_prompt;
-sniffers_t sn_esc;
-char intf[STR_SIZE];
-uint8_t eth[ETHER_ADDR_LEN];
+static interface_t intf;
+static sniffers_t sn_esc;
 
 typedef struct catcher_callback_args_t {
 	int af;
@@ -155,7 +154,6 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	uint16_t dport=ntohs(tcp->th_dport);
 	uint32_t seq=ntohl(tcp->th_seq);
 	uint32_t ack=ntohl(tcp->th_ack);
-	uint16_t win=ntohs(tcp->th_win);
 
 	conn_raw_t cr;
 	cr.af=af;
@@ -175,15 +173,18 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		WARN("Received packet with mismatched ports, sport=%u/dport=%u but expected sport=%u/dport=%u (catch_escapee)\n", sport, dport, a.target_sport, a.target_dport);
 		return;
 	}
+	/*
 	if (cr.af == AF_INET6) {
 		// for debugging
 		char sn[INET6_ADDRSTRLEN],dn[INET6_ADDRSTRLEN];
 		inet_ntop(cr.af, &cr.src_addr, sn, INET6_ADDRSTRLEN);
 		inet_ntop(cr.af, &cr.dst_addr, dn, INET6_ADDRSTRLEN);
+		uint16_t win=ntohs(tcp->th_win);
 		printf("outgoing=%d %s:%d -> %s:%d seq=%u ack=%u win=%u, flags=%02x\n", outgoing,sn,cr.sport,dn,cr.dport, cr.seq, cr.ack, win, tcp->th_flags);
 		//printf("intf=%s,  mac=",intf);
 		//int i; for(i=0; i<ETHER_ADDR_LEN;i++) printf("%02x ",eth[i]); printf("\n");
 	}
+	*/
 	if (tcp->th_flags & (TH_RST))  return; // let's not respond to our own RSTs
 	
 	a.pkt_count++; // record number of packets we've sniffed for this connection
@@ -202,9 +203,9 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	// nb: don't inject data when sending to remote as otherwise may sniff
 	// our own data injection pkts again here in catcher callback and create a
 	// positive feedback loop leading to a pkt avalanche
-	printf("sending RST\n");
+	//printf("sending RST\n");
 	snd_rst_toremote(&cr, &ld, 0); // will use cr.seq as RST seq number
-	snd_rst_toself(&cr, &ld, intf, eth); // will use cr.ack as RST seq number
+	snd_rst_toself(&cr, &ld, &intf); // will use cr.ack as RST seq number
 }
 
 void sigusr1_handler(int signum) {
@@ -311,8 +312,7 @@ void *catcher_listener(void *ptr) {
 			continue;
 		}
 
-		char* found = find_intf(&c, intf, STR_SIZE, eth);
-		if (!found) {
+		if (!find_intf(&c, &intf)) {
 			inet_ntop(c.af, &c.src_addr, sn, INET6_ADDRSTRLEN);
 			WARN("catch_escapee(): couldn't find interface for %s->%s\n",sn,dn);
 			int ok = 0;
@@ -354,13 +354,13 @@ void *catcher_listener(void *ptr) {
 			for (i=0; i<TRIES; i++) {
 				for (j=0; j<n; j++){
 					if (first) {
-						res = snd_rst_toself(&c, &ld_prompt, intf, eth); // will use c.ack as RST seq number
+						res = snd_rst_toself(&c, &ld_prompt, &intf); // will use c.ack as RST seq number
 						sent++;
-						c.ack += win/4;
-						if (c.af == AF_INET6) usleep(1000); // for testing
+						c.ack += win/2;
+						//if (c.af == AF_INET6) usleep(1000); // for testing
 					} else {
 						// just send RSTs to self, so don't flood internet
-						res = snd_rst_toself(&c, &ld_prompt, intf, eth); // will use c.ack as RST seq number
+						res = snd_rst_toself(&c, &ld_prompt, &intf); // will use c.ack as RST seq number
 						sent++;
 						c.ack += win;
 					}
@@ -374,7 +374,7 @@ void *catcher_listener(void *ptr) {
 					goto done; // connection has gone away
 				}
 				if (vpn) goto done;
-				if (c.af == AF_INET6) goto done; // for testing
+				//if (c.af == AF_INET6) goto done; // for testing
 				first = 0;
 				n = tries_per_round; // let's try a bit harder !
 			}

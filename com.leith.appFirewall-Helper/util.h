@@ -35,6 +35,7 @@ const static int verbose=1;          // debugging level
 #define LINEBUF_SIZE 4096 // max line size of readn line
 #define RECV_TIMEOUT 10 // 10s for socket read timeout
 #define SND_TIMEOUT 10 // 10s for socket send timeout
+#define STR_SIZE 1024
 
 char* now(char* buf);
 ssize_t readn(int fd, void* buf, ssize_t n);

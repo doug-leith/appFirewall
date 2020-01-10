@@ -56,6 +56,18 @@ void print_sockaddr(struct sockaddr* daddr) {
 	printf("%s\n",addr_name);
 }
 
+char* get_intf_name(char* ifa_name, int use_pktap, char* name) {
+	if (use_pktap) {
+		// prepend interface name with pktap,
+		//strlcpy(name,"pktap,",STR_SIZE);
+		strlcpy(name,"iptap,",STR_SIZE); // we've no need for link-layer header
+	} else {
+		strlcpy(name,"",STR_SIZE);;
+	}
+	strlcat(name,ifa_name,STR_SIZE);
+	return name;
+}
+
 int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 	// get list of useful interfaces (IPv4 or IPv6, up and not link-local)
 	struct ifaddrs *ifap;
@@ -85,9 +97,12 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 				WARN("get_interfaces() number of MAC addresses is >%d\n",MAX_MACS);
 				continue;
 			}
+			if ( ((struct if_data*)dev->ifa_data)->ifi_type != IFT_ETHER) {DEBUG2("not ethernet\n"); continue; }
 			uint8_t* ptr = (uint8_t*)LLADDR((struct sockaddr_dl *)(dev)->ifa_addr);
 			memcpy(temp_eth[temp_count],ptr,ETHER_ADDR_LEN);
-			strlcpy(temp_ifname[temp_count],dev->ifa_name,STR_SIZE);
+			//printf("%s :",dev->ifa_name);
+			//int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",temp_eth[temp_count][k]); printf("\n");
+			get_intf_name(dev->ifa_name, use_pktap, temp_ifname[temp_count]);
 			temp_count++;
 			continue;
 		}
@@ -112,14 +127,7 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 			count++;
 		} else {  // caller wants interface details
 			char name[STR_SIZE];
-			if (use_pktap) {
-				// prepend interface name with pktap,
-				//strlcpy(name,"pktap,",STR_SIZE);
-				strlcpy(name,"iptap,",STR_SIZE); // we've no need for link-layer header
-			} else {
-				strlcpy(name,"",STR_SIZE);;
-			}
-			strlcat(name,dev->ifa_name,STR_SIZE);
+			get_intf_name(dev->ifa_name, use_pktap, name);
 			// check that we don't already have this interface in our list
 			int i;
 			for (i=0; i<count; i++) {
@@ -142,6 +150,7 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 				else
 					memcpy(&intf[count].addr[0],dev->ifa_addr,sizeof(struct sockaddr_in6));
 				intf[count].num_addr = 1;
+				intf[count].is_eth = 0;
 				if (count < MAX_INTS) {
 					count++;
 				} else {
@@ -159,23 +168,31 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 			for (j=0; j<temp_count; j++) {
 				if (strcmp(intf[i].name,temp_ifname[j])==0) break;
 			}
-			if (j<temp_count) memcpy(intf[i].eth,temp_eth[j],ETHER_ADDR_LEN);
+			if (j<temp_count) {
+				//printf("Matched %s %d\n", intf[i].name, intf[i].is_eth);
+				memcpy(intf[i].eth,temp_eth[j],ETHER_ADDR_LEN);
+				intf[i].is_eth = 1;
+				//int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",temp_eth[j][k]); printf("\n");
+				//for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",intf[i].eth[k]); printf("\n");
+			}
 		}
 	}
-	/* for debugging
-	if (intf) {
+	// for debugging
+	/*if (intf) {
 		int i,j;
 		for (i=0; i<count; i++) {
 			printf("%s %d\n",intf[i].name,intf[i].num_addr);
 			for (j=0; j<intf[i].num_addr; j++) {
 				print_sockaddr((struct sockaddr*)&intf[i].addr[j]);
 			}
+			printf("is_eth=%d\n",intf[i].is_eth);
+			int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",intf[i].eth[k]); printf("\n");
 		}
 	}*/
 	return count;
 }
 
-char* find_intf(conn_raw_t* c, char* str, int len, uint8_t eth[ETHER_ADDR_LEN]) {
+interface_t* find_intf(conn_raw_t* c, interface_t* intf) {
 	// find interface used by src of connection (assuming conn is outgoing)
 	interface_t temp_intf[MAX_INTS];
 	int n=0;
@@ -195,9 +212,8 @@ char* find_intf(conn_raw_t* c, char* str, int len, uint8_t eth[ETHER_ADDR_LEN]) 
 		if (j<temp_intf[i].num_addr) break;
 	}
 	if (i<n) {
-		strlcpy(str,temp_intf[i].name,len);
-		memcpy(eth,temp_intf[i].eth,ETHER_ADDR_LEN);
-		return str;
+		memcpy(intf,&temp_intf[i],sizeof(interface_t));
+		return intf;
 	} else
 		return NULL;
 }
@@ -291,10 +307,9 @@ int setup_pd(interface_t* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 	if (pcap_set_immediate_mode(*pd,1)!=0) { // deliver sniffed packets immediately.
 		WARN("Couldn't set immediate mode on pcap sniffer: %s\n",pcap_geterr(*pd));
 	}
-	#define BUFFER_SIZE 2097152*8  // default is 2M=2097152, but we increase it to 16M
-	pcap_set_buffer_size(*pd, BUFFER_SIZE);
+	pcap_set_buffer_size(*pd, PCAP_BUFFER_SIZE);
 
-	if (use_pktap) pcap_set_want_pktap(*pd, 1);
+	if (use_pktap) pcap_set_want_pktap(*pd, 1); // APPLE libpcap call
 
 	// now that its configured, fire up listener
 	int res;

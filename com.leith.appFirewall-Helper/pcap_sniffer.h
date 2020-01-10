@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <net/if_dl.h>
+#include <net/if_types.h>
 #include <pcap.h>
 #include <pthread.h>
 #include <ifaddrs.h>
@@ -55,17 +56,18 @@ struct pktap_header {
 #endif
 
 #define PCAP_PORT 3
-#define MAX_INTS 5 // max number of interfaces to monitor
-#define MAX_MACS 10 // max number of MAC addresses 
-#define STR_SIZE 1024
+#define MAX_MACS 32 // max number of MAC addresses, nice and large
 #define SNIFFER_LOOP_TIMEOUT 1 // 1 sec
 #define SNAPLEN 512 // needs to be big enough to capture dns payload and allow for PKTAP header (which is around 150B)
+#define MAX_INTS 5 // max number of interfaces to monitor, not too large
+#define PCAP_BUFFER_SIZE 2097152*8  // default is 2M=2097152, but we increase it to 16M
 
 typedef struct interface_t {
 	char name[STR_SIZE];
 	int num_addr;
 	struct sockaddr_storage addr[MAX_INTS];
 	uint8_t eth[ETHER_ADDR_LEN];
+	int is_eth;
 } interface_t;
 
 typedef struct sniffer_t {
@@ -90,7 +92,8 @@ typedef struct sniffer_callback_args_t {
 int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet);
 int setup_pd(interface_t *intf, pcap_t **pd, char* filter_exp, int use_pktap);
 int get_interfaces(interface_t intf[MAX_INTS], int use_pktap);
-char* find_intf(conn_raw_t* c, char* str, int len, uint8_t eth[ETHER_ADDR_LEN]);
+interface_t* find_intf(conn_raw_t* c, interface_t* intf);
+void print_sockaddr(struct sockaddr* daddr);
 
 void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn, int use_pktap);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);
