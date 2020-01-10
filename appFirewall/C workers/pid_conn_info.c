@@ -725,6 +725,7 @@ void *catch_escapee(void *ptr) {
 		cm_add_sample_lock(&stats.cm_t_escapees_hits,t);
 	} else if (ok==-1) {
 		result="NOT FOUND";
+		stats.escapees_goneaway++;
 	} else {
 		stats.escapees_misses++;
 		cm_add_sample_lock(&stats.cm_t_escapees_misses,t);

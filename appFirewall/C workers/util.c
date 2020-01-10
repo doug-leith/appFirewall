@@ -50,14 +50,14 @@ int cm_add_sample_lock(cm_quantile *cm, double sample) {
 
 void print_stats() {
 	TAKE_LOCK(&cm_mutex, "print_stats");
-	INFO("pktap hits %d/misses %d, nstat hits %d/misses %d, dtrace hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d syn_hits %d/syn_misses %d, waitinglist hits %d/misses %d, escapees fresh %d/stale %d/old %d hits %d/misses %d procname hits %d/guesses %d/notfound %d, fdtab same %d/changed %d/%d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
+	INFO("pktap hits %d/misses %d, nstat hits %d/misses %d, dtrace hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d syn_hits %d/syn_misses %d, waitinglist hits %d/misses %d, escapees fresh %d/stale %d/old %d hits %d/misses %d/gone away %d, procname hits %d/guesses %d/notfound %d, fdtab same %d/changed %d/%d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
 	stats.pktap_hits,stats.pktap_misses, stats.nstat_hits, stats.nstat_misses,
 	stats.dtrace_hits, stats.dtrace_misses, stats.dtrace_syn_hits, stats.dtrace_syn_misses,
 	stats.pidinfo_hits, stats.pidinfo_misses, stats.pidinfo_syn_hits, stats.pidinfo_syn_misses,
 	stats.pidinfo_cachehits, stats.pidinfo_cachemisses, stats.pidinfo_syn_cachehits, stats.pidinfo_syn_cachemisses,
 	stats.waitinglist_hits,stats.waitinglist_misses,
 	stats.num_escapees, stats.stale_escapees, stats.escapees_not_in_log,
-	stats.escapees_hits,stats.escapees_misses,
+	stats.escapees_hits,stats.escapees_misses, stats.escapees_goneaway,
 	stats.num_noguess, stats.num_guesses, stats.num_failed_guesses,
 	stats.fdtab_same, stats.fdtab_changed, stats.fdtab_destchanged,
 	cm_query(&stats.cm_t_sniff,0.5)*1000, cm_query(&stats.cm_t_sniff,0.9)*1000,

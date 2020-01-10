@@ -157,10 +157,10 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 
 	conn_raw_t cr;
 	cr.af=af;
-	int outgoing=0;
+	//int outgoing=0;
 	if (dport == a.target_dport) {
 		// outgoing packet
-		outgoing=1;
+		//outgoing=1;
 		cr.src_addr=src; cr.dst_addr=dst;
 		cr.sport=sport; cr.dport=dport;
 		cr.seq=seq; cr.ack=ack;
@@ -313,14 +313,22 @@ void *catcher_listener(void *ptr) {
 		}
 
 		if (!find_intf(&c, &intf)) {
+			// likely a VPN tunnel that's gone away, or the like
 			inet_ntop(c.af, &c.src_addr, sn, INET6_ADDRSTRLEN);
 			WARN("catch_escapee(): couldn't find interface for %s->%s\n",sn,dn);
-			int ok = 0;
+			int ok = -1;
 			send(c_sock2, &ok, 1, 0);
 			close(c_sock2);
 		}
-		//sprintf(filter,"tcp and host %s and (port %u or port %u) and (tcp[tcpflags]&tcp-rst==0)", dn, c.sport, c.dport);
 		//sprintf(filter,"tcp and host %s and (port %u or port %u) and ( (ip6[6] == 6 and (ip6[53]&tcp-rst==0)) or (tcp[tcpflags]&tcp-rst==0) )", dn, c.sport, c.dport);
+		// this filter might be too permissive, it will catch all connections to dest on
+		// specified port, not just ones with a particular src port.  could change to
+		// ((sport %u and dport %u) or (dport %u and sport %u) ?  advantage of current
+		// permissive choice is that often apps open multiple connections to a dest and
+		// this filter will sniff pkts from all of these and use them to block these
+		// parallel connections, so we get a bit more value out of each call to the
+		// escapee catcher here.
+		// nb: we don't filter out RSTs here, but catch them instead in catcher_callback()
 		sprintf(filter,"tcp and host %s and (port %u or port %u)", dn, c.sport, c.dport);
 		//start pcap listener thread
 		a.pkt_count=0;
@@ -353,13 +361,17 @@ void *catcher_listener(void *ptr) {
 			c.ack = ack + k*win/2;
 			for (i=0; i<TRIES; i++) {
 				for (j=0; j<n; j++){
+					// just send RSTs to self, so don't flood internet
 					if (first) {
 						res = snd_rst_toself(&c, &ld_prompt, &intf); // will use c.ack as RST seq number
 						sent++;
+						// send more closely spaced RSTs at first to try to increase number of
+						// ACK response pkts that we generate from app (when our initial seq
+						// is based on earlier sniffed pkts there's a good chance we'll succeed
+						// here).
 						c.ack += win/2;
 						//if (c.af == AF_INET6) usleep(1000); // for testing
 					} else {
-						// just send RSTs to self, so don't flood internet
 						res = snd_rst_toself(&c, &ld_prompt, &intf); // will use c.ack as RST seq number
 						sent++;
 						c.ack += win;
