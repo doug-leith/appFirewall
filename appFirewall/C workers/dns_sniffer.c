@@ -183,8 +183,7 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
                                const u_char *end) {
 	u_char *tmp, *dst = dest;
 
-	if (!label || !*label || !dest)
-		goto err;
+	if (!label || !*label || (*label>end) || !dest) goto err;
 
 	*dest = '\0';
 	while (*label < end && **label) {
@@ -269,10 +268,10 @@ err:
 }
 
 //-------------------------------------------------------
-static u_char *skip_dns_label(u_char *label){
+static u_char *skip_dns_label(u_char *label, const u_char * end){
 	u_char *tmp;
 
-	if (!label) return NULL;
+	if (!label || (label>end)) return NULL;
 	
 	int label_last=1;
 	while (*label) {
@@ -286,7 +285,10 @@ static u_char *skip_dns_label(u_char *label){
 			label_last=1;
 		}
 	}
-	return label + label_last;
+	if (label + label_last >= end)
+		return NULL;
+	else
+		return label + label_last;
 }
 
 void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end) {
@@ -294,19 +296,20 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	u_char buf[BUFSIZE];
 	u_char *tmp = t;
 	u_char* l = label;
+	if (!t || (t>=end) || (l>=end)) goto err;
 	if (l==NULL) {
 		l = dns_label_to_str(&tmp, buf, BUFSIZE, payload, end);
 	}
-	tmp = skip_dns_label(t);
-	// debugging check, shouldn't happen
-	if (l==NULL || strnlen((char*)l,BUFSIZE)==0) {
-		WARN("empty label '%s' !\n", l);
-		for (int i =0; i< tmp-t+16; i++) {
+	if ((l==NULL) || (strnlen((char*)l,BUFSIZE)==0)) {
+		// likely a truncated pkt (snaplen too short)
+		WARN("Empty label '%s' in parse_RR()\n", l);
+		/*for (int i =0; i< tmp-t+16; i++) {
 			printf("%u ", *(t+i));
 		}
-		printf("\n");
+		printf("\n");*/
 		return;
 	}
+	tmp = skip_dns_label(t, end);
 	// debugging: dump out raw bytes ...
 	/*printf("RR bytes:");
 	for (int j =0; j<tmp-t+2; j++) {
@@ -314,16 +317,18 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	}
 	//printf("\n");*/
 	
+	if ((tmp==NULL) || (tmp+10>end)) goto err; // shouldn't happen
 	uint16_t qtype = ntohs(*(uint16_t *)tmp);
 	tmp+=10;
-	struct in6_addr addr;
-	memset(&addr,0,sizeof(addr));
+	struct in6_addr addr; memset(&addr,0,sizeof(addr));
 	int af=0;
 	if(qtype==1) {// A
+			if (tmp+sizeof(struct in_addr)>end) goto err; // shouldn't happen
 			memcpy(&addr,tmp,sizeof(struct in_addr));
 			af=AF_INET;
 			if (!addr.s6_addr) return; // 0.0.0.0
 	} else if (qtype==28) { // AAAA
+			if (tmp+sizeof(struct in6_addr)>end) goto err; // shouldn't happen
 			memcpy(&addr,tmp,sizeof(struct in6_addr));
 			af=AF_INET6;
 		if (!addr.s6_addr) return; // ::
@@ -334,24 +339,29 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	char n[INET6_ADDRSTRLEN];
 	inet_ntop(af, &addr, n, INET6_ADDRSTRLEN);
 	INFO2("DNS %d %s %s\n",af,l,n);
+	return;
+err:
+	WARN("Truncated RR found in parse_RR()\n");
+ 	return;
 }
 
 u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 	u_char* tmp = *posn;
+	if (!tmp) return NULL; // shouldn't happen
 	
-	u_char* RR = NULL;
-	
-	u_char* t = tmp, *last_t;
+	u_char* RR = NULL;	
+	u_char* t = tmp, *last_t=t;
 	for (int i=0;i< n; i++) {
+		if (tmp > end) goto err;
 		last_t = t; t = tmp;
-		tmp = skip_dns_label(tmp);
-		if (tmp + 10 > end) return NULL;
+		tmp = skip_dns_label(tmp, end);
+		if (!tmp || (tmp + 10 > end)) goto err;
 		// Get the type, and skip class and ttl
 		uint16_t len = ntohs(*(uint16_t *)tmp);
 		// debugging check
 		if ((tmp < t+1) && (len != 41)) {
 			// empty label, shouldn't happen except for OPT records (type 41)
-			WARN("empty label. i=%d, len=%d, prev:",i,len );
+			ERR("Empty label in parse_RRs(). i=%d, len=%d, prev:",i,len );
 			for (int j = 0; j< tmp-last_t+8; j++) {
 				if (last_t+j == t) printf("\ncurr:");
 				printf("%u ", *(last_t+j));
@@ -376,11 +386,14 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 		}
 
 		/* Skip ahead to the next answer */
+		if (tmp+1>end) goto err;
 		tmp += ntohs(*(uint16_t *)tmp) + 2;
-		if (tmp > end) return NULL;
 	}
 	*posn = tmp; // advance past records
 	return RR;
+err:
+	WARN("Truncated RR found in parse_RRs()\n");
+ 	return NULL;
 }
 
 void dns_sniffer(const u_char* udph, size_t pkt_len) {
@@ -390,6 +403,7 @@ void dns_sniffer(const u_char* udph, size_t pkt_len) {
 	struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)udph;
 	const u_char* dnsh = udph  + LIBNET_UDP_H;
 	struct dnshdr* dns = (struct dnshdr*)(dnsh);
+	if (dnsh + sizeof(struct dnshdr) >= udph+pkt_len) return; // pkt too short
 	int an = ntohs(dns->ancount);
 	int qd = ntohs(dns->qdcount);
 	int ns= ntohs(dns->nscount);
@@ -399,35 +413,41 @@ void dns_sniffer(const u_char* udph, size_t pkt_len) {
 	uint16_t len = ntohs(udp->uh_ulen)-LIBNET_UDP_H;
 	if ((!mDNS) && (len > pkt_len-LIBNET_IPV4_H-LIBNET_UDP_H)) {
 		WARN("dns_sniffer() snaplen looks too short: %d/%lu\n", ntohs(udp->uh_ulen), 	pkt_len-LIBNET_IPV4_H);
+		// we proceed, but bearing in mind pkt might be truncated
 	}
 	const u_char* payload = udph+LIBNET_UDP_H; // includes DNS header
-	const u_char *end = payload + len ;
+	const u_char *end = udph + pkt_len;
+	if (end > payload+len) end=payload+len;
 	//printf("DNS flags=%d/%d qd=%d an=%d, len=%d, sport=%d\n", dns->flags, dns->flags&0x80, qd, an, len, sport);
 	if ((dns->flags&0x80)==0) return; // DNS query, we only want responses.
 	if (!an) return; // response is empty, probably responding with an error
 	
 	/* Parse the Question section */
-	#define BUFSIZE 1024 // needs to be big enough to hold pkt payload
 	u_char *tmp, *label=NULL, buf[BUFSIZE];
 	uint16_t qtype = 0;
 
 	tmp = (u_char *)payload+LIBNET_UDP_DNSV4_H; // step past the DNS header to get the question section
+	if (tmp>=end) return; // we've already checked for this, but no harm in checking again
 	int i;
 	for (i=0;i<qd;i++) {
 		/* Get the first question's label and question type */
 		if (!qtype) {
 			label = dns_label_to_str(&tmp, buf, BUFSIZE, payload, end);
-			tmp++;
+			if (!label || (strnlen((char*)label,BUFSIZE)==0)) return;
+			tmp++; if (tmp+1>=end) return;
 			qtype = ntohs(*(uint16_t *)tmp);
 			//printf("%d %s\n", qtype,label);
 		} else {
-			if (*tmp & 0xc0) tmp += 2;
-			else tmp = skip_dns_label(tmp);
+			if (*tmp & 0xc0)
+				tmp += 2;
+			else {
+				tmp = skip_dns_label(tmp, end);
+				if (!tmp || (tmp>=end)) return;
+			}
 		}
 
 		/* Skip type and class */
-		tmp += 4;
-		if (tmp >= end) return;
+		tmp += 4; if (tmp >= end) return;
 	}
 	
 	if (mDNS) {

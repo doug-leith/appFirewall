@@ -1,7 +1,7 @@
 TO DO
 
 short term:
-- when dns over https is implemented within an application (i.e. firefox, chrome) then its not sent in the clear over the loopback interface.  not sure how to resolve addresses in this case
+- add option to see local mDNS broadcast traffic ?
 
 longer term:
 - use of network extensions, only for catalina onwards though
