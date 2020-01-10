@@ -15,6 +15,7 @@
 #include "circular_list.h"
 #include "connection.h"
 
+#define BUFSIZE 1024 // needs to be big enough to hold DNS pkt payload
 #define MAXDNS 21
 typedef struct dns_item_t {
 	struct in6_addr addr;

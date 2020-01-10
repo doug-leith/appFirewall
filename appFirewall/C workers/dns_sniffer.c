@@ -201,20 +201,35 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
 					// pointer
 					u_char* ptr = (u_char *)payload;
 					ptr += ntohs(*(uint16_t *)tmp) & 0x3fff;
-					//printf("second ptr, ptr size=%d, offset %u\n", *ptr, ntohs(*(uint16_t *)tmp) & 0x3fff);
-					if (dst + *ptr >= dest + dest_size)
+					if (ptr >= end) {
+						/*printf("second ptr>end, offset %u\n", ntohs(*(uint16_t *)tmp) & 0x3fff);
+						for (int j = 0; j< tmp-payload+8; j++) {
+							printf("%u ", *(payload+j));
+						}
+						printf("\n");*/
+						WARN("Label pointer points outside packet in dns_label_to_str(), likely DNS snaplen too short and packet has been truncated\n");
+						goto err;
+					}
+					if (dst + *ptr >= dest + dest_size) { // shouldn't happen
+						ERR("Label (from pointer) is too large for our buffer in dns_label_to_str() (our buffer size %zu, label needs %ld more)\n", dest_size, (dst + *ptr)-(dest + dest_size) );
 				  	goto err;
+					}
 					memcpy(dst, ptr+1, *ptr);
 					dst += *ptr;
 					*dst = '.'; dst++;
 					break; // end with ptr
 				} else {
 					// label
-				  if (dst + *tmp >= dest + dest_size)
+				  if (dst + *tmp >= dest + dest_size) { // shouldn't happen
+						ERR("Label is too large for our buffer in dns_label_to_str() (our buffer size %zu, label needs %ld more)\n", dest_size, (dst + *tmp)-(dest + dest_size) );
 				  	goto err;
+					}
 				  memcpy(dst, tmp+1, *tmp);
 				  dst += *tmp; tmp += *tmp + 1;
-				  if (dst > dest + dest_size) goto err;
+				  if (dst+1 >= dest + dest_size) { // shouldn't happen
+						ERR("Label has run off end of our buffer in dns_label_to_str() (our buffer size %zu, label needs %ld more)\n", dest_size, dst+1-(dest + dest_size) );
+				  	goto err;
+					}
 					*dst = '.'; dst++;
 				}
 			};
@@ -222,13 +237,13 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
 		} else { /* Label */
 			//printf("label ");
 			if ((*label + **label) >= end) {
-				WARN("dns_label_to_str() err 1\n");
+				WARN("Label overflows packet in dns_label_to_str(), likely DNS snaplen too short and packet has been truncated\n");
 				goto err;
 			}
-			if (**label + dst >= dest + dest_size) {
-					WARN("dns_label_to_str() err 2\n");
-					goto err;
-				}
+			if (**label + dst >= dest + dest_size) { // shouldn't happen
+				ERR("Label (no pointer) is too large for our buffer in dns_label_to_str() (our buffer size %zu, label needs %ld more)\n", dest_size, (**label + dst)-(dest + dest_size) );
+				goto err;
+			}
 			/*printf("name len %d ", **label);
 			int i;
 			for (i=1; i<=**label; i++) {
@@ -237,8 +252,8 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
 			printf("\n");*/
 			memcpy(dst, *label + 1, **label);
 			dst += **label;
-			if (dst > dest + dest_size) {
-				WARN("dns_label_to_str() err 3\n");
+			if (dst+1 >= dest + dest_size) {
+				ERR("Label (no pointer) has run off end of our buffer in dns_label_to_str() (our buffer size %zu, label needs %ld more)\n", dest_size, dst+1-(dest + dest_size) );
 				goto err;
 			}
 			*label += **label + 1;
@@ -276,7 +291,6 @@ static u_char *skip_dns_label(u_char *label){
 
 void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end) {
 	/* Get the data field length */
-	#define BUFSIZE 1024 // needs to be big enough to hold pkt payload
 	u_char buf[BUFSIZE];
 	u_char *tmp = t;
 	u_char* l = label;
