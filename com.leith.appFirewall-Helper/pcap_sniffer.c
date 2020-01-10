@@ -78,6 +78,7 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 	struct ifaddrs *dev;
 	int count=0, temp_count=0;
 	uint8_t temp_eth[MAX_MACS][ETHER_ADDR_LEN];
+	int temp_dlt[MAX_MACS];
 	char temp_ifname[MAX_MACS][STR_SIZE];
 	for(dev=ifap; dev; dev=dev->ifa_next) {
 		DEBUG2("interface %s ...",dev->ifa_name);
@@ -97,11 +98,16 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 				WARN("get_interfaces() number of MAC addresses is >%d\n",MAX_MACS);
 				continue;
 			}
-			if ( ((struct if_data*)dev->ifa_data)->ifi_type != IFT_ETHER) {DEBUG2("not ethernet\n"); continue; }
-			uint8_t* ptr = (uint8_t*)LLADDR((struct sockaddr_dl *)(dev)->ifa_addr);
-			memcpy(temp_eth[temp_count],ptr,ETHER_ADDR_LEN);
-			//printf("%s :",dev->ifa_name);
-			//int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",temp_eth[temp_count][k]); printf("\n");
+			unsigned short ifi_type = ((struct if_data*)dev->ifa_data)->ifi_type;
+			if (ifi_type == IFT_ETHER) { // ethernet
+				temp_dlt[temp_count] = DLT_EN10MB;
+				uint8_t* ptr = (uint8_t*)LLADDR((struct sockaddr_dl *)(dev)->ifa_addr);
+				memcpy(temp_eth[temp_count],ptr,ETHER_ADDR_LEN);
+				//printf("%s :",dev->ifa_name);
+				//int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",temp_eth[temp_count][k]); printf("\n");
+			} else if (ifi_type == IFT_LOOP) { // loopback
+				temp_dlt[temp_count] = DLT_NULL;
+			} else {DEBUG2("not ethernet or loopback\n"); continue; }
 			get_intf_name(dev->ifa_name, use_pktap, temp_ifname[temp_count]);
 			temp_count++;
 			continue;
@@ -150,7 +156,7 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 				else
 					memcpy(&intf[count].addr[0],dev->ifa_addr,sizeof(struct sockaddr_in6));
 				intf[count].num_addr = 1;
-				intf[count].is_eth = 0;
+				intf[count].dlt = -1;
 				if (count < MAX_INTS) {
 					count++;
 				} else {
@@ -169,11 +175,13 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 				if (strcmp(intf[i].name,temp_ifname[j])==0) break;
 			}
 			if (j<temp_count) {
-				//printf("Matched %s %d\n", intf[i].name, intf[i].is_eth);
-				memcpy(intf[i].eth,temp_eth[j],ETHER_ADDR_LEN);
-				intf[i].is_eth = 1;
-				//int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",temp_eth[j][k]); printf("\n");
-				//for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",intf[i].eth[k]); printf("\n");
+				//printf("Matched %s %d\n", intf[i].name, intf[i].dlt);
+				intf[i].dlt = temp_dlt[j];
+				if (temp_dlt[j] == DLT_EN10MB) {
+					memcpy(intf[i].eth,temp_eth[j],ETHER_ADDR_LEN);
+					//int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",temp_eth[j][k]); printf("\n");
+					//for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",intf[i].eth[k]); printf("\n");
+				}
 			}
 		}
 	}
@@ -185,7 +193,7 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 			for (j=0; j<intf[i].num_addr; j++) {
 				print_sockaddr((struct sockaddr*)&intf[i].addr[j]);
 			}
-			printf("is_eth=%d\n",intf[i].is_eth);
+			printf("dlt=%d\n",intf[i].dlt);
 			int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",intf[i].eth[k]); printf("\n");
 		}
 	}*/

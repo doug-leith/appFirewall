@@ -67,7 +67,7 @@ typedef struct interface_t {
 	int num_addr;
 	struct sockaddr_storage addr[MAX_INTS];
 	uint8_t eth[ETHER_ADDR_LEN];
-	int is_eth;
+	int dlt; // type of link, ethernet or loopback
 } interface_t;
 
 typedef struct sniffer_t {

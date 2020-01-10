@@ -1,12 +1,12 @@
 TO DO
 
 short term:
-- option to listen on loopback interface -- ssh tunnels, dns over https
+- option to listen on loopback interface -- dns over https
+- inject IPv6 link layer over lo0 ?  DLT_NULL
 
 longer term:
 - use of network extensions, only for catalina onwards though
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
 - compress log samples uploaded to server?
 - add socks interface that is filtered.  can be interposed between ssh tunnel etc.
-- is it possible to handle IPv6 tunnels in snd_rst_toself() ?
 

@@ -40,7 +40,7 @@ extern int verbose;          // debugging level
 
 #define LINEBUF_SIZE 4096 // max line size of readn line
 #define STR_SIZE 1024
-#define RECV_TIMEOUT 20 // socket read timeout
+#define RECV_TIMEOUT 20 // socket read timeout, longer than time taken by escapee catcher
 #define SND_TIMEOUT 20 // socket send timeout, nice and long
 #define NOTFOUND "<not found>" // label for connections for which process not found
 
