@@ -22,9 +22,9 @@ Otherwise some care is needed.  Since the firewall can block connections on a pe
 
 You can see information on the domains sharing an IP address by hovering your mouse over a connection - the tool tip gives connection details, including domains.  The number in brackets after a domain name indicates the number of times that domain name was recently resolved to the IP address.  So we can see, for example, whether one domain name is much more frequent than others.
 
-### Filtering of IPv6 connections unreliable
+### Enabling DNS over HTTPS in Firefox/Chrome prevents resolution of IP addresses
 
-Filtering of traffic sent over IPv6 is unreliable.   This is because the raw socket interface (used to send TCP RST packets) on MAC OS for IPv6 doesn't support the IP_HDRINCL functionality that it does for IPv4.   
+When DNS at system level is proxied over the loopback interface (e.g. using DNScrypt) then the firewall can still see the unencrypted requests and use them to resolve addresses.  But when DNS over HTTPS is enabled internally within Firefox (and Chrome) they perform encrypted lookups from within the application itself and so they are hidden from the firewall, at least for the moment.   A decent workaround is to use DNScrypt or the like, which also has the advantage of also encrypting DNS for all apps (not just browsers), and disable the internal use of DNS over HTTPS within Firefox/Chrome (in Firefox navigate to about:config and set "network.trr.mode" to 0, in Chrome navigate to chrome://flags/ and set "Secure DNS lookups" to Disabled).
 
 ### Filtering of VPN traffic is unreliable/experimental
 
