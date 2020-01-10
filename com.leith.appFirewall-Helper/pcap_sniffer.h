@@ -27,6 +27,16 @@
 // dtrace, nstat, proc_pidinfo etc - fast and simple.
 #define USE_PKTAP 1
 
+// dns over https sends traffic over loopback interface to a proxy that then
+// encrypts it.  so by sniffing loopback we can see the unencrypted dns traffic
+// and still resolve addresses.  means we're also sniffing other loopback traffic,
+// which increases work being done by appFirewall-Helper, which might be
+// significant if e.g. proxying all traffic.
+// nb. when dns over https is implemented within an application (i.e. firefox, chrome)
+// then its not sent in the clear over the loopback interface so we still have a problem
+// resolving addresses.
+#define SNIFF_LOOPBACK_DNS 1
+
 #ifdef USE_PKTAP
 // declarations of apple private libpcap functions,
 // taken from https://opensource.apple.com/tarballs/libpcap/libpcap-67.tar.gz

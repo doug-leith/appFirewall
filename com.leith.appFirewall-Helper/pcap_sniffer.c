@@ -61,8 +61,12 @@ char* get_intf_name(char* ifa_name, int use_pktap, char* name) {
 		// prepend interface name with pktap,
 		//strlcpy(name,"pktap,",STR_SIZE);
 		strlcpy(name,"iptap,",STR_SIZE); // we've no need for link-layer header
+#ifdef SNIFF_LOOPBACK_DNS
+		// cheap hack !
+		strlcat(name,"lo0,",STR_SIZE);
+#endif
 	} else {
-		strlcpy(name,"",STR_SIZE);;
+		strlcpy(name,"",STR_SIZE);
 	}
 	strlcat(name,ifa_name,STR_SIZE);
 	return name;
