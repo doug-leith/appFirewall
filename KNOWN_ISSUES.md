@@ -28,7 +28,7 @@ When DNS at system level is proxied over the loopback interface (e.g. using DNSc
 
 ### Filtering of VPN traffic is unreliable/experimental
 
-Traffic sent via a VPN is logged but blocking of connections is also unreliable at the moment, at least when using openvpn (which is all that I've tested).  That means connections which are marked to be blocked may fail to be blocked and so show up in the "Active Connections" tab.   The problem lies in openvpn itself so other VPN clients might be fine.  
+Traffic sent via a VPN tunnel interface is logged but blocking of connections is unreliable at the moment, at least when using openvpn (which is all that I've tested).  That means connections which are marked to be blocked may fail to be blocked and so show up in the "Active Connections" tab.   The problem lies in openvpn itself so other VPN clients might be fine.  
 
 ### Google QUIC connections are not blocked (yet)
 
