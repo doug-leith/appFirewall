@@ -148,7 +148,7 @@ uint8_t* get_default_gateway_eth(int af, uint8_t eth[ETHER_ADDR_LEN]) {
 			}
 			memcpy(eth,(u_char *)LLADDR(sdl),ETHER_ADDR_LEN);
 	}
-	INFO2("Default gateway MAC address: "); print_eth(eth); printf("\n");
+	INFO2("Default gateway MAC address: "); if (verbose>1) {print_eth(eth); printf("\n");}
 	return eth;
 }
 
