@@ -21,9 +21,10 @@
 #define IPV6_SELECT_TIMEOUT 1000 // 1ms in microseconds, for RST rate limiting
 
 typedef struct libnet_data_t {
-	libnet_t *l4, *l6, *l4_hdr, *l6_hdr;  // libnet state
-	libnet_ptag_t tcp4_ptag, tcp6_ptag, ip4_ptag, ip6_ptag, tcp4_hdr_ptag, ip4_hdr_ptag,tcp6_hdr_ptag, ip6_hdr_ptag, eth_ptag;
+	libnet_t *l4, *l6;  // libnet state
+	libnet_ptag_t tcp4_ptag, tcp6_ptag, ip4_ptag, ip6_ptag, eth_ptag;
 	interface_t last_intf;
+	uint8_t last_dst_eth[ETHER_ADDR_LEN];
 	pcap_t *pd;
 } libnet_data_t;
 
@@ -32,6 +33,6 @@ void start_rst(void);
 void rst_accept_loop(void);
 void close_rst_sock(void);
 int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, interface_t* intf);
-int snd_rst_toremote(conn_raw_t* c, libnet_data_t *ld, int try_data);
+int snd_rst_toremote(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, int try_data);
 
 #endif /* send_rst_h */

@@ -13,6 +13,11 @@
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
+#include <sys/sysctl.h>
+#include <netinet/in.h>
+#include <netinet/if_ether.h>
+#include <net/route.h>
+#include <arpa/inet.h>
 #include <pcap.h>
 #include <pthread.h>
 #include <ifaddrs.h>
@@ -104,6 +109,8 @@ int setup_pd(interface_t *intf, pcap_t **pd, char* filter_exp, int use_pktap);
 int get_interfaces(interface_t intf[MAX_INTS], int use_pktap);
 interface_t* find_intf(conn_raw_t* c, interface_t* intf);
 void print_sockaddr(struct sockaddr* daddr);
+void print_eth(uint8_t eth[ETHER_ADDR_LEN]);
+uint8_t* get_default_gateway_eth(int af, uint8_t eth[ETHER_ADDR_LEN]);
 
 void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn, int use_pktap);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);

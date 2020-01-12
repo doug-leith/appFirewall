@@ -22,7 +22,7 @@ static pthread_t catcher_thread; // handle to catcher thread
 static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
 static int catcher_sniffing = 0;
-static libnet_data_t ld, ld_prompt;
+static libnet_data_t ld_toself, ld_remote, ld_prompt_toself;
 static interface_t intf;
 static sniffers_t sn_esc;
 
@@ -204,8 +204,8 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	// our own data injection pkts again here in catcher callback and create a
 	// positive feedback loop leading to a pkt avalanche
 	//printf("sending RST\n");
-	snd_rst_toremote(&cr, &ld, 0); // will use cr.seq as RST seq number
-	snd_rst_toself(&cr, &ld, &intf); // will use cr.ack as RST seq number
+	snd_rst_toremote(&cr, &ld_remote, &intf, 0); // will use cr.seq as RST seq number
+	snd_rst_toself(&cr, &ld_toself, &intf); // will use cr.ack as RST seq number
 }
 
 void sigusr1_handler(int signum) {
@@ -240,8 +240,8 @@ void *catcher_listener(void *ptr) {
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 
-	init_libnet(&ld);
-	init_libnet(&ld_prompt);
+	init_libnet(&ld_toself); init_libnet(&ld_remote);
+	init_libnet(&ld_prompt_toself);
 	memset(&a,0,sizeof(catcher_callback_args_t));
 	char filter[STR_SIZE];
 	int prev_pid = -1;
@@ -363,7 +363,7 @@ void *catcher_listener(void *ptr) {
 				for (j=0; j<n; j++){
 					// just send RSTs to self, so don't flood internet
 					if (first) {
-						res = snd_rst_toself(&c, &ld_prompt, &intf); // will use c.ack as RST seq number
+						res = snd_rst_toself(&c, &ld_prompt_toself, &intf); // will use c.ack as RST seq number
 						sent++;
 						// send more closely spaced RSTs at first to try to increase number of
 						// ACK response pkts that we generate from app (when our initial seq
@@ -372,7 +372,7 @@ void *catcher_listener(void *ptr) {
 						c.ack += win/2;
 						//if (c.af == AF_INET6) usleep(1000); // for testing
 					} else {
-						res = snd_rst_toself(&c, &ld_prompt, &intf); // will use c.ack as RST seq number
+						res = snd_rst_toself(&c, &ld_prompt_toself, &intf); // will use c.ack as RST seq number
 						sent++;
 						c.ack += win;
 					}

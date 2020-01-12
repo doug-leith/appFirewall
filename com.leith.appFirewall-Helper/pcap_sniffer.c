@@ -26,24 +26,130 @@ void close_sniffer_sock() {
 	close(p_sock); close(p_sock2);
 }
 
-char* get_default_route_intf() {
-	// get the interface used by default route
-	FILE *fp = popen("/sbin/route get default default | /usr/bin/grep interface","r");
-	char* interface=NULL, buf[1024];
-	if (fp != NULL) {
-  	if (fgets(buf, sizeof(buf), fp)!=NULL) {
-  		char* c = strstr(buf,":");
-  		if (c!= NULL) {
-  			interface = trimwhitespace(c+1);
-			}
+void print_eth(uint8_t eth[ETHER_ADDR_LEN]) {
+	int k;
+	for(k=0; k<ETHER_ADDR_LEN;k++)
+		printf("%02x:",eth[k]);
+	//printf("\n");
+}
+
+#define ROUNDUP(a) \
+((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
+void get_rtaddrs(int addrs, struct sockaddr *sa, struct sockaddr **rti_info){
+	int i;
+	for (i = 0; i < RTAX_MAX; i++) {
+		if (addrs & (1 << i)) {
+			rti_info[i] = sa;
+			sa = (struct sockaddr *)(ROUNDUP(sa->sa_len) + (char *)sa);
+		} else {
+			rti_info[i] = NULL;
 		}
-		pclose(fp);
 	}
-	if (interface) {
-		INFO("found default route interface: %s\n",interface);
-		return interface;
-	}	else
+}
+
+int get_default_gateway(int af, struct sockaddr *gw) {
+	// get the gateway used by default route
+	if ((af != AF_INET) && (af != AF_INET6)) return -1;
+	
+	size_t needed;
+	char *buf, *next, *lim;
+	int mib[6];
+	struct rt_msghdr2 *rtm;
+	mib[0] = CTL_NET;
+	mib[1] = PF_ROUTE;
+	mib[2] = 0;
+	mib[3] = af;
+	mib[4] = NET_RT_DUMP2;
+	mib[5] = 0;
+	
+	if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0) {
+		WARN("Problem getting buffer size in get_default_gateway(): %s\n",strerror(errno));
+		return -1;
+	}
+	if ((buf = malloc(needed)) == 0) {
+		WARN("Out of memory in get_default_gateway(): %s\n",strerror(errno));
+		return -1;
+	}
+	if (sysctl(mib, 6, buf, &needed, NULL, 0) < 0) {
+		WARN("Problem getting routing table in get_default_gateway(): %s\n",strerror(errno));
+		return -1;
+	}
+	lim  = buf + needed;
+	for (next = buf; next < lim; next += rtm->rtm_msglen) {
+		rtm = (struct rt_msghdr2 *)next;
+		if (!( rtm->rtm_addrs | RTA_GATEWAY)) continue; // no gateway
+		// four struct sockaddr's follow rtm: destination, gateway, netmask, cloning mask
+		struct sockaddr *sa = (struct sockaddr *)(rtm + 1);
+		struct sockaddr *rti_info[RTAX_MAX];
+		get_rtaddrs(rtm->rtm_addrs, sa, rti_info);
+		if((sa = rti_info[RTAX_GATEWAY])!=NULL) {
+			// gateway
+			gw->sa_family = (sa_family_t)af;
+			char gw_buf[INET6_ADDRSTRLEN];
+			if (af==AF_INET) {
+				memcpy(gw,sa,sizeof(struct sockaddr_in));
+				inet_ntop(gw->sa_family, &((struct sockaddr_in*)gw)->sin_addr, gw_buf, INET6_ADDRSTRLEN);
+			} else {
+				memcpy(gw,sa,sizeof(struct sockaddr_in6));
+				inet_ntop(gw->sa_family, &((struct sockaddr_in6*)gw)->sin6_addr, gw_buf, INET6_ADDRSTRLEN);
+			}
+			INFO2("Found default gateway: %s\n",gw_buf);
+			return 1;
+		}
+	}
+	return -1;
+}
+
+uint8_t* get_default_gateway_eth(int af, uint8_t eth[ETHER_ADDR_LEN]) {
+	// get MAC address of gateway used by default route
+	struct sockaddr_storage gw;
+	if (get_default_gateway(af, (struct sockaddr*)&gw)<0) {
+		WARN("Problem in get_default_gateway_eth() getting default gateway\n");
 		return NULL;
+	}
+	int mib[6];
+	char *buf;
+	size_t needed;
+	mib[0] = CTL_NET;
+	mib[1] = PF_ROUTE;
+	mib[2] = 0;
+	mib[3] = af;
+	mib[4] = NET_RT_FLAGS;
+	mib[5] = RTF_LLINFO;
+	if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0) {
+		WARN("Problem getting buffer size in get_default_gateway_eth(): %s\n",strerror(errno));
+		return NULL;
+	}
+	if ((buf = malloc(needed)) == NULL) {
+		WARN("Out of memory in get_default_gateway_eth(): %s\n",strerror(errno));
+		return NULL;
+	}
+	if (sysctl(mib, 6, buf, &needed, NULL, 0) < 0){
+		WARN("Problem getting arp table in get_default_gateway_eth(): %s\n",strerror(errno));
+		return NULL;
+	}
+	char* lim = buf + needed, *next;
+	struct rt_msghdr *rtm;
+	struct sockaddr_dl *sdl;
+	for (next = buf; next < lim; next += rtm->rtm_msglen) {
+			rtm = (struct rt_msghdr *)next;
+			if (af == AF_INET) {
+				struct sockaddr_inarp *sin = (struct sockaddr_inarp *)(rtm + 1);
+				if (((struct sockaddr_in*)&gw)->sin_addr.s_addr != sin->sin_addr.s_addr) continue;
+				sdl = (struct sockaddr_dl *)(sin + 1);
+			} else {
+				struct sockaddr_in6* sin = (struct sockaddr_in6 *)(rtm + 1);
+				if (memcmp(((struct sockaddr_in6*)&gw)->sin6_addr.s6_addr,sin->sin6_addr.s6_addr,16)) continue;
+				sdl = (struct sockaddr_dl *)((char *)sin + ROUNDUP(sin->sin6_len));
+			}
+			if (!sdl->sdl_alen) {
+				WARN("No MAC address found in get_default_gateway_eth()\n");
+				return NULL;
+			}
+			memcpy(eth,(u_char *)LLADDR(sdl),ETHER_ADDR_LEN);
+	}
+	INFO2("Default gateway MAC address: "); print_eth(eth); printf("\n");
+	return eth;
 }
 
 void print_sockaddr(struct sockaddr* daddr) {
