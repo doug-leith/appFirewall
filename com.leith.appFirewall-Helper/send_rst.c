@@ -333,7 +333,7 @@ int snd_rst_toremote(conn_raw_t* c, libnet_data_t *ld, int try_data) {
 	}
 
 	uint16_t len = 0;
-	if (try_data) {
+	if (try_data && (c->af==AF_INET)) {
 		// this is a bit nasty.  we try to inject data into the connection to
 		// generate an error at the remote which will cause it to reset the
 		// connection. helpful with VPNs where sending RST to self doesn't work, so
