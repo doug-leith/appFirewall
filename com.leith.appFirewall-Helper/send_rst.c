@@ -174,10 +174,13 @@ int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth
 	
 	// nb: normally the kernel writes the sender info in packet header itself when we use raw
 	// socket. to avoid this with IPv4 we use the IP_HDRINCL socket option.  this option doesn't
-	// exist for IPv6 though, so for IPv6 we need to send via the link layer (what a pointless
+	// exist for IPv6 though, so for IPv6 we send via the link layer (what a pointless
 	// hassle !)
 	// From "man ip6" on macos:
 	// "When data received by the kernel are passed to the application, this header is not included in buffer, even when raw sockets are being used.  Likewise, when data are sent to the kernel for transmit from the application, the buffer is not examined for an IPv6 header: the kernel always constructs the header.  To directly access IPv6 headers from received packets and specify them as part of the buffer passed to the kernel, link-level access (bpf(4), for example) must instead be utilized."
+	// and the raw socket part says:
+	// "Outgoing packets automatically have an IPv6 header prepended to them (based on the destination address and the protocol number the socket was created with). Incoming packets are received by an application without the IPv6 header or any extension headers."
+	// it also says "If the proto argument to socket(2) is zero, the default protocol (IPPROTO_RAW) is used for outgoing packets."
 
 	// nb2: we should be able to send IPv6 to self over loopback interface (that's how
 	// IPv4-to-self packets are routed), but seems to be a problem.  libpcap
