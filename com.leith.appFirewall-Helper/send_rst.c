@@ -338,6 +338,9 @@ int snd_rst_toremote(conn_raw_t* c, libnet_data_t *ld, int try_data) {
 		// generate an error at the remote which will cause it to reset the
 		// connection. helpful with VPNs where sending RST to self doesn't work, so
 		// getting remote to send RST is useful.
+		// TO DO: fix up for IPv6, just now then next header field gets overwritten
+		// with 255 by kernel when there is a data payload (no idea why, works
+		// fine for RSTs below which are otherwise identical). 
 		const char *buf = "drop connection {\n\n\n"; // invalid json and http
 		len = (uint16_t)strlen(buf);
 		*tcp_ptag = libnet_build_tcp(c->sport, c->dport, c->seq, c->ack, TH_ACK, 0, 0, 0, LIBNET_TCP_H, (uint8_t*)buf, len, l, *tcp_ptag);
