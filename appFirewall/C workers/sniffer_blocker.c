@@ -44,7 +44,6 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char*
 	char src[INET6_ADDRSTRLEN];
 	inet_ntop(cr->af, &cr->src_addr, src, INET6_ADDRSTRLEN);
 
-
 	int pid;
 	
 	if ((pkt_pid>0) && pkt_name && (strnlen(pkt_name,MAXCOMLEN)>0)) {
@@ -111,6 +110,9 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char*
 	} else {
 		//printf("dns not found for %s\n",c.addr_name);
 		strlcpy(c.domain,c.addr_name,MAXDOMAINLEN);
+		// try to do a reverse lookup, this might take a while so its run in
+		// a separate thread and we don't wait here for the result
+		reverse_dns_lookup(cr->af, cr->dst_addr);
 	}
 	
 	return c;

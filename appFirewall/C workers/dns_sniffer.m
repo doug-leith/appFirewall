@@ -177,6 +177,56 @@ void load_dns_cache(const char* fname) {
 }
 
 //-------------------------------------------------------
+/*#include <Foundation/Foundation.h>
+
+void* reverse_dns_lookup_thread(void*ptr) {
+	struct sockaddr_in6 *sa = (struct sockaddr_in6 *)ptr;
+	char dn[INET6_ADDRSTRLEN];
+	inet_ntop(sa->sin6_family,&sa->sin6_addr, dn, INET6_ADDRSTRLEN);
+	
+	//char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+	//int res = getnameinfo((struct sockaddr *)sa, sizeof(struct sockaddr_in6), hbuf, //sizeof(hbuf), sbuf, sizeof(sbuf), NI_NAMEREQD);
+	//if (res!=0) {
+	//	if (res!=EAI_NONAME)
+	//		WARN("Problem doing reverse DNS lookup for %s: %s", dn, gai_strerror(res));
+	//	else
+	//		INFO2("Reverse DNS failed for %s\n",dn);
+	//} else {
+	//	//append_dns(sa->sin6_family,sa->sin6_addr,hbuf);
+	//	INFO2("Reverse DNS found: %s -> %s\n",dn,hbuf);
+	//}
+	
+	// NSHost seems to resolve a good many more addresses than getnameinfo().  Mhy guess is
+	// that in MAC  OS getnameinfo() just uses the local dns cache ?
+	NSString *name = [[NSHost hostWithAddress:[NSString stringWithUTF8String:dn]] name];
+	const char* str = [name UTF8String];
+	if (str) {
+		append_dns(sa->sin6_family,sa->sin6_addr,(char*)str);
+		INFO2("Reverse DNS found using NSHost: %s -> %s\n",dn,str);
+	} else {
+		INFO2("Reverse DNS using NSHost failed for %s\n",dn);
+	}
+
+	return NULL;
+}
+
+void reverse_dns_lookup(int af, struct in6_addr addr) {
+	pthread_t thread;
+	struct sockaddr_in6 *sa=malloc(sizeof(struct sockaddr_in6));
+	sa->sin6_family = (sa_family_t)af;
+	sa->sin6_addr = addr;
+	pthread_create(&thread, NULL, reverse_dns_lookup_thread, sa);
+}
+*/
+
+void reverse_dns_lookup(int af, struct in6_addr addr) {
+	// just a stub.  not sure we should be doing reverse DNS within firewall
+	// as it means firewall itself generates network traffic that can potentially
+	// reveal app activity.
+	return;
+}
+
+
 static u_char *dns_label_to_str(u_char **label, u_char *dest,
                                size_t dest_size,
                                const u_char *payload,

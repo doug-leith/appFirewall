@@ -33,6 +33,7 @@ typedef struct dns_count_t {
 void dns_sniffer(const u_char* pkt, size_t pkt_len);
 void append_dns(int af, struct in6_addr addr, char* name);
 char* lookup_dns_name(int af, struct in6_addr addr);
+void reverse_dns_lookup(int af, struct in6_addr addr);
 
 // swift
 void load_dns_cache(const char* fname);

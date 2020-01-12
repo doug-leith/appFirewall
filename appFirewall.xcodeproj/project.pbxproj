@@ -34,7 +34,7 @@
 		91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91607BF3237140A4002E50A8 /* blocklist.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF2237140A4002E50A8 /* blocklist.c */; };
 		91607BF6237142A0002E50A8 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF5237142A0002E50A8 /* log.c */; };
-		91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF923714D46002E50A8 /* dns_sniffer.c */; };
+		91607BFA23714D46002E50A8 /* dns_sniffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF923714D46002E50A8 /* dns_sniffer.m */; };
 		91607C2B2372FF7F002E50A8 /* libnet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607C252372FF7E002E50A8 /* libnet.a */; };
 		91607C2C2372FF7F002E50A8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C262372FF7E002E50A8 /* main.c */; };
 		91607C2D2372FFAE002E50A8 /* com.leith.appFirewall-Helper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -176,7 +176,7 @@
 		91607BF5237142A0002E50A8 /* log.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = log.c; sourceTree = "<group>"; };
 		91607BF7237144D2002E50A8 /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		91607BF823714D46002E50A8 /* dns_sniffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dns_sniffer.h; sourceTree = "<group>"; };
-		91607BF923714D46002E50A8 /* dns_sniffer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns_sniffer.c; sourceTree = "<group>"; };
+		91607BF923714D46002E50A8 /* dns_sniffer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = dns_sniffer.m; sourceTree = "<group>"; };
 		91607C0B2372AC51002E50A8 /* libnet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnet.a; path = appFirewall_Helper/libnet.a; sourceTree = "<group>"; };
 		91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "com.leith.appFirewall-Helper"; sourceTree = BUILT_PRODUCTS_DIR; };
 		91607C252372FF7E002E50A8 /* libnet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libnet.a; sourceTree = "<group>"; };
@@ -387,7 +387,7 @@
 				91D96AD1239648D400AAA73B /* dns_conn_cache.h */,
 				91D96AD2239648D400AAA73B /* dns_conn_cache.c */,
 				91607BF823714D46002E50A8 /* dns_sniffer.h */,
-				91607BF923714D46002E50A8 /* dns_sniffer.c */,
+				91607BF923714D46002E50A8 /* dns_sniffer.m */,
 				9139F67D237BC49A00600D37 /* helper.h */,
 				9139F67E237BC49A00600D37 /* helper.c */,
 				9139F67A237BC41300600D37 /* dtrace.h */,
@@ -575,7 +575,7 @@
 				91ABB29823773595007F8FFE /* hostlists.c in Sources */,
 				9139F68A237FE9A800600D37 /* whitelist.c in Sources */,
 				9180E1732388ABB7007002CB /* is_blocked.c in Sources */,
-				91607BFA23714D46002E50A8 /* dns_sniffer.c in Sources */,
+				91607BFA23714D46002E50A8 /* dns_sniffer.m in Sources */,
 				91494781239F6CA800C01432 /* appTabViewController.swift in Sources */,
 				91607BC4236AB2D1002E50A8 /* pid_conn_info.c in Sources */,
 				9139F682237D355600600D37 /* circular_list.c in Sources */,
