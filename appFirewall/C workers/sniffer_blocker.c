@@ -252,7 +252,7 @@ void process_conn_waiting_list(void) {
 					del=1;
 				} else {
 					// an outstanding conn, refresh pid info again
-					signal_pid_watcher(0);
+					signal_pid_watcher(0,0);
 				}
 			} else {
 				// got process name, we can proceed
@@ -480,7 +480,7 @@ void *listener(void *ptr) {
 			// cache we trigger a refresh here.  the hope is that by the time the
 			// synack arrives the connection will be in the cache and we'll avoid
 			// waiting.
-			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher(0);
+			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher(0,0);
 			continue; // nothing more to do for a syn.
 		}
 		
@@ -504,7 +504,7 @@ void *listener(void *ptr) {
 		// 2. for a conn which we've just processed refresh of pidinfo will cause a
 		// check that conn has really died, and if not will call helper to catch the
 		// "escapee".		
-		signal_pid_watcher(0);
+		signal_pid_watcher(0,0);
 		continue;
 		
 	err_p:

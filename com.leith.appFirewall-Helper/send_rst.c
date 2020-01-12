@@ -340,7 +340,6 @@ int snd_rst_toremote(conn_raw_t* c, libnet_data_t *ld, int try_data) {
 		// getting remote to send RST is useful.
 		const char *buf = "drop connection {\n\n\n"; // invalid json and http
 		len = (uint16_t)strlen(buf);
-		if (!try_data) len = 0; // disable data injection attack
 		*tcp_ptag = libnet_build_tcp(c->sport, c->dport, c->seq, c->ack, TH_ACK, 4096, 0, 0, LIBNET_TCP_H, (uint8_t*)buf, len, l, *tcp_ptag);
 		append_ipheader(c->af, &c->src_addr, &c->dst_addr, l, ip_ptag, len);
 		if (libnet_write(l)==-1) {

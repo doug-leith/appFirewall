@@ -34,7 +34,7 @@ static pthread_mutex_t escapee_mutex = MUTEX_INITIALIZER;
 // also pid_mutex lock before escapee_mutex
 static pthread_t pid_thread; // handle to pid watcher thread
 static int pid_thread_started = 0; // indicates whether pid watcher thread already running
-static int wakeup = 0, force = 0;
+static int wakeup = 0, force = 0, force_full_refresh=0;
 static void (*pid_watcher_hook)(void) = NULL;
 
 //--------------------------------------------------------
@@ -85,18 +85,18 @@ void *pid_watcher(void *ptr) {
 		int full_refresh = 0;
 		struct timeval t; gettimeofday(&t, NULL);
 		double elapsed = (t.tv_sec - last_full_refresh.tv_sec) +(t.tv_usec - last_full_refresh.tv_usec)/1000000.0;
-		if (elapsed > REFRESH_TIMEOUT) {
+		if ((elapsed > REFRESH_TIMEOUT)||force_full_refresh) {
 			// nb: we force a full refresh fairly often so as to correct any temporary
 			// mistakes in find_fds() caused by reuse of file descriptors, even though
 			// these are pretty rare
 			gettimeofday(&last_full_refresh, NULL);;
-			full_refresh=1;
+			full_refresh=1; force_full_refresh=0;
 		}
 		// if we're making many mistakes, fall back to always
 		// doing a full refresh, just to be careful
 		int sum = stats.fdtab_same + stats.fdtab_changed;
 		if ((sum>100) && (stats.fdtab_destchanged*1.0/sum > REFRESH_THRESH)) {
-			full_refresh=1;
+			full_refresh=1;force_full_refresh=0;
 		}
 		// this call consumes >85% of execution time
 		refresh_active_conns(full_refresh); // will take lock
@@ -134,10 +134,10 @@ void start_pid_watcher() {
 	}
 }
 
-void signal_pid_watcher(force_find_escapee) {
+void signal_pid_watcher(int force_find_escapee, int full_refresh) {
 	// ask watcher to refresh pid_list
 	TAKE_LOCK(&pid_mutex,"signal_pid_watcher");
-	wakeup = 1; force = force_find_escapee;
+	wakeup = 1; force = force_find_escapee; force_full_refresh=full_refresh;
 	pthread_cond_signal(&pid_cond);
 	pthread_mutex_unlock(&pid_mutex);
 	//printf("signal sent\n");
@@ -731,15 +731,16 @@ void *catch_escapee(void *ptr) {
 		cm_add_sample_lock(&stats.cm_t_escapees_misses,t);
 	}
 	INFO("escapee %s(%d) fd=%d %s:%u -> %s(%s):%u ack=%u,udp=%d: %s. t=%fs\n", e->name, e->pid, e->fd,e->src_addr_name, e->raw.sport, e->domain, e->dst_addr_name, e->raw.dport, e->raw.ack,e->raw.udp,result,t);
-	close(c_sock);
+	goto stop;
+	/*close(c_sock);
 	TAKE_LOCK(&escapee_mutex,"catch_escapee #2");
 	del_item(&escapee_list,e);
 	escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
 	print_escapees(); // takes its own lock
 	free(e);
-	signal_pid_watcher(1); // refresh pid list and check for more escapees
-	return NULL;
+	signal_pid_watcher(1,1); // refresh pid list and check for more escapees
+	return NULL;*/
 	
 err:
 	WARN("write escapee: %s\n", strerror(errno));
@@ -750,7 +751,11 @@ stop:
 	escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
 	free(e);
-	signal_pid_watcher(1); // refresh pid list and check for more escapees
+	// refresh pid list and check for more escapees.
+	// we also force a full refresh of pid list since even if fd hasn't
+	// gone away just yet the associated cached fd state may/should
+	// have changed.
+	signal_pid_watcher(1,1);
 	return NULL;
 }
 

@@ -41,7 +41,7 @@ If the app crashes (hopefully not !) then it will send a short backtrace to http
 
 Its a list of entry points in the app so that I can see where it crashed, nothing more.  There is no identifer linking this backtrace to the partricular instance of the app that you are running and the upload server does not log IP address or other connection details.
 
-The firewall also periodically uploads a sample of the connections made by a randomly selected app.  This is so we can try to learn more about app behaviour in the wild, and use this to develop better approaches for disrupting tracking etc.  We exclude browser apps from this sampling since the connections made by a browser are potentially sensitive (it may reveal some information about browsing history).   If you think other apps should also be excluded then send me an email.  An example of such a sample is the following:
+The firewall also periodically uploads a sample of the connections made by a randomly selected app.  This is so we can try to learn more about app behaviour in the wild, and use this to develop better approaches for disrupting tracking etc.  We exclude browser apps from this sampling since the connections made by a browser are potentially sensitive (it may reveal some information about browsing history).   If you think other apps should also be excluded then post a ticket on the app's github repository or send me an email.  An example of such a sample is the following:
 
     Dec 03 21:36:13 2019	Dropbox	192.168.1.27:64379 -> 162.125.19.131 (bolt.dropbox.com):443	
     Dec 03 21:36:23 2019	Dropbox	192.168.1.27:64380 -> 162.125.19.130 (telemetry.dropbox.com):443
@@ -51,7 +51,7 @@ The firewall also periodically uploads a sample of the connections made by a ran
 
 The app stores a time-stamped copy of any such samples in the ~/Library/Application Support/appFirewall/samples folder so you can see exactly what has been uploaded.  There is no identifier linking a sample to your copy of the app and the upload server does not log IP address or other connection details.
 
-By default the app checks github monthly for updates, and automatically downloads and installs them.   You can disable this via the app Preferences window and check for updates manually using the "Check for updates" menu option.   Github logs traffic to the repository so it can present stats - just counts of download  etc, which are publicly visible (feel free to check them [here](https://github.com/doug-leith/appFirewall/graphs/traffic): )
+By default the app checks github monthly for updates, and automatically downloads and installs them.   You can disable this via the app Preferences window and check for updates manually using the "Check for updates" menu option.   Github logs traffic to the repository and displays counts of downloads  etc which are publicly visible (feel free to check them [here](https://github.com/doug-leith/appFirewall/graphs/traffic), Github's privacy policy is [here](https://help.github.com/en/github/site-policy/github-privacy-statement#what-information-github-collects) ).
 
 ## App store
 

@@ -183,7 +183,6 @@ void* reverse_dns_lookup_thread(void*ptr) {
 	struct sockaddr_in6 *sa = (struct sockaddr_in6 *)ptr;
 	char dn[INET6_ADDRSTRLEN];
 	inet_ntop(sa->sin6_family,&sa->sin6_addr, dn, INET6_ADDRSTRLEN);
-	
 	//char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
 	//int res = getnameinfo((struct sockaddr *)sa, sizeof(struct sockaddr_in6), hbuf, //sizeof(hbuf), sbuf, sizeof(sbuf), NI_NAMEREQD);
 	//if (res!=0) {
@@ -195,7 +194,7 @@ void* reverse_dns_lookup_thread(void*ptr) {
 	//	//append_dns(sa->sin6_family,sa->sin6_addr,hbuf);
 	//	INFO2("Reverse DNS found: %s -> %s\n",dn,hbuf);
 	//}
-	
+
 	// NSHost seems to resolve a good many more addresses than getnameinfo().  Mhy guess is
 	// that in MAC  OS getnameinfo() just uses the local dns cache ?
 	NSString *name = [[NSHost hostWithAddress:[NSString stringWithUTF8String:dn]] name];
@@ -207,6 +206,7 @@ void* reverse_dns_lookup_thread(void*ptr) {
 		INFO2("Reverse DNS using NSHost failed for %s\n",dn);
 	}
 
+	free(sa);
 	return NULL;
 }
 

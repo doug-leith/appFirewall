@@ -44,7 +44,7 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh);
 int refresh_active_conns(int full_refresh);
 
 void start_pid_watcher(void);
-void signal_pid_watcher(int force);
+void signal_pid_watcher(int force, int full_refresh);
 void set_pid_watcher_hook(void (*hook)(void));
 int get_pid_changed(void);
 void clear_pid_changed(void);
