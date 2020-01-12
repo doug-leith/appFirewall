@@ -10,6 +10,10 @@
 // nice info on raw sockets: https://sock-raw.org/papers/sock_raw
 // RFC on RST attack mitigations: https://tools.ietf.org/html/rfc5961#section-3.2
 // nice blog post on TCP RST details: https://www.snellman.net/blog/archive/2016-02-01-tcp-rst/
+//
+// IPv6 raw sockets are a real hassle compared to IPv4.  From "man ip6" on macos:
+// "When data received by the kernel are passed to the application, this header is not included in buffer, even when raw sockets are being used.  Likewise, when data are sent to the kernel for transmit from the application, the buffer is not examined for an IPv6 header: the kernel always constructs the header.  To directly access IPv6 headers from received packets and specify them as part of the buffer passed to the kernel, link-level access (bpf(4), for example) must instead be utilized."
+// Sending RSTs to remote IPv6 hosts works ok, although things go pear shaped if try to add a data payload. Sending to self with a spoofed source address requires link-layer access.
 
 // example of a syn-synack-rst exchange between macos and linux:
 /*192.168.1.27	54.171.86.180	TCP	78			2730891158	2730891158	55054 → 2000 [SYN] Seq=2730891158 Win=65535 Len=0 MSS=1460 WS=64 TSval=708234657 TSecr=0 SACK_PERM=1
