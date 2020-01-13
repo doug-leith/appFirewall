@@ -222,7 +222,7 @@ extension PreferenceViewController: URLSessionDownloadDelegate {
 			}
 			let lists_lastUpdated = String(cString:get_file_modify_time(path))
 			Config.listsLastUpdated(value:lists_lastUpdated)
-			print("Successully downloaded ",url,", t=",Config.getListsLastUpdated)
+			print("Successully downloaded ",url,", t=",Config.getListsLastUpdated())
 		}
 		// we batch errors into a single popup
 		if (downloadsInProgress.count == 0) {
