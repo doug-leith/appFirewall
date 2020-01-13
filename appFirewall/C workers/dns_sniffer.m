@@ -461,8 +461,19 @@ void dns_sniffer(const u_char* udph, size_t pkt_len) {
 	uint16_t sport=ntohs(udp->uh_sport);
 	int mDNS = (sport == 5353);
 	uint16_t len = ntohs(udp->uh_ulen)-LIBNET_UDP_H;
-	if ((!mDNS) && (len > pkt_len-LIBNET_IPV4_H-LIBNET_UDP_H)) {
-		WARN("dns_sniffer() snaplen looks too short: %d/%lu\n", ntohs(udp->uh_ulen), 	pkt_len-LIBNET_IPV4_H);
+	if (!mDNS)
+		stats.dns_count++;
+	else
+		stats.mdns_count++;
+	if (len > pkt_len-LIBNET_IPV4_H-LIBNET_UDP_H) {
+		//WARN("dns_sniffer() snaplen looks too short: %d/%lu\n", ntohs(udp->uh_ulen), 	pkt_len-LIBNET_IPV4_H);
+		if (!mDNS) {
+			stats.dns_snaplen_misses++;
+			cm_add_sample_lock(&stats.cm_dns_snaplen,len-(pkt_len-LIBNET_IPV4_H-LIBNET_UDP_H));
+		} else {
+			stats.mdns_snaplen_misses++;
+			cm_add_sample_lock(&stats.cm_mdns_snaplen,len-(pkt_len-LIBNET_IPV4_H-LIBNET_UDP_H));
+		}
 		// we proceed, but bearing in mind pkt might be truncated
 	}
 	const u_char* payload = udph+LIBNET_UDP_H; // includes DNS header

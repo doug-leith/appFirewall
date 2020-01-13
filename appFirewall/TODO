@@ -8,6 +8,7 @@ longer term:
 (lo0, proc mDNSResponder:238, eproc MATLAB:36138, svc CTL, out, so) IP localhost.53108 > localhost.domain: 27827+ A? services.mathworks.com. (40)
 - use of network extensions, only for catalina onwards though
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
+- allow addition of user specified host name lists
 - compress log samples uploaded to server?
 - add socks interface that is filtered.  can be interposed between ssh tunnel etc.
 

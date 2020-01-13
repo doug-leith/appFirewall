@@ -56,8 +56,9 @@ typedef struct {
 	int waitinglist_hits, waitinglist_misses;
 	int num_noguess, num_guesses, num_failed_guesses;
 	int fdtab_same, fdtab_changed, fdtab_destchanged;
-	cm_quantile cm_t_notblocked, cm_t_blocked, cm_t_waitinglist_hit, cm_t_waitinglist_miss, cm_t_dns,cm_t_pidinfo_cache_hit, cm_t_pidinfo_cache_miss, cm_t_sniff, cm_t_udp, cm_t_escapees_hits, cm_t_escapees_misses, cm_escapee_thread_count;
-	int num_escapees,escapees_not_in_log,stale_escapees,escapees_hits,escapees_misses,escapees_goneaway;
+	int dns_snaplen_misses, dns_count, mdns_snaplen_misses, mdns_count;
+	cm_quantile cm_t_notblocked, cm_t_blocked, cm_t_waitinglist_hit, cm_t_waitinglist_miss, cm_t_dns,cm_t_pidinfo_cache_hit, cm_t_pidinfo_cache_miss, cm_t_sniff, cm_t_udp, cm_t_escapees_hits, cm_t_escapees_misses, cm_escapee_thread_count, cm_dns_snaplen, cm_mdns_snaplen;
+	int num_escapees,escapees_not_in_log,stale_escapees,escapees_hits,escapees_misses,escapees_goneaway, escapee_timeouts;
 } stats_t;
 
 typedef int32_t int_sw; // nail down swift interface int size

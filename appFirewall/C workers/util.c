@@ -37,6 +37,8 @@ void init_stats() {
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_escapees_hits);
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_escapees_misses);
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_escapee_thread_count);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_dns_snaplen);
+	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_mdns_snaplen);
 }
 
 static pthread_mutex_t cm_mutex = MUTEX_INITIALIZER;
@@ -50,16 +52,19 @@ int cm_add_sample_lock(cm_quantile *cm, double sample) {
 
 void print_stats() {
 	TAKE_LOCK(&cm_mutex, "print_stats");
-	INFO("pktap hits %d/misses %d, nstat hits %d/misses %d, dtrace hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d syn_hits %d/syn_misses %d, waitinglist hits %d/misses %d, escapees fresh %d/stale %d/old %d hits %d/misses %d/gone away %d, procname hits %d/guesses %d/notfound %d, fdtab same %d/changed %d/%d\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f, escapee thread t hits %.2f/%.2f, misses %.2f/%.2f, count %.2f/%.2f\n",
+	INFO("pktap hits %d/misses %d, nstat hits %d/misses %d, pidinfo hits %d/misses %d syn_hits %d/syn_misses %d, pidinfo_cache hits %d/misses %d, waitinglist hits %d/misses %d, escapees fresh %d/stale %d/old %d hits %d/misses %d/gone away %d, escapee timeouts %d/%d, procname hits %d/guesses %d/notfound %d, fdtab same %d/changed %d/%d, DNS snaplen misses %d/count %d, mDNS snaplen misses %d/count %d, DNS snaplen shortfall %.2f/%.2f, mDNS snaplen shortfall %.2f/%.2f\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f\n",
 	stats.pktap_hits,stats.pktap_misses, stats.nstat_hits, stats.nstat_misses,
-	stats.dtrace_hits, stats.dtrace_misses, stats.dtrace_syn_hits, stats.dtrace_syn_misses,
 	stats.pidinfo_hits, stats.pidinfo_misses, stats.pidinfo_syn_hits, stats.pidinfo_syn_misses,
-	stats.pidinfo_cachehits, stats.pidinfo_cachemisses, stats.pidinfo_syn_cachehits, stats.pidinfo_syn_cachemisses,
+	stats.pidinfo_cachehits, stats.pidinfo_cachemisses,
 	stats.waitinglist_hits,stats.waitinglist_misses,
 	stats.num_escapees, stats.stale_escapees, stats.escapees_not_in_log,
 	stats.escapees_hits,stats.escapees_misses, stats.escapees_goneaway,
+	stats.escapee_timeouts,stats.num_escapees,
 	stats.num_noguess, stats.num_guesses, stats.num_failed_guesses,
 	stats.fdtab_same, stats.fdtab_changed, stats.fdtab_destchanged,
+	stats.dns_snaplen_misses, stats.dns_count, stats.mdns_snaplen_misses, stats.mdns_count,
+	cm_query(&stats.cm_dns_snaplen,0.5), cm_query(&stats.cm_dns_snaplen,0.9),
+	cm_query(&stats.cm_mdns_snaplen,0.5), cm_query(&stats.cm_mdns_snaplen,0.9),
 	cm_query(&stats.cm_t_sniff,0.5)*1000, cm_query(&stats.cm_t_sniff,0.9)*1000,
 	cm_query(&stats.cm_t_notblocked,0.5)*1000, cm_query(&stats.cm_t_notblocked,0.9)*1000,
 	cm_query(&stats.cm_t_blocked,0.5)*1000, cm_query(&stats.cm_t_blocked,0.9)*1000,
@@ -68,13 +73,7 @@ void print_stats() {
 	cm_query(&stats.cm_t_waitinglist_hit,0.5)*1000, cm_query(&stats.cm_t_waitinglist_hit,0.9)*1000,
 	cm_query(&stats.cm_t_waitinglist_miss,0.5)*1000, cm_query(&stats.cm_t_waitinglist_miss,0.9)*1000,
 	cm_query(&stats.cm_t_pidinfo_cache_hit,0.5)*1000, cm_query(&stats.cm_t_pidinfo_cache_hit,0.9)*1000,
-	cm_query(&stats.cm_t_pidinfo_cache_miss,0.5)*1000, cm_query(&stats.cm_t_pidinfo_cache_miss,0.9)*1000,
-	cm_query(&stats.cm_t_escapees_hits,0.5)*1000,
-	cm_query(&stats.cm_t_escapees_hits,0.9)*1000,
-	cm_query(&stats.cm_t_escapees_misses,0.5)*1000,
-	cm_query(&stats.cm_t_escapees_misses,0.9)*1000,
-	cm_query(&stats.cm_escapee_thread_count,0.5),
-	cm_query(&stats.cm_escapee_thread_count,0.9)
+	cm_query(&stats.cm_t_pidinfo_cache_miss,0.5)*1000, cm_query(&stats.cm_t_pidinfo_cache_miss,0.9)*1000
 	);
 	pthread_mutex_unlock(&cm_mutex);
 }

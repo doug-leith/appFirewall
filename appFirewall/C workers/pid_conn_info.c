@@ -640,12 +640,10 @@ void find_escapees() {
 					// we get the seq number from syn-ack in log ...
 					e->raw.seq =l->raw.seq; e->raw.ack =l->raw.ack;
 					struct timeval start; gettimeofday(&start, NULL);
-					if (start.tv_sec - l->raw.ts.tv_sec < STALE_ESCAPEE_TIMEOUT) {
-						// keep some stats
-						stats.num_escapees++;
-					} else {
+					stats.num_escapees++;
+					if (start.tv_sec - l->raw.ts.tv_sec > STALE_ESCAPEE_TIMEOUT) {
 						//an ancient connections.  seq number is maybe too old now,
-						// should we just choose a randome one, or otherwise adjust it ?
+						// should we just choose a random one, or otherwise adjust it ?
 						stats.stale_escapees++;
 					}
 				}
@@ -743,7 +741,12 @@ void *catch_escapee(void *ptr) {
 	return NULL;*/
 	
 err:
-	WARN("write escapee: %s\n", strerror(errno));
+	if (errno == EAGAIN) {
+		INFO2("write escapee timeout\n");
+		stats.escapee_timeouts++;
+	} else {
+		WARN("write escapee: %s\n", strerror(errno));
+	}
 stop:
 	close(c_sock);
 	TAKE_LOCK(&escapee_mutex,"catch_escapee #3");
