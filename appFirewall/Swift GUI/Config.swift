@@ -38,7 +38,7 @@ class Config: NSObject {
 		["Name": "Dan Pollock's hosts file","File": "hosts","URL":"https://someonewhocares.org/hosts/zero/hosts","Tip":"A balanced ad blocking hosts file.  Try this if other ones are blocking too much.", "Type":"Hostlist"],
 		["Name": "AdAway","File":"hosts.txt","URL":"https://adaway.org/hosts.txt","Tip":"Blocks ads and some analytics but quite limited (only 525 hosts)", "Type":"Hostlist"],
 		["Name": "hpHosts","File": "ad_servers.txt" ,"URL":"https://hosts-file.net/ad_servers.txt", "Tip":"Ad and trackers list from hpHosts, moderately sizesd (45K hosts)."],
-		["Name": "Doug's Annoyances Block List","File": "dougs_blocklist.txt","URL": "https://www.scss.tcd.ie/doug.leith/dougs_blocklist.txt", "Tip": "Based on MAC OS application traffic.", "Type":"Blocklist"]
+		["Name": "Doug's Annoyances Block List","File": "dougs_blocklist.txt","URL": "https://github.com/doug-leith/appFirewall/raw/master/appFirewall/BlackLists/dougs_blocklist.txt", "Tip": "Based on MAC OS application traffic.", "Type":"Blocklist"]
 		//["Name": "","File": "","URL": "", "Tip": "", "Type":"Hostlist"]
 	]
 	
