@@ -9,6 +9,9 @@
 // globals
 static list_t block_list=LIST_INITIALISER;
 static pthread_mutex_t block_mutex = MUTEX_INITIALIZER;
+// we keep a separate table of processes for which all conns are blocked
+static int blockall_list_size=0;
+static Hashtable *blockall_htab=NULL;
 
 char* bl_hash(const void *it) {
 	// generate table lookup key string from block list item
@@ -26,6 +29,9 @@ void init_block_list() {
 	// must hold lock
 	// - only called by load_block_list()
 	init_list(&block_list, bl_hash, NULL,  0, -1, "block_list");
+	if (blockall_htab!=NULL) hashtable_free(blockall_htab);
+	blockall_htab = hashtable_new(HTABSIZE);
+	blockall_list_size=0;
 }
 
 static int_sw asc=1, col=0;
@@ -80,6 +86,42 @@ bl_item_t *in_blocklist_htab(const bl_item_t *item, int debug) {
 	}
 }
 
+void *in_blockalllist_htab(const bl_item_t *item, int debug) {
+	// called by is_blocked() and by GUI
+	TAKE_LOCK(&block_mutex,"in_blockalllist_htab()");
+	if (blockall_htab!=NULL) {
+		void* res = hashtable_get(blockall_htab, item->name);
+		pthread_mutex_unlock(&block_mutex);
+		return res;
+	}
+	pthread_mutex_unlock(&block_mutex);
+	return NULL;
+}
+
+void add_blockallitem_htab(char *name) {
+	printf("add_blockallitem_htab %s\n", name);
+	size_t len = strnlen(name,MAXCOMLEN)+1;
+	if (len > MAXCOMLEN+1) len = MAXCOMLEN+1; // just to be safe !
+	char *str = malloc(len);
+	strlcpy(str,name,len);
+	hashtable_put(blockall_htab, str, blockall_htab); // last parameter is just a placeholder
+	blockall_list_size++;
+}
+
+void add_blockallitem(bl_item_t *item) {
+	// take lock so we don't tread on toes of other threads reading list
+	TAKE_LOCK(&block_mutex,"add_blockallitem()");
+	add_blockallitem_htab(item->name);
+	bl_item_t temp;
+	strlcpy(temp.name,item->name,MAXCOMLEN);
+	strlcpy(temp.domain,ANYDOMAIN,MAXDOMAINLEN);
+	strlcpy(temp.addr_name,ANYDOMAIN,INET6_ADDRSTRLEN);
+	add_item(&block_list, &temp, sizeof(bl_item_t));
+	pthread_mutex_unlock(&block_mutex);
+	
+	sort_block_list(0, -1); // takes it own lock
+}
+
 void add_blockitem(bl_item_t *item) {
 	// called by GUI
 	if (strcmp(item->name,NOTFOUND)==0) {
@@ -90,6 +132,12 @@ void add_blockitem(bl_item_t *item) {
 		WARN("add_blockitem() item has no domain name.\n");
 		return;
 	}
+	if (strcmp(item->domain,ANYDOMAIN)==0) {
+		// we are blocking all connections for this process
+		add_blockallitem(item);
+		return;
+	}
+	
 	// take lock so we don't tread on toes of other threads reading list
 	TAKE_LOCK(&block_mutex,"add_blockitem()");
 	add_item(&block_list, item, sizeof(bl_item_t));
@@ -100,6 +148,17 @@ void add_blockitem(bl_item_t *item) {
 int del_blockitem(bl_item_t *item) {
 	// called by GUI
 	TAKE_LOCK(&block_mutex,"del_blockitem()");
+	if (strcmp(item->domain,ANYDOMAIN)==0) {
+		if (blockall_htab == NULL) { // shouldn't happen
+			WARN("blockall_htab==NULL in del_blockitem()\n");
+		} else {
+			char* res = hashtable_remove(blockall_htab, item->name);
+			if (res) { // item found and removed
+				free(res);
+				blockall_list_size--;
+			}
+		}
+	}
 	del_item(&block_list,item);
 	pthread_mutex_unlock(&block_mutex);
 	return 0;
@@ -134,7 +193,6 @@ char* get_blocklist_item_addrname(bl_item_t *item) {
 
 void save_blocklist(const char* fname) {
 	//printf("saving block_list\n");
-	#define STR_SIZE 1024
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&block_mutex,"save_blocklist()");
@@ -160,13 +218,18 @@ void dump_blocklist() {
 void load_blocklist(const char* fname) {
 	//return;
 	// open and read file
-	#define STR_SIZE 1024
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&block_mutex,"load_blocklist()");
 	init_block_list();
 	load_list(&block_list, path, sizeof(bl_item_t));
+	size_t i;
+	for (i=0; i<get_list_size(&block_list);i++) {
+		bl_item_t *b = (bl_item_t*)get_list_item(&block_list,i);
+		//printf("%s %s\n", b->name, b->domain);
+		if (strcmp(b->domain,ANYDOMAIN)==0) add_blockallitem_htab(b->name);
+	}
 	pthread_mutex_unlock(&block_mutex);
 	sort_block_list(0, -1); // takes its own lock
 	//dump_blocklist();

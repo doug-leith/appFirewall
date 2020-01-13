@@ -43,10 +43,11 @@ extern int verbose;          // debugging level
 #define RECV_TIMEOUT 20 // socket read timeout, longer than time taken by escapee catcher
 #define SND_TIMEOUT 20 // socket send timeout, nice and long
 #define NOTFOUND "<not found>" // label for connections for which process not found
+#define ANYDOMAIN "<all connections>" // label for blocking all conns
 
 // for debugging locks
 #define MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER
-#define TAKE_LOCK(l,tag) do{int _res = pthread_mutex_lock(l); if (_res!=0) WARN("Problem taking lock %s: %s (%d)",tag,strerror(errno),_res); }while(0)
+#define TAKE_LOCK(l,tag) do{int _res = pthread_mutex_lock(l); if (_res!=0) WARN("Problem taking lock %s: %s (%d)\n",tag,strerror(errno),_res); }while(0)
 
 typedef struct {
 	int pidinfo_hits, pidinfo_misses, pidinfo_syn_hits, pidinfo_syn_misses;

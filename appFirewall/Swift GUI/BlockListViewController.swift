@@ -81,8 +81,9 @@ class BlockListViewController: appViewController {
 		
 		let cellId = NSUserInterfaceItemIdentifier(rawValue: cellIdentifier)
 		if (cellIdentifier == "ButtonCell") {
-			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSButton else {print("WARNING: problem in blocklistView making button cell");  return nil}
+			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? blButton else {print("WARNING: problem in blocklistView making button cell");  return nil}
 			cell.title = "Allow"
+			cell.bl_item = item?.pointee
 			cell.tag = row
 			cell.action = #selector(self.Click)
 			cell.toolTip = "Remove from black list"

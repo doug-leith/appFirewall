@@ -31,6 +31,7 @@ class appViewController: NSViewController {
 		let menu = NSMenu()
 		menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Get Info", action: #selector(getInfo), keyEquivalent: ""))
+		menu.addItem(NSMenuItem(title: "Block all connections for this app", action: #selector(blockAll), keyEquivalent: ""))
 		// force using ! since shouldn't fail here and its serious if it does
 		guard tableView != nil else {
 			print("ERROR: appViewDidLoad() tableView is nil!");
@@ -171,6 +172,13 @@ class appViewController: NSViewController {
 		guard let cell = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
 		let str = cell.textField?.toolTip ?? ""
 		infoPopup(msg: str, sender: cell, row:row)
+	}
+	
+	@objc func blockAll(sender: AnyObject?){
+		guard let row = appTableView?.selectedRow else {print("WARNING: problem in blockAll getting selected row"); return}
+		if (row<0) { return }
+		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in BlockAll getting cell"); return}
+		add_blockallitem(&cell.bl_item!);
 	}
 	
 	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {

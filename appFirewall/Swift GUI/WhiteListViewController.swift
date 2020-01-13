@@ -75,9 +75,10 @@ class WhiteListViewController: appViewController {
 		
 		let cellId = NSUserInterfaceItemIdentifier(rawValue: cellIdentifier)
 		if (cellIdentifier == "ButtonCell") {
-			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSButton else {print("WARNING: problem in whitelistView making button cell"); return nil}
+			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? blButton else {print("WARNING: problem in whitelistView making button cell"); return nil}
 			cell.title = "Remove"
 			cell.tag = row
+			cell.bl_item = item?.pointee
 			cell.action = #selector(self.click)
 			cell.toolTip = "Remove from white list"
 			return cell

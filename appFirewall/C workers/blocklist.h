@@ -18,8 +18,12 @@
 #include "connection.h"
 #include "circular_list.h"
 
+#define HTABSIZE 250000
+
 void add_blockitem(bl_item_t *item);
+void add_blockallitem(bl_item_t *item);
 bl_item_t* in_blocklist_htab(const bl_item_t *item,int debug); // looks up hash table, faster
+void *in_blockalllist_htab(const bl_item_t *item, int debug);
 int del_blockitem(bl_item_t *item);
 int bl_sort_cmp(const void* it1, const void* it2);
 char* bl_hash(const void *it);

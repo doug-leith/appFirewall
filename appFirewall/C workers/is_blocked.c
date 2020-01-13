@@ -16,8 +16,11 @@
 
 int_sw blocked_status(bl_item_t *c) {
 	int blocked=0;
-	if (in_blocklist_htab(c,0)!=NULL) {
-		// blocked by user
+	if (in_blockalllist_htab(c,0)!=NULL) {
+		// all conns for this process are blocked by user
+		blocked=1;
+	} else if (in_blocklist_htab(c,0)!=NULL) {
+		// this conn is blocked by user
 		blocked=1;
 		//in_blocklist_htab(&c,1); // dumps hash table, for debugging
 	} else if (in_blocklists_htab(c) != NULL) {

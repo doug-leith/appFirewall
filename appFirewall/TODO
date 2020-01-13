@@ -1,14 +1,16 @@
 TO DO
 
 short term:
+- add UI to block all connections for an app
+- allow addition of user specified host name lists
+- add UDP/QUIC blocking via pf ?
 
 longer term:
-- add option to log amd filter local mDNS broadcast traffic
+- add option to log and filter local mDNS broadcast traffic
 - add DNS proxy.  support for DNS over HTTPS and can use  pktap to infer app making a DNS request so can do app-based blocking  at DNS level e.g. of UDP
 (lo0, proc mDNSResponder:238, eproc MATLAB:36138, svc CTL, out, so) IP localhost.53108 > localhost.domain: 27827+ A? services.mathworks.com. (40)
+- add socks interface that is filtered.  can be interposed between ssh tunnel etc.
 - use of network extensions, only for catalina onwards though
 - resetting of quic connections.  https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.19
-- allow addition of user specified host name lists
 - compress log samples uploaded to server?
-- add socks interface that is filtered.  can be interposed between ssh tunnel etc.
 
