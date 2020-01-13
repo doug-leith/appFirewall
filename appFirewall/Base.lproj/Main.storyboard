@@ -461,7 +461,7 @@
                                                     <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                     <prototypeCellViews>
                                                         <tableCellView identifier="ConnCell" id="R2x-J0-rin">
-                                                            <rect key="frame" x="170" y="1" width="273" height="17"/>
+                                                            <rect key="frame" x="169.5" y="1" width="273" height="17"/>
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                             <subviews>
                                                                 <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="APL-LO-nlZ">
@@ -1122,11 +1122,11 @@
             <objects>
                 <viewController title="appFirewall Update" storyboardIdentifier="UpdateInstallerViewController" id="KGo-sw-4NO" customClass="UpdateInstallerViewController" customModule="appFirewall" sceneMemberID="viewController">
                     <view key="view" id="4TM-Ez-GLE">
-                        <rect key="frame" x="0.0" y="0.0" width="468" height="168"/>
+                        <rect key="frame" x="0.0" y="0.0" width="468" height="189"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OLS-fS-w2i">
-                                <rect key="frame" x="105" y="15" width="72" height="32"/>
+                                <rect key="frame" x="105" y="21" width="72" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Ok" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="17G-Ek-1xs">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1137,7 +1137,7 @@
                                 </connections>
                             </button>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="00L-In-fco">
-                                <rect key="frame" x="276" y="15" width="76" height="32"/>
+                                <rect key="frame" x="276" y="21" width="76" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Install" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="dM2-Oj-I7P">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1148,7 +1148,7 @@
                                 </connections>
                             </button>
                             <textField identifier="status" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Qez-Tz-yjy">
-                                <rect key="frame" x="109" y="66" width="37" height="14"/>
+                                <rect key="frame" x="109" y="57" width="317" height="47"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <textFieldCell key="cell" selectable="YES" title="status" id="gcz-Bq-8cO">
                                     <font key="font" metaFont="smallSystem"/>
@@ -1157,7 +1157,7 @@
                                 </textFieldCell>
                             </textField>
                             <textField identifier="msg" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OoR-Cv-h6z">
-                                <rect key="frame" x="109" y="94" width="27" height="14"/>
+                                <rect key="frame" x="109" y="118" width="27" height="14"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <textFieldCell key="cell" selectable="YES" title="msg" id="HPJ-J6-5B4">
                                     <font key="font" metaFont="smallSystem"/>
@@ -1166,12 +1166,12 @@
                                 </textFieldCell>
                             </textField>
                             <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6us-g2-uJa">
-                                <rect key="frame" x="16" y="70" width="75" height="67"/>
+                                <rect key="frame" x="16" y="91" width="75" height="67"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="icon_256" id="cvQ-6q-xVs"/>
                             </imageView>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="vC2-lP-1fE">
-                                <rect key="frame" x="107" y="122" width="123" height="16"/>
+                                <rect key="frame" x="107" y="146" width="123" height="16"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" title="Check for updates" id="qbm-xK-Ieb">
                                     <font key="font" metaFont="systemBold"/>
@@ -1189,7 +1189,7 @@
                 </viewController>
                 <customObject id="2ru-Ph-ELp" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-278" y="-335"/>
+            <point key="canvasLocation" x="-278" y="-324.5"/>
         </scene>
         <!--Preferences-->
         <scene sceneID="sX6-hE-jGE">

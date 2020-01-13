@@ -179,14 +179,28 @@ class appViewController: NSViewController {
 		guard let row = appTableView?.selectedRow else {print("WARNING: problem in blockAll getting selected row"); return}
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in blockAll getting cell"); return}
-		add_blockallitem(&cell.bl_item!);
+		guard var bl_item = cell.bl_item else {return}
+		if (in_allowalllist_htab(&bl_item,0) != nil) {
+			guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
+			let str = "Connections for this app are whitelisted, remove from whitelist before blocking all connections"
+			infoPopup(msg: str, sender: cell1, row:row)
+			return
+		}
+		add_blockallitem(&bl_item);
 	}
 	
 	@objc func allowAll(sender: AnyObject?){
 		guard let row = appTableView?.selectedRow else {print("WARNING: problem in allowAll getting selected row"); return}
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowAll getting cell"); return}
-		add_allowallitem(&cell.bl_item!);
+		guard var bl_item = cell.bl_item else {return}
+		if (in_blockalllist_htab(&bl_item,0) != nil) {
+			guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
+			let str = "Connections for this app are blacklisted, remove from blacklist before whitelisting all connections"
+			infoPopup(msg: str, sender: cell1, row:row)
+			return
+		}
+		add_allowallitem(&bl_item);
 	}
 	
 	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {

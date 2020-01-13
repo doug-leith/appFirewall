@@ -256,7 +256,7 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
 							printf("%u ", *(payload+j));
 						}
 						printf("\n");*/
-						WARN("Label pointer points outside packet in dns_label_to_str(), likely DNS snaplen too short and packet has been truncated\n");
+						DEBUG2("Label pointer points outside packet in dns_label_to_str(), likely DNS snaplen too short and packet has been truncated\n");
 						goto err;
 					}
 					if (dst + *ptr >= dest + dest_size) { // shouldn't happen
@@ -286,7 +286,7 @@ static u_char *dns_label_to_str(u_char **label, u_char *dest,
 		} else { /* Label */
 			//printf("label ");
 			if ((*label + **label) >= end) {
-				WARN("Label overflows packet in dns_label_to_str(), likely DNS snaplen too short and packet has been truncated\n");
+				DEBUG2("Label overflows packet in dns_label_to_str(), likely DNS snaplen too short and packet has been truncated\n");
 				goto err;
 			}
 			if (**label + dst >= dest + dest_size) { // shouldn't happen
@@ -391,7 +391,7 @@ void parse_RR(u_char* t, u_char* label, const u_char* payload, const u_char* end
 	INFO2("DNS %d %s %s\n",af,l,n);
 	return;
 err:
-	WARN("Truncated RR found in parse_RR()\n");
+	DEBUG2("Truncated RR found in parse_RR()\n");
  	return;
 }
 
@@ -442,7 +442,7 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 	*posn = tmp; // advance past records
 	return RR;
 err:
-	WARN("Truncated RR found in parse_RRs()\n");
+	DEBUG2("Truncated RR found in parse_RRs()\n");
  	return NULL;
 }
 

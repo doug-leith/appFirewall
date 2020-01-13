@@ -21,6 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	var count_stats: Int = 0
 	// menubar button ...
 	var statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
+	var menubarOk: Bool = false
 
 	//--------------------------------------------------------
 	// menu item event handlers
@@ -273,8 +274,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		set_num_conns_blocked(Int32(val))
 		if let button = statusItem.button {
 			button.image = NSImage(named:NSImage.Name("StatusBarButtonImage"))
+			if (button.image == nil) {
+				print("Menubar button image is nil, falling back to using builtin image")
+				// fall back to using a builtin icon, this should always work
+				button.image = NSImage(named:NSImage.Name(NSImage.quickLookTemplateName))
+				if (button.image == nil) {
+					print("Menubar button image is *still* nil, setting menubarOk to false")
+				}
+			}
+			menubarOk = (button.image != nil)
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 			button.action = #selector(openapp(_:))
+			
+		} else {
+			print("Problem getting menubar button, ", statusItem, statusItem.button ?? "nil")
+			menubarOk = false // disable removal of dock icon
 		}
 		
 		// set default display state for GUI
@@ -347,6 +361,6 @@ extension AppDelegate: NSWindowDelegate {
 	func windowWillClose(_ notification: Notification) {
 		print("window close")
 		// hide the dock icon and main menu
-		disableMenu()
+		if (menubarOk) { disableMenu() }
 	}
 }

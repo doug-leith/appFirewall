@@ -97,6 +97,14 @@ void add_whiteitem(bl_item_t *item) {
 int del_whiteitem(bl_item_t *item) {
 	//printf("del_whiteitem %s\n",white_list.hash(item));
 	TAKE_LOCK(&white_mutex,"del_whiteitem()");
+	if (strcmp(item->domain,ANYDOMAIN)==0) {
+		if (allowall_htab == NULL) { // shouldn't happen
+			WARN("allowall_htab==NULL in del_whiteitem()\n");
+		} else {
+			if (hashtable_remove(allowall_htab, item->name)!=NULL)
+				allowall_list_size--;
+		}
+	}
 	del_item(&white_list,item);
 	pthread_mutex_unlock(&white_mutex);
 	return 0;

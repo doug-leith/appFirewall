@@ -152,7 +152,7 @@ class UpdateInstallerViewController: NSViewController {
 		mountTask.waitUntilExit()
 		print("done")
 		if (mountTask.terminationStatus != 0) {
-			let msg = "Problem when trying to install update, hdiutil mount of DMG failed"
+			let msg = "Problem, hdiutil mount of DMG failed"
 			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
 			return
 		}
@@ -161,12 +161,12 @@ class UpdateInstallerViewController: NSViewController {
 		DispatchQueue.main.async { self.showPopupMsg(msg: "Extracting app ...") }
 		if !FileManager.default.fileExists(atPath: mountPoint+"/"+appFile) {
 			unmount(mountPoint:mountPoint)
-			let msg = "Problem when trying to install update, couldn't find "+appFile+" in DMG"
+			let msg = "Problem, couldn't find "+appFile+" in DMG"
 			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
 			return
 		}
 		if !checkSignature(bundle: mountPoint+"/"+appFile) {
-			let msg = "Problem when trying to install update, signature invalid for "+appFile+" in DMG"
+			let msg = "Problem, signature invalid for "+appFile+" in DMG"
 			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
 			return
 		}
@@ -185,7 +185,7 @@ class UpdateInstallerViewController: NSViewController {
 				_ = try FileManager.default.replaceItemAt(URL(fileURLWithPath:appPath), withItemAt: URL(fileURLWithPath: tempPath+"/"+appFile))
 			}
 		} catch {
-			let msg = "Problem when trying to install update, couldn't copy updated app into final location: "+error.localizedDescription
+			let msg = "Problem, couldn't copy updated app into final location: "+error.localizedDescription
 			unmount(mountPoint:mountPoint)
 			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
 			return
