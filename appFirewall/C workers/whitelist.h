@@ -14,9 +14,13 @@
 #include "circular_list.h"
 #include "blocklist.h"
 
+#define HTABSIZE 250000
+
 void init_white_list(void);
 bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug);
+void *in_allowalllist_htab(const bl_item_t *item, int debug);
 void add_whiteitem(bl_item_t *item);
+void add_allowallitem(bl_item_t *item);
 int del_whiteitem(bl_item_t *item);
 
 // swift

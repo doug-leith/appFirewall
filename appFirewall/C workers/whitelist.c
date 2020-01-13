@@ -11,11 +11,15 @@
 // globals
 static list_t white_list=LIST_INITIALISER;
 static pthread_mutex_t white_mutex = MUTEX_INITIALIZER;
+static int allowall_list_size=0;
+static Hashtable *allowall_htab=NULL;
 
 void init_white_list() {
 	// caller must hold lock
 	// -- only called by load_white_list()
 	init_list(&white_list, bl_hash, NULL,  0, -1, "white_list");
+	allowall_htab = hashtable_new(HTABSIZE);
+	allowall_list_size=0;
 }
 
 static bl_item_t res;
@@ -32,6 +36,43 @@ bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug) {
 	}
 }
 
+void *in_allowalllist_htab(const bl_item_t *item, int debug) {
+	// called by is_blocked() and by GUI
+	TAKE_LOCK(&white_mutex,"in_allowalllist_htab()");
+	if (allowall_htab!=NULL) {
+		void* res = hashtable_get(allowall_htab, item->name);
+		pthread_mutex_unlock(&white_mutex);
+		return res;
+	}
+	pthread_mutex_unlock(&white_mutex);
+	return NULL;
+}
+
+void add_allowallitem_htab(char *name) {
+	printf("add_allowallitem_htab %s\n", name);
+	size_t len = strnlen(name,MAXCOMLEN)+1;
+	if (len > MAXCOMLEN+1) len = MAXCOMLEN+1; // just to be safe !
+	char *str = malloc(len);
+	strlcpy(str,name,len);
+	hashtable_put(allowall_htab, str, allowall_htab); // last parameter is just a placeholder
+	allowall_list_size++;
+}
+
+void add_allowallitem(bl_item_t *item) {
+	// take lock so we don't tread on toes of other threads reading list
+	TAKE_LOCK(&white_mutex,"add_allowallitem()");
+	add_allowallitem_htab(item->name);
+	bl_item_t temp;
+	strlcpy(temp.name,item->name,MAXCOMLEN);
+	strlcpy(temp.domain,ANYDOMAIN,MAXDOMAINLEN);
+	strlcpy(temp.addr_name,ANYDOMAIN,INET6_ADDRSTRLEN);
+	add_item(&white_list, &temp, sizeof(bl_item_t));
+	pthread_mutex_unlock(&white_mutex);
+	
+	sort_white_list(0, -1); // takes it own lock
+}
+
+
 void add_whiteitem(bl_item_t *item) {
 	if (strcmp(item->name,NOTFOUND)==0) {
 		WARN("add_whiteitem() item has process name %s.\n", NOTFOUND);
@@ -39,6 +80,11 @@ void add_whiteitem(bl_item_t *item) {
 	}
 	if (strnlen(item->domain,MAXDOMAINLEN)==0) {
 		WARN("add_whiteitem() item has no domain name.\n");
+		return;
+	}
+	if (strcmp(item->domain,ANYDOMAIN)==0) {
+		// we are allowing all connections for this process
+		add_allowallitem(item);
 		return;
 	}
 	//printf("add_whiteitem %s\n",white_list.hash(item));
@@ -139,6 +185,12 @@ void load_whitelist(const char* fname) {
 	TAKE_LOCK(&white_mutex,"load_whitelist()");
 	init_white_list();
 	load_list(&white_list, path, sizeof(bl_item_t));
+	size_t i;
+	for (i=0; i<get_list_size(&white_list);i++) {
+		bl_item_t *b = (bl_item_t*)get_list_item(&white_list,i);
+		//printf("%s %s\n", b->name, b->domain);
+		if (strcmp(b->domain,ANYDOMAIN)==0) add_allowallitem_htab(b->name);
+	}
 	pthread_mutex_unlock(&white_mutex);
 	sort_white_list(0, -1);
 }

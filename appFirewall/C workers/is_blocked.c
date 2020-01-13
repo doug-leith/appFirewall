@@ -57,7 +57,7 @@ int_sw is_blocked(bl_item_t *c) {
 	}
 	return blocked;*/
 	int blocked;
-	if (is_white(c)) {
+	if ((in_allowalllist_htab(c,0)!=NULL) || is_white(c)) {
 		blocked = 0;
 	} else {
 		blocked = blocked_status(c);
