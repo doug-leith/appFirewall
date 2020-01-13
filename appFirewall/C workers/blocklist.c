@@ -152,11 +152,8 @@ int del_blockitem(bl_item_t *item) {
 		if (blockall_htab == NULL) { // shouldn't happen
 			WARN("blockall_htab==NULL in del_blockitem()\n");
 		} else {
-			char* res = hashtable_remove(blockall_htab, item->name);
-			if (res) { // item found and removed
-				free(res);
+			if (hashtable_remove(blockall_htab, item->name)!=NULL)
 				blockall_list_size--;
-			}
 		}
 	}
 	del_item(&block_list,item);

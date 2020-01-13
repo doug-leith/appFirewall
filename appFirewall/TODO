@@ -1,7 +1,6 @@
 TO DO
 
 short term:
-- add UI to block all connections for an app
 - allow addition of user specified host name lists
 - add UDP/QUIC blocking via pf ?
 
