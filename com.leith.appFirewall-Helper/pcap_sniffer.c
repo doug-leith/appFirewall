@@ -94,9 +94,11 @@ int get_default_gateway(int af, struct sockaddr *gw) {
 				inet_ntop(gw->sa_family, &((struct sockaddr_in6*)gw)->sin6_addr, gw_buf, INET6_ADDRSTRLEN);
 			}
 			INFO2("Found default gateway: %s\n",gw_buf);
+			free(buf);
 			return 1;
 		}
 	}
+	free(buf);
 	return -1;
 }
 
@@ -144,11 +146,13 @@ uint8_t* get_default_gateway_eth(int af, uint8_t eth[ETHER_ADDR_LEN]) {
 			}
 			if (!sdl->sdl_alen) {
 				WARN("No MAC address found in get_default_gateway_eth()\n");
+				free(buf);
 				return NULL;
 			}
 			memcpy(eth,(u_char *)LLADDR(sdl),ETHER_ADDR_LEN);
 	}
 	INFO2("Default gateway MAC address: "); if (verbose>1) {print_eth(eth); printf("\n");}
+	free(buf);
 	return eth;
 }
 
@@ -442,12 +446,12 @@ int setup_pd(interface_t* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 	}
 
 	if (use_pktap) {
-		// not sure if this is even needed, 
-		// filters don't seem to work with pktap anyway !
-		if (pcap_set_filter_info(*pd, filter_exp, 0, PCAP_NETMASK_UNKNOWN)<0) {
+		// not sure if this is even needed, filters don't seem to work with pktap anyway !
+		// (plus it seems to generate a memory leak, so disabled it)
+		/*if (pcap_set_filter_info(*pd, filter_exp, 0, PCAP_NETMASK_UNKNOWN)<0) {
 			ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
 			return -1;
-		}
+		}*/
 	} else {
 		struct bpf_program fp;
 		if (pcap_compile(*pd, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
@@ -458,6 +462,7 @@ int setup_pd(interface_t* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 			ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
 		return -1;
 		}
+		pcap_freecode(&fp); // release memory
 	}
 	return 1;
 }

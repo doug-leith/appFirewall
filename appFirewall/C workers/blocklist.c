@@ -100,11 +100,7 @@ void *in_blockalllist_htab(const bl_item_t *item, int debug) {
 
 void add_blockallitem_htab(char *name) {
 	printf("add_blockallitem_htab %s\n", name);
-	size_t len = strnlen(name,MAXCOMLEN)+1;
-	if (len > MAXCOMLEN+1) len = MAXCOMLEN+1; // just to be safe !
-	char *str = malloc(len);
-	strlcpy(str,name,len);
-	hashtable_put(blockall_htab, str, blockall_htab); // last parameter is just a placeholder
+	hashtable_put(blockall_htab, name, blockall_htab); // last parameter is just a placeholder
 	blockall_list_size++;
 }
 

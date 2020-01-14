@@ -1,10 +1,12 @@
 TO DO
 
 short term:
+-codesign mem leak (apple)
+-check Ipv6 link layer over VPN
 
 longer term:
 1. allow addition of user specified host name lists
-2. QUIC: (i) add UDP/QUIC blocking via pf and/or via DNS ? (ii) resetting of quic connections ? https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.1
+2. QUIC: (i) add UDP/QUIC blocking via pf and/or via DNS ? (ii) resetting of quic connections ? https://tools.ietf.org/html/draft-ietf-quic-transport-22#section-19.1 (iii) network extensions (catalina)
 3. add option to log and filter local mDNS broadcast traffic
 4. add DNS proxy.  support for DNS over HTTPS and can use  pktap to infer app making a DNS request so can do app-based blocking  at DNS level e.g. of UDP
 (lo0, proc mDNSResponder:238, eproc MATLAB:36138, svc CTL, out, so) IP localhost.53108 > localhost.domain: 27827+ A? services.mathworks.com. (40)

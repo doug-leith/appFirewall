@@ -50,11 +50,7 @@ void *in_allowalllist_htab(const bl_item_t *item, int debug) {
 
 void add_allowallitem_htab(char *name) {
 	printf("add_allowallitem_htab %s\n", name);
-	size_t len = strnlen(name,MAXCOMLEN)+1;
-	if (len > MAXCOMLEN+1) len = MAXCOMLEN+1; // just to be safe !
-	char *str = malloc(len);
-	strlcpy(str,name,len);
-	hashtable_put(allowall_htab, str, allowall_htab); // last parameter is just a placeholder
+	hashtable_put(allowall_htab, name, allowall_htab); // last parameter is just a placeholder
 	allowall_list_size++;
 }
 

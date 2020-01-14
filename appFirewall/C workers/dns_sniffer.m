@@ -400,7 +400,7 @@ u_char* parse_RRs(u_char** posn, const u_char* end, uint16_t qtype, int n) {
 	if (!tmp) return NULL; // shouldn't happen
 	
 	u_char* RR = NULL;	
-	u_char* t = tmp, *last_t=t;
+	u_char* t = tmp, *last_t;
 	for (int i=0;i< n; i++) {
 		if (tmp > end) goto err;
 		last_t = t; t = tmp;

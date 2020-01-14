@@ -46,7 +46,11 @@
 #define ROTFILE "/etc/newsyslog.d/appFirewall-Helper.conf"
 #define PIDFILE "/var/run/com.leith.appFirewall-Helper.pid"
 // compile with gcc -g -lpcap -lnet pcap_sniffer.c dtrace.c util.c send_rst.c main.c
-// and debug with lldb
+// debug with lldb:
+// sudo lldb ./com.leith.appFirewall-Helper
+// env MallocStackLogging=1
+// run
+// and in a separate terminal run: leaks <pid>
 
 void sigterm_handler(int signum) {
 	INFO("signal %d (SIGTERM=%d) received.\n", signum, SIGTERM);

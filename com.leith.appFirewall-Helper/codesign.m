@@ -29,14 +29,15 @@ int check_signature(int sock, int port){
 	
 	pid_t pid = get_sock_pid(sock, port); if (pid<0) return -1;
 	INFO("client pid=%d for port %d\n", pid, port);
-		
+
 	// get reference to code using PID
-	SecCodeRef codeRef;
+	SecCodeRef codeRef = NULL;
 	CFNumberRef pid_ = CFNumberCreate(NULL,kCFNumberIntType,&pid);
 	CFMutableDictionaryRef attr = CFDictionaryCreateMutable(NULL,10,NULL,NULL);
 	CFDictionaryAddValue(attr,kSecGuestAttributePid,pid_);
-	OSStatus status =SecCodeCopyGuestWithAttributes(NULL, attr, kSecCSDefaultFlags, &codeRef);
+	OSStatus status = SecCodeCopyGuestWithAttributes(NULL, attr, kSecCSDefaultFlags, &codeRef);
 	CFRelease(attr); CFRelease(pid_);
+	
 	if (status != errSecSuccess) {
 		CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
 		WARN("problem getting code ref for PID %d on port %d: %s\n",pid,port, CFStringGetCStringPtr(err_str,1536));
@@ -49,11 +50,13 @@ int check_signature(int sock, int port){
 	//sprintf(str,"identifier %s and anchor apple generic and certificate leaf[subject.OU] = \"%s\"", identifier, cert_ou);
 	sprintf(str,"identifier %s and anchor apple generic", identifier);
 	CFStringRef req_str = CFStringCreateWithCString(NULL,str,ASCII);
-	SecRequirementRef req;
+	SecRequirementRef req = NULL;
 	SecRequirementCreateWithString(req_str, kSecCSDefaultFlags, &req);
+	CFRelease(req_str);
+	
 	// check signature against embedded requirements
-	status = SecStaticCodeCheckValidity(codeRef, kSecCSCheckAllArchitectures, req);
-	CFRelease(req); CFRelease(req_str);
+	status = SecCodeCheckValidity(codeRef, kSecCSCheckAllArchitectures, req);
+	CFRelease(req);
 	
 	CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
 	INFO("signing status on port %d: %s\n",port,CFStringGetCStringPtr(err_str,ASCII));
@@ -71,9 +74,9 @@ int check_signature(int sock, int port){
 		//CFRelease(id); // releasing api releases id string
 		CFRelease(api);
 		
-		SecRequirementRef req;
+		SecRequirementRef req = NULL;
 		SecCodeCopyDesignatedRequirement(codeRef, kSecCSDefaultFlags, &req);
-		CFStringRef req_str;
+		CFStringRef req_str = NULL;
 		SecRequirementCopyString(req, kSecCSDefaultFlags, &req_str);
 		INFO("requirements on port %d: %s\n",port,CFStringGetCStringPtr(req_str,ASCII));
 		CFRelease(req_str); CFRelease(req);

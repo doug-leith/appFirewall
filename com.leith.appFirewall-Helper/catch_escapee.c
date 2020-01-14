@@ -53,6 +53,7 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t sport, uint16_t dpor
 	if (proc_pidinfo(pid, PROC_PIDLISTFDS, 0, procFDInfo, bufferSize) < 0){
 		// probably process has stopped
 		WARN("Unable to get open file handles for PID %d (catch_escapee)\n", pid);
+		free(procFDInfo);
 		return 0;
 	}
 	int numberOfProcFDs = bufferSize / PROC_PIDLISTFD_SIZE;

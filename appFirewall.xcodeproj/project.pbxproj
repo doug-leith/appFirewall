@@ -50,7 +50,7 @@
 		9180E178238BC731007002CB /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 9180E177238BC731007002CB /* Credits.html */; };
 		9180E17C238D2882007002CB /* installHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17B238D2882007002CB /* installHelper.swift */; };
 		9180E17E238D2D07007002CB /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17D238D2D07007002CB /* Helpers.swift */; };
-		9180E181238DECEB007002CB /* codesign.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.c */; };
+		9180E181238DECEB007002CB /* codesign.m in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.m */; };
 		9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9183583623A1BF81008FDBB4 /* appViewController.swift */; };
 		9183583A23A4B86B008FDBB4 /* pgrep.c in Sources */ = {isa = PBXBuildFile; fileRef = 9183583923A4B86B008FDBB4 /* pgrep.c */; };
 		9185AD2923C066F3002AE0D6 /* netstats.c in Sources */ = {isa = PBXBuildFile; fileRef = 9185AD2823C066F3002AE0D6 /* netstats.c */; };
@@ -203,7 +203,7 @@
 		9180E177238BC731007002CB /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		9180E17B238D2882007002CB /* installHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = installHelper.swift; sourceTree = "<group>"; };
 		9180E17D238D2D07007002CB /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
-		9180E17F238DC38C007002CB /* codesign.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = codesign.c; sourceTree = "<group>"; };
+		9180E17F238DC38C007002CB /* codesign.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = codesign.m; sourceTree = "<group>"; };
 		9183583623A1BF81008FDBB4 /* appViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appViewController.swift; sourceTree = "<group>"; };
 		9183583823A4B86B008FDBB4 /* pgrep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pgrep.h; sourceTree = "<group>"; };
 		9183583923A4B86B008FDBB4 /* pgrep.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pgrep.c; sourceTree = "<group>"; };
@@ -339,7 +339,7 @@
 				9139F66F237BB18600600D37 /* dtrace.c */,
 				9139F674237BB20F00600D37 /* util.h */,
 				9139F675237BB20F00600D37 /* util.c */,
-				9180E17F238DC38C007002CB /* codesign.c */,
+				9180E17F238DC38C007002CB /* codesign.m */,
 				9139F677237BB9A800600D37 /* send_rst.h */,
 				9139F678237BB9A800600D37 /* send_rst.c */,
 				9180E1762389D4DB007002CB /* catch_escapee.h */,
@@ -610,7 +610,7 @@
 				9139F670237BB18600600D37 /* dtrace.c in Sources */,
 				9139F676237BB20F00600D37 /* util.c in Sources */,
 				9180E175238927A2007002CB /* catch_escapee.c in Sources */,
-				9180E181238DECEB007002CB /* codesign.c in Sources */,
+				9180E181238DECEB007002CB /* codesign.m in Sources */,
 				91607C2C2372FF7F002E50A8 /* main.c in Sources */,
 				9139F673237BB1BB00600D37 /* pcap_sniffer.c in Sources */,
 				9139F679237BB9A800600D37 /* send_rst.c in Sources */,
