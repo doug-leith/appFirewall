@@ -92,6 +92,11 @@ class BlockListViewController: appViewController {
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in blocklistView making non-button cell"); return nil}
 		cell.textField?.stringValue = content
 		cell.textField?.toolTip = name+": "+domain
+		cell.textField?.textColor = NSColor.black
+		if (is_white(item) == 1) {
+			cell.textField?.textColor = NSColor.red
+			cell.textField?.toolTip = name+": "+domain+". This connection for app "+name+" is whitelisted, which overrides blocking.  Remove from whitelist to block connection."
+		}
 		return cell
 	}
 }

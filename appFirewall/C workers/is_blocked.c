@@ -35,7 +35,7 @@ int_sw blocked_status(bl_item_t *c) {
 
 int_sw is_white(bl_item_t *c) {
 	// user white list
-	return (in_whitelist_htab(c,0)!=NULL);
+	return (in_whitelist_htab(c,0)!=NULL) || (in_allowalllist_htab(c,0)!=NULL);
 }
 
 int_sw is_blocked(bl_item_t *c) {
@@ -57,7 +57,7 @@ int_sw is_blocked(bl_item_t *c) {
 	}
 	return blocked;*/
 	int blocked;
-	if ((in_allowalllist_htab(c,0)!=NULL) || is_white(c)) {
+	if (is_white(c)) {
 		blocked = 0;
 	} else {
 		blocked = blocked_status(c);

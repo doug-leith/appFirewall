@@ -180,12 +180,12 @@ class appViewController: NSViewController {
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in blockAll getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
-		if (in_allowalllist_htab(&bl_item,0) != nil) {
+		/*if (in_allowalllist_htab(&bl_item,0) != nil) {
 			guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
 			let str = "Connections for this app are whitelisted, remove from whitelist before blocking all connections"
 			infoPopup(msg: str, sender: cell1, row:row)
 			return
-		}
+		}*/
 		add_blockallitem(&bl_item);
 	}
 	
@@ -194,12 +194,12 @@ class appViewController: NSViewController {
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowAll getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
-		if (in_blockalllist_htab(&bl_item,0) != nil) {
+		/*if (in_blockalllist_htab(&bl_item,0) != nil) {
 			guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
 			let str = "Connections for this app are blacklisted, remove from blacklist before whitelisting all connections"
 			infoPopup(msg: str, sender: cell1, row:row)
 			return
-		}
+		}*/
 		add_allowallitem(&bl_item);
 	}
 	
@@ -242,7 +242,7 @@ class appViewController: NSViewController {
 			vpn = "NB: Filtering of VPN connections is currently unreliable.\n"
 		} else if (ppp<0) {
 			maybe = "marked as blocked"
-			vpn = "Interface has gone down, but connection hasn't noticed yet.\n"
+			vpn = "Zombie connection: interface has gone away, but app hasn't noticed yet.\n"
 		}
 		if (blocked_log == 0) {
 			tip = "This connection to "+domain_+" ("+ip+":"+port+") was not blocked. "
