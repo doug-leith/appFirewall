@@ -1,8 +1,6 @@
 TO DO
 
 short term:
--codesign mem leak (apple)
--check Ipv6 link layer over VPN
 
 longer term:
 1. allow addition of user specified host name lists
@@ -13,4 +11,5 @@ longer term:
 5. add socks interface that is filtered.  can be interposed between ssh tunnel etc.
 6. use of network extensions, only for catalina onwards though
 7. compress log samples uploaded to server?
+8. IPv6 over IP tunnel link layer pkt injection ?
 

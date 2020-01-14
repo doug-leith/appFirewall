@@ -790,7 +790,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.9.1;
+				MARKETING_VERSION = 1.9.2;
 				OTHER_CFLAGS = "";
 				"OTHER_CFLAGS[arch=*]" = "-Wthread-safety";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
@@ -833,7 +833,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.9.1;
+				MARKETING_VERSION = 1.9.2;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -862,7 +862,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
 				);
-				MARKETING_VERSION = 8;
+				MARKETING_VERSION = 10;
 				"OTHER_LDFLAGS[arch=*]" = (
 					"-sectcreate",
 					__TEXT,
@@ -894,7 +894,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
 				);
-				MARKETING_VERSION = 8;
+				MARKETING_VERSION = 10;
 				"OTHER_LDFLAGS[arch=*]" = (
 					"-sectcreate",
 					__TEXT,

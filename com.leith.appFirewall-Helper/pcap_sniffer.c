@@ -213,13 +213,14 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap) {
 				continue;
 			}
 			unsigned short ifi_type = ((struct if_data*)dev->ifa_data)->ifi_type;
+			//printf("%s ifi_type %d (IFT_OTHER	%d)\n", dev->ifa_name, ifi_type, IFT_OTHER);
 			if (ifi_type == IFT_ETHER) { // ethernet
 				temp_dlt[temp_count] = DLT_EN10MB;
 				uint8_t* ptr = (uint8_t*)LLADDR((struct sockaddr_dl *)(dev)->ifa_addr);
 				memcpy(temp_eth[temp_count],ptr,ETHER_ADDR_LEN);
 				//printf("%s :",dev->ifa_name);
 				//int k; for(k=0; k<ETHER_ADDR_LEN;k++) printf("%02x ",temp_eth[temp_count][k]); printf("\n");
-			} else if (ifi_type == IFT_LOOP) { // loopback
+			} else if ((ifi_type == IFT_LOOP)||(ifi_type == IFT_OTHER)) { // loopback or tun
 				temp_dlt[temp_count] = DLT_NULL;
 			} else {DEBUG2("not ethernet or loopback\n"); continue; }
 			get_intf_name(dev->ifa_name, use_pktap, temp_ifname[temp_count]);
