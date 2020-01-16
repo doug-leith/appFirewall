@@ -15,6 +15,7 @@
 #include "blocklist.h"
 
 #define HTABSIZE 250000
+#define WHITELIST_FILE_VERSION 1
 
 void init_white_list(void);
 bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug);

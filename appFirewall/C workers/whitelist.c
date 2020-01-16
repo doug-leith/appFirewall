@@ -173,7 +173,7 @@ void save_whitelist(const char* fname) {
 	strlcat(path,fname,STR_SIZE);
 	
 	TAKE_LOCK(&white_mutex,"save_whitelist()");
-	save_list(&white_list, path, sizeof(bl_item_t));
+	save_list(&white_list, path, sizeof(bl_item_t),WHITELIST_FILE_VERSION);
 	pthread_mutex_unlock(&white_mutex);
 }
 
@@ -188,7 +188,7 @@ void load_whitelist(const char* fname) {
 	
 	TAKE_LOCK(&white_mutex,"load_whitelist()");
 	init_white_list();
-	load_list(&white_list, path, sizeof(bl_item_t));
+	load_list(&white_list, path, sizeof(bl_item_t),WHITELIST_FILE_VERSION);
 	size_t i;
 	for (i=0; i<get_list_size(&white_list);i++) {
 		bl_item_t *b = (bl_item_t*)get_list_item(&white_list,i);

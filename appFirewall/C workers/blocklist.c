@@ -189,7 +189,7 @@ void save_blocklist(const char* fname) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&block_mutex,"save_blocklist()");
-	save_list(&block_list, path, sizeof(bl_item_t));
+	save_list(&block_list, path, sizeof(bl_item_t),BLOCKLIST_FILE_VERSION);
 	pthread_mutex_unlock(&block_mutex);
 }
 
@@ -216,7 +216,7 @@ void load_blocklist(const char* fname) {
 	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&block_mutex,"load_blocklist()");
 	init_block_list();
-	load_list(&block_list, path, sizeof(bl_item_t));
+	load_list(&block_list, path, sizeof(bl_item_t),BLOCKLIST_FILE_VERSION);
 	size_t i;
 	for (i=0; i<get_list_size(&block_list);i++) {
 		bl_item_t *b = (bl_item_t*)get_list_item(&block_list,i);

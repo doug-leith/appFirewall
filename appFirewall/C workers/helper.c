@@ -21,13 +21,13 @@ int connect_to_helper(int port, int quiet) {
 		//if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 			ERR("socket: %s", strerror(errno));
 			 // tell GUI to popup error to user
-			sprintf(err_msg,"Problem connecting to appFirewall-Helper, socket: %s\n", strerror(errno));
+			snprintf(err_msg,STR_SIZE,"Problem connecting to appFirewall-Helper, socket: %s\n", strerror(errno));
 			set_error_msg(err_msg,1);
 			return -1;
 		}
 		struct sockaddr_un remote;
 		remote.sun_family = AF_UNIX;
-		sprintf(remote.sun_path,"/var/run/appFirewall-Helper.%d",port);
+		snprintf(remote.sun_path, 104, "/var/run/appFirewall-Helper.%d",port);
 		if (connect(sock, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
 			DEBUG2("Connecting to helper process on %s: %s\n", remote.sun_path, strerror(errno));
 			if (errno == ECONNREFUSED || errno == ETIMEDOUT || errno == ECONNRESET) {
@@ -37,7 +37,7 @@ int connect_to_helper(int port, int quiet) {
 				continue;
 			} else {
 				// a more serious problem, bail.
-				sprintf(err_msg,"Problem connecting to appFirewall-Helper on %s: %s\n", remote.sun_path, strerror(errno));
+				snprintf(err_msg,STR_SIZE,"Problem connecting to appFirewall-Helper on %s: %s\n", remote.sun_path, strerror(errno));
 				set_error_msg(err_msg,1);
 				return -1;
 			}
@@ -46,7 +46,7 @@ int connect_to_helper(int port, int quiet) {
 	}
 	if (tries == MAXTRIES) {
 		ERR("Failed to connect to appFirewall-Helper port %d after %d tries\n",port,tries);
-		sprintf(err_msg,"Failed to connect to appFirewall-Helper port %d after %d tries\n",port,tries);
+		snprintf(err_msg,STR_SIZE,"Failed to connect to appFirewall-Helper port %d after %d tries\n",port,tries);
 		set_error_msg(err_msg,1);
 		return -1;
 	}

@@ -194,14 +194,13 @@ void sort_list(list_t *l, int (*sort_cmp)(const void *, const void *)) {
 	qsort(l->list,l->list_size,sizeof(void*),sort_cmp);
 }
 
-#define FILE_VERSION 1
-void save_list(list_t *l, char* path, size_t item_size) {
+void save_list(list_t *l, char* path, size_t item_size, uint8_t file_version) {
 	FILE *fp = fopen(path,"w");
 	if (fp==NULL) {
 		WARN("Problem opening %s for writing: %s\n", path, strerror(errno));
 		return;
 	}
-	uint8_t ver = FILE_VERSION;
+	uint8_t ver = file_version;
 	size_t res = fwrite(&ver,1,1,fp);
 	if (res<1) {
 		WARN("Problem saving version to %s: %s\n",path,strerror(errno));
@@ -224,7 +223,7 @@ void save_list(list_t *l, char* path, size_t item_size) {
 
 }
 
-int load_list(list_t *l, char* path, size_t item_size) {
+int load_list(list_t *l, char* path, size_t item_size, uint8_t file_version) {
 	
 	// partial re-initialisation of list (keep maxsize, name etc)
 	clear_list(l);
@@ -240,16 +239,16 @@ int load_list(list_t *l, char* path, size_t item_size) {
 	uint8_t ver;
 	size_t res = fread(&ver,1,1,fp);
 	if (res<1) {
-		WARN("Problem loading %s: %s", path, strerror(errno));
+		WARN("Problem loading %s: %s\n", path, strerror(errno));
 		return 0;
 	}
-	if (ver != FILE_VERSION) {
-	WARN("Problem loading %s: version mismatch, expected %d got %d", path, FILE_VERSION, ver);
+	if (ver != file_version) {
+	WARN("Problem loading %s: version mismatch, expected %d got %d\n", path, file_version, ver);
 		return 0;
 	}
 	res=fread(&l->list_size,sizeof(l->list_size),1,fp);
 	if (res<1) {
-		WARN("Problem loading %s: %s", path, strerror(errno));
+		WARN("Problem loading %s: %s\n", path, strerror(errno));
 		return 0;
 	}
 	if (l->list_size < 0) {
@@ -267,7 +266,11 @@ int load_list(list_t *l, char* path, size_t item_size) {
 		l->list[i] = malloc(item_size);
 		res=fread(l->list[i],item_size,1,fp);
 		if (res<1) {
-			WARN("Problem loading %s: %s", path, strerror(errno));
+			if (feof(fp)) {
+				WARN("Problem loading %s: unexpected end of file\n", path);
+			} else {
+				WARN("Problem loading %s: %s\n", path, strerror(errno));
+			}
 			free(l->list[i]);
 			l->list_size=0;
 			break;

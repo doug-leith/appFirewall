@@ -120,13 +120,13 @@ int main(int argc, char *argv[]) {
 		WARN("Failed to open pid file %s, log may fail to rotate properly: %s\n",PIDFILE, strerror(errno));
 	} else {
 		char pid_str[STR_SIZE];
-		sprintf(pid_str,"%d\n",pid);
+		snprintf(pid_str,STR_SIZE,"%d\n",pid);
 		write(pidfd,pid_str,strnlen(pid_str,STR_SIZE));
 		close(pidfd);
 	}
 	char *rot_fmt="#logfilename\t\t\t[owner:group]\tmode\tcount\tsize(KB)\twhen\tflags\t[/pid_file\t[sig_num]\n%s\troot:wheel\t644\t5\t5000\t*\tZ\t/var/run/com.leith.appFirewall-Helper.pid\n";
   char rot_str[STR_SIZE];
-  sprintf(rot_str,rot_fmt,LOGFILE);
+  snprintf(rot_str,STR_SIZE,rot_fmt,LOGFILE);
 	int rotatefd = open(ROTFILE,O_WRONLY|O_CREAT,0644);
 	if (rotatefd == -1) {
 		WARN("Failed to open syslog config file %s, log will not be rotated: %s\n",ROTFILE, strerror(errno));

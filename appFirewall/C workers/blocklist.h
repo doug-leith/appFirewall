@@ -19,6 +19,7 @@
 #include "circular_list.h"
 
 #define HTABSIZE 250000
+#define BLOCKLIST_FILE_VERSION 1
 
 void add_blockitem(bl_item_t *item);
 void add_blockallitem(bl_item_t *item);

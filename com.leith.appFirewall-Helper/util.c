@@ -97,7 +97,7 @@ int bind_to_port(int port, int q) {
 	}
 	struct sockaddr_un local;
 	local.sun_family = AF_UNIX;
-	sprintf(local.sun_path,"/var/run/appFirewall-Helper.%d",port);
+	snprintf(local.sun_path, 104, "/var/run/appFirewall-Helper.%d",port);
 	unlink(local.sun_path);
 	if (bind(sock, (struct sockaddr *)&local, sizeof(local)) == -1) {
 		ERR("Problem binding to %s, fatal: %s\n", local.sun_path, strerror(errno));

@@ -13,6 +13,8 @@
 #include "circular_list.h"
 #include "connection.h"
 
+#define DNSCONN_FILE_VERSION 1
+
 //void init_dns_conn_list(void);
 void add_dns_conn(char* domain, char* name);
 void dump_dns_conn_list(void);

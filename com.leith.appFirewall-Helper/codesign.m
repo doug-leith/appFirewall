@@ -48,7 +48,7 @@ int check_signature(int sock, int port){
 	// check code signature is valid and meets our requirements
 	char str[1024];
 	//sprintf(str,"identifier %s and anchor apple generic and certificate leaf[subject.OU] = \"%s\"", identifier, cert_ou);
-	sprintf(str,"identifier %s and anchor apple generic", identifier);
+	snprintf(str,1024,"identifier %s and anchor apple generic", identifier);
 	CFStringRef req_str = CFStringCreateWithCString(NULL,str,ASCII);
 	SecRequirementRef req = NULL;
 	SecRequirementCreateWithString(req_str, kSecCSDefaultFlags, &req);

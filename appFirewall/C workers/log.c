@@ -22,7 +22,7 @@ char* log_hash(const void* it) {
 	size_t len = strnlen(temp0,STR_SIZE)+strnlen(l->bl_item.name,MAXCOMLEN)+2u;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
-	sprintf(temp,"%s:%s",l->bl_item.name,temp0);
+	snprintf(temp,len,"%s:%s",l->bl_item.name,temp0);
 	free(temp0);
 	return temp;
 }
@@ -35,7 +35,7 @@ char* filtered_log_hash(const void *it) {
 	size_t len = strnlen(l->time_str,STR_SIZE)+strnlen(l->log_line,STR_SIZE)+4;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
-	sprintf(temp,"%s:%s",l->time_str,l->log_line);
+	snprintf(temp,len,"%s:%s",l->time_str,l->log_line);
 	return temp;
 }
 
@@ -158,17 +158,17 @@ void log_repeat(log_line_t *l) {
 		strlcpy(count_str,loc0+1,LOGSTRSIZE);
 		count_str[loc1-loc0-1]='\0';
 		int count =atoi(count_str)+1;
-		sprintf(l->log_line,"%s(%d)",first_part,count);
+		snprintf(l->log_line,LOGSTRSIZE, "%s(%d)", first_part,count);
 	} else {
 		char first_part[LOGSTRSIZE];
 		strlcpy(first_part,l->log_line,LOGSTRSIZE);
-		sprintf(l->log_line,"%s (%d)",first_part,2);
+		snprintf(l->log_line, LOGSTRSIZE, "%s (%d)",first_part,2);
 	}
 }
 
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked, double confidence) {
 	//printf("append_log, %d\n",changed);
-	log_line_t *l = malloc(sizeof(log_line_t)+2);
+	log_line_t *l = calloc(1,sizeof(log_line_t)+2);
 	strlcpy(l->log_line,str,LOGSTRSIZE);
 	time_t t; time(&t);
 	strftime(str,LOGSTRSIZE,"%b %d %H:%M:%S %Y",localtime(&t));
@@ -201,6 +201,23 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	free(l); // free our temp copy
 }
 
+void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence, char* conf_str) {
+	char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
+	inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
+	inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
+	char dns[MAXDOMAINLEN], dst_name[MAXDOMAINLEN];
+	if (strnlen(c->domain,MAXDOMAINLEN)>0) {
+		snprintf(dns, MAXDOMAINLEN, "%s (%s)",c->addr_name,c->domain);
+		strlcpy(dst_name,c->domain,MAXDOMAINLEN);
+	} else {
+		strlcpy(dns,c->addr_name,MAXDOMAINLEN);
+		strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
+	}
+	snprintf(str, LOGSTRSIZE, "%s%s → %s:%u", c->name, conf_str, dst_name, cr->dport);
+	snprintf(long_str, LOGSTRSIZE, "%s\t%s:%u -> %s:%u\t(blocked=%d, confidence=%.2f)", c->name, sn, cr->sport, dns, cr->dport, blocked, confidence);
+	append_log(str, long_str, c, cr, blocked, confidence);
+}
+
 void clear_log() {
 	TAKE_LOCK(&log_list_mutex,"clear_log()");
 	changed = 2; // record fact that log has been updated
@@ -216,7 +233,7 @@ char* log_conn_str(const void* it) {
 	size_t len = INET6_ADDRSTRLEN+strnlen(l->bl_item.name,MAXDOMAINLEN)+8u;
 	if (len>STR_SIZE) len = STR_SIZE;
 	char* temp = malloc(len);
-	sprintf(temp,"%s:%s:%u",l->bl_item.name,dn,l->raw.dport);
+	snprintf(temp,len,"%s:%s:%u",l->bl_item.name,dn,l->raw.dport);
 	return temp;
 }
 
@@ -270,19 +287,16 @@ char* get_filter_log_addr_name(int_sw row) {
 }
 
 void save_log(const char* logName) {
-	//printf("saving log\n");
-	//fflush(fp_txt); // flush text log
-	reopen_logtxt();  // reopen rather than flush, that we recover if file deleted
+	reopen_logtxt();  // reopen rather than flush, then we recover if file deleted
 	
 	struct timeval s; gettimeofday(&s, NULL);
 
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	//strlcat(path,LOGFILE,STR_SIZE);
 	strlcat(path,logName,STR_SIZE);
 
 	TAKE_LOCK(&log_list_mutex,"save_log()");
-	save_list(&log_list, path, sizeof(log_line_t));
+	save_list(&log_list, path, sizeof(log_line_t),LOG_FILE_VERSION);
 	pthread_mutex_unlock(&log_list_mutex);
 	
 	struct timeval end; gettimeofday(&end, NULL);
@@ -324,7 +338,6 @@ void load_log(const char* logName, const char* logTxtName) {
 	//printf("load_log: %s %s\n", logName, logTxtName);
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
-	//strlcat(path,LOGFILE,STR_SIZE);
 	strlcat(path,logName,STR_SIZE);
 	
 	TAKE_LOCK(&log_list_mutex,"load_log()");
@@ -336,6 +349,6 @@ void load_log(const char* logName, const char* logTxtName) {
 	} else {
 		clear_list(&log_list); //clear_list(&filtered_log_list);
 	}
-	load_list(&log_list, path, sizeof(log_line_t));
+	load_list(&log_list, path, sizeof(log_line_t),LOG_FILE_VERSION);
 	pthread_mutex_unlock(&log_list_mutex);
 }

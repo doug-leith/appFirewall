@@ -157,8 +157,9 @@ char* gui_pid_hash(const void *it) {
 	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
 	robust_inet_ntop(&item->raw.af,&item->raw.src_addr,sn,INET6_ADDRSTRLEN);
 	robust_inet_ntop(&item->raw.af,&item->raw.dst_addr,dn,INET6_ADDRSTRLEN);
-	char* temp = malloc(2*INET6_ADDRSTRLEN+strnlen(item->domain,MAXDOMAINLEN)+64);
-	sprintf(temp,"%s-%s:%u-%s",sn,dn,item->raw.dport,item->domain);
+	size_t len = 2*INET6_ADDRSTRLEN+strnlen(item->domain,MAXDOMAINLEN)+64;
+	char* temp = malloc(len);
+	snprintf(temp,len,"%s-%s:%u-%s",sn,dn,item->raw.dport,item->domain);
 	return temp;
 }
 
@@ -352,13 +353,13 @@ int get_pid_name(int pid, char* name) {
 char* pid_hash(const void *it) {
 	last_pid_item_t *item = (last_pid_item_t*) it;
 	char* temp = malloc(STR_SIZE);
-	sprintf(temp,"%d",item->pid);
+	snprintf(temp,STR_SIZE,"%d",item->pid);
 	return temp;
 }
 
 char* pid_fdtab_hash(const int fd, const int pid) {
 	char* temp = malloc(STR_SIZE);
-	sprintf(temp,"%d:%d",pid,fd);
+	snprintf(temp,STR_SIZE,"%d:%d",pid,fd);
 	return temp;
 }
 
@@ -628,7 +629,7 @@ void find_escapees() {
 				conn_t *e = malloc(sizeof(conn_t));
 				memcpy(e,&c,sizeof(conn_t));
 				// get the initial seq number of conn from log, if possible.
-				if (l==NULL) {
+				if (l==NULL) { // not in the log, conn started before app started up
 					//INFO("escapee not in log %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
 					// guess ! the seq number is used to prompt local to send a pkt
 					// when connection is idle so that we can get the real seq number
@@ -636,31 +637,34 @@ void find_escapees() {
 					// probably fail unless connection is already sending pkts
 					e->raw.seq = (uint32_t)rand(); e->raw.ack = (uint32_t)rand();
 					stats.escapees_not_in_log++;
-				} else {
+					// add conn to log
+					log_connection(&e->raw, &b, is_blocked(&b), 1.0, "");
+					add_dns_conn(c.domain, c.name);
+				} else { // in the log
 					// we get the seq number from syn-ack in log ...
 					e->raw.seq =l->raw.seq; e->raw.ack =l->raw.ack;
 					struct timeval start; gettimeofday(&start, NULL);
 					stats.num_escapees++;
 					if (start.tv_sec - l->raw.ts.tv_sec > STALE_ESCAPEE_TIMEOUT) {
-						//an ancient connections.  seq number is maybe too old now,
+						// an ancient connection.  seq number is maybe too old now,
 						// should we just choose a random one, or otherwise adjust it ?
 						stats.stale_escapees++;
+					}
+					l->escapee_count++; // keep track of number of times we've tried to catch conn
+					// if process name was unknown/unsure we can now update it in log,
+					// and also update the blocked status
+					double prev_conf = update_log_by_conn(c.name,&c.raw,is_blocked(&b));
+					if ((prev_conf>0) && (prev_conf < 1.0-1.0e-6)) {
+						// log entry was a guess, now that we're sure let's add
+						// that new info to the dns_conn cache
+						add_dns_conn(c.domain, c.name);
 					}
 				}
 				// and ask helper to catch this "escapee" connection
 				pthread_t escapee_thread;
 				pthread_create(&escapee_thread,NULL,catch_escapee,e);
 				cm_add_sample_lock(&stats.cm_escapee_thread_count,escapee_thread_count);
-				// escapee_thread will now remove from escapee_list and free (e)
-				
-				// if process name was unknown/unsure we can now update it in log,
-				// and also update the blocked status
-				double prev_conf = update_log_by_conn(c.name,&c.raw,is_blocked(&b));
-				if ((prev_conf>0) && (prev_conf < 1.0-1.0e-6)) {
-					// log entry was a guess, now that we're sure let's add
-					// that new info to the dns_conn cache
-					add_dns_conn(c.domain, c.name);
-				}
+				// escapee_thread will now remove from escapee_list and free(e)
 			}
 		}
 		if (l!=NULL) free(l);
@@ -686,7 +690,7 @@ void *catch_escapee(void *ptr) {
 		// either helper has gone away or listen queue for escapees is full.
 		// if former, fatal error ?  just now we just muddle through, will
 		// mean that don't catch escapees
-		TAKE_LOCK(&escapee_mutex,"catch_escapee");
+		TAKE_LOCK(&escapee_mutex,"catch_escapee #2");
 		escapee_thread_count--;
 		pthread_mutex_unlock(&escapee_mutex);
 		return NULL;
@@ -711,7 +715,6 @@ void *catch_escapee(void *ptr) {
 	// details in e are for an outgoing connection, so rst to self should echo back the
 	// outgoing ack.  this ack is from a syn-ack so we need to add 1 to it
 	if ( (res=send(c_sock, &e->raw.seq, sizeof(uint32_t),0) )<=0) goto err;
-	e->raw.ack++;
 	//e->raw.ack++; // TEST, forces incorrect RST seq number to check RST probing works
 	if ( (res=send(c_sock, &e->raw.ack, sizeof(uint32_t),0) )<=0) goto err;
 	int8_t ok=0;
@@ -721,7 +724,7 @@ void *catch_escapee(void *ptr) {
 	// next time find_fds() is called.
 	struct timeval end; gettimeofday(&end, NULL);
 	double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
-	char *result="FAILED to stop";
+	char *result="";
 	if (ok==1) {
 		result="STOPPED";
 		stats.escapees_hits++;
@@ -729,21 +732,28 @@ void *catch_escapee(void *ptr) {
 	} else if (ok==-1) {
 		result="NOT FOUND";
 		stats.escapees_goneaway++;
-	} else {
+	} else if (ok==0) { // failed to stop connection
+		result = "FAILED to stop";
+		uint32_t pkt_count, seq, ack;
+		if (read(c_sock, &pkt_count, sizeof(uint32_t))<=0) goto err;
+		if (pkt_count>0) {
+			// if we sniffed pkts then get the seq/ack of last packet and
+			// update log entry for this connection.  that way when next try
+			// to stop the connection (since we failed this time) we'll
+			// hopefully have better info.
+			if (read(c_sock, &seq, sizeof(uint32_t))<=0) goto err;
+			if (read(c_sock, &ack, sizeof(uint32_t))<=0) goto err;
+			log_line_t *l = find_log_by_conn(e->name,&e->raw,0);
+			l->raw.seq = seq; l->raw.ack = ack;
+		}
 		stats.escapees_misses++;
 		cm_add_sample_lock(&stats.cm_t_escapees_misses,t);
+	} else { //shouldn't happen
+		result = "ERROR";
+		ERR("Invalid helper response in catch_escapee()\n");
 	}
 	INFO("escapee %s(%d) fd=%d %s:%u -> %s(%s):%u ack=%u,udp=%d: %s. t=%fs\n", e->name, e->pid, e->fd,e->src_addr_name, e->raw.sport, e->domain, e->dst_addr_name, e->raw.dport, e->raw.ack,e->raw.udp,result,t);
 	goto stop;
-	/*close(c_sock);
-	TAKE_LOCK(&escapee_mutex,"catch_escapee #2");
-	del_item(&escapee_list,e);
-	escapee_thread_count--;
-	pthread_mutex_unlock(&escapee_mutex);
-	print_escapees(); // takes its own lock
-	free(e);
-	signal_pid_watcher(1,1); // refresh pid list and check for more escapees
-	return NULL;*/
 	
 err:
 	if (errno == EAGAIN) {

@@ -75,7 +75,7 @@ char* get_dns_count_str(int af, struct in6_addr addr){
 	if (c == NULL) return res;
 	for (size_t j = 0; j< c->num; j++) {
 		char temp[MAXDOMAINLEN+32];
-		sprintf(temp,"%s(%zu) ", c->name[j], c->count[j]);
+		snprintf(temp,MAXDOMAINLEN+32, "%s(%zu) ", c->name[j], c->count[j]);
 		strlcat(res,temp,sizeof(res));
 	}
 	free(c);
@@ -163,7 +163,7 @@ void save_dns_cache(const char* fname) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&dns_mutex,"save_dns_cache()");
-	save_list(&dns_cache,path,sizeof(dns_item_t));
+	save_list(&dns_cache,path,sizeof(dns_item_t), DNS_FILE_VERSION);
 	pthread_mutex_unlock(&dns_mutex);
 }
 
@@ -172,7 +172,7 @@ void load_dns_cache(const char* fname) {
 	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&dns_mutex,"load_dns_cache()");
 	init_list(&dns_cache,dns_hash,NULL,1,-1,"dns_cache");
-	load_list(&dns_cache,path,sizeof(dns_item_t));
+	load_list(&dns_cache,path,sizeof(dns_item_t),DNS_FILE_VERSION);
 	pthread_mutex_unlock(&dns_mutex);
 }
 

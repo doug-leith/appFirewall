@@ -155,7 +155,7 @@ int setup_ipv6(conn_raw_t* c, interface_t* intf, uint8_t dst_eth[ETHER_ADDR_LEN]
 		char src_eth_str[STR_SIZE], dst_eth_str[STR_SIZE];
 		strlcpy(src_eth_str,ether_ntoa((struct ether_addr*)&intf->eth[0]),STR_SIZE);
 		strlcpy(dst_eth_str,ether_ntoa((struct ether_addr*)&dst_eth[0]),STR_SIZE);
-		sprintf(filter_exp,"ip6 and ether dst %s and ether src %s and (ip6[53]&tcp-rst!=0)",dst_eth_str,src_eth_str);
+		snprintf(filter_exp,STR_SIZE,"ip6 and ether dst %s and ether src %s and (ip6[53]&tcp-rst!=0)",dst_eth_str,src_eth_str);
 		//printf("pcap filter: %s\n",filter_exp);
 		int res=setup_pd(intf, &l->pd, filter_exp, 0);
 		if ((res < 0)||(l->pd==NULL)) {
@@ -493,10 +493,6 @@ void rst_accept_loop() {
 			// so c.seq is the ack from the SYN-ACK, c.ack is the seq from the SYN-ACK
 			interface_t intf; memset(&intf,0,sizeof(interface_t));
 			snd_rst_toremote(&c, &ld_rst_remote, &intf, 1); // will use c.seq as RST seq number
-			// local host has sent an ACK in response to the SYN-ACK, so local host expects remote
-			// to use ack number of that ACK in any RST it sends, so we need to increment
-			// c.ack (seq from the SYN-ACK) by 1 over value in the SYN-ACK
-			c.ack++;
 			// snd_rst_toremote() call will have set intf to have right details,
 			// so this setup cost is not duplicated again with this next call.
 			snd_rst_toself(&c, &ld_rst_toself, &intf);  // will use c.ack as RST seq number

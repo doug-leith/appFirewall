@@ -20,6 +20,7 @@
 
 
 #define LOGSTRSIZE 256
+#define LOG_FILE_VERSION 2
 
 //log_line_t used by swift
 typedef struct log_line_t {
@@ -28,6 +29,8 @@ typedef struct log_line_t {
 	double confidence; // confidence that we have the process name right
 	int_sw blocked;
 	conn_raw_t raw;
+	uint16_t escapee_count; // number of times escapee catcher called for this conn
+	uint8_t padding[32]; // for future use without having to change file format
 } log_line_t;
 
 size_t get_log_size(void);
@@ -35,6 +38,7 @@ log_line_t* get_log_row(size_t row);
 log_line_t* find_log_by_conn(char* name, conn_raw_t* c, int debug);
 double update_log_by_conn(char* name, conn_raw_t* c, int blocked);
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked, double confidence);
+void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence, char* conf_str);
 
 //swift
 void filter_log_list(int_sw show_blocked, const char* str);

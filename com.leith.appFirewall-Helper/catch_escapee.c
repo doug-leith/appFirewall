@@ -25,15 +25,15 @@ static int catcher_sniffing = 0;
 static libnet_data_t ld_toself, ld_remote, ld_prompt_toself, ld_prompt_remote;
 static interface_t intf;
 static sniffers_t sn_esc;
-static conn_raw_t estimated_c; // our estimate of seq number to ACK when sending RSTs
-static pthread_mutex_t ack_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
 
+static pthread_mutex_t ack_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
 typedef struct catcher_callback_args_t {
 	int af;
 	struct in6_addr target_dst;
 	uint16_t target_sport, target_dport;
 	int target_pid;
-	int pkt_count;
+	uint32_t pkt_count;
+	conn_raw_t last_pkt_sniffed; // conn details from last pkt sniffed, if any
 } catcher_callback_args_t;
 static catcher_callback_args_t a;
 
@@ -112,21 +112,6 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t sport, uint16_t dpor
 	return -1;
 }
 
-void set_ack(int ack, int seq) {
-	pthread_mutex_lock(&ack_mutex);
-	estimated_c.ack = ack;
-	estimated_c.seq = seq;
-	pthread_mutex_unlock(&ack_mutex);
-}
-
-int get_ack() {
-	int ack;
-	pthread_mutex_lock(&ack_mutex);
-	ack = estimated_c.ack;
-	pthread_mutex_unlock(&ack_mutex);
-	return ack;
-}
-
 void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
 
 	if (!catcher_sniffing) return;
@@ -198,8 +183,11 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		
 	if (tcp->th_flags & (TH_RST))  return; // let's not respond to our own RSTs
 	
+	pthread_mutex_lock(&ack_mutex);
 	a.pkt_count++; // record number of packets we've sniffed for this connection
-
+	memcpy(&a.last_pkt_sniffed,&cr,sizeof(conn_raw_t)); // and keep note of pkt details
+	pthread_mutex_unlock(&ack_mutex);
+	 
 	/* we're sending a RST on an established connection where likely soem data has already been sent.
 	example of a RST after data sent:
 	192.168.1.27	54.171.86.180	TCP	55248 → 2000 [SYN] Seq=3550827904 Len=0
@@ -217,14 +205,7 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	//printf("sending RST\n");
 	snd_rst_toremote(&cr, &ld_remote, &intf, 0); // will use cr.seq as RST seq number
 	snd_rst_toself(&cr, &ld_toself, &intf); // will use cr.ack as RST seq number
-	
-	// since we have some new info about the seq number to ack, let's tell main thread.
-	// details are for an outgoing connection.  this will reset the RST-to-self seq/ack
-	// and so should prompt more ACK packets from self that the callback here can
-	// respond to -- should help make us more robust to loss of IPv6 RST packets when
-	// injected at link layer (which is unbuffered)
-	set_ack(cr.ack, cr.seq);
-	
+		
 	/*if (cr.af == AF_INET6) {
 		// for debugging
 		char sn[INET6_ADDRSTRLEN],dn[INET6_ADDRSTRLEN];
@@ -277,6 +258,7 @@ void *catcher_listener(void *ptr) {
 	init_libnet(&ld_toself); init_libnet(&ld_remote);
 	init_libnet(&ld_prompt_toself); init_libnet(&ld_prompt_remote);
 	memset(&a,0,sizeof(catcher_callback_args_t));
+	conn_raw_t estimated_c; // our estimate of seq number to ACK when sending RSTs
 	char filter[STR_SIZE];
 	int prev_pid = -1;
 	
@@ -327,7 +309,8 @@ void *catcher_listener(void *ptr) {
 		char dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
 		inet_ntop(a.af, &a.target_dst, dn, INET6_ADDRSTRLEN);
 		INFO("Started new connection on port %d (catch_escapee): pid=%d, af=%d, %u->%s:%u, ack=%u\n",CATCHER_PORT,a.target_pid, a.af,a.target_sport,dn,a.target_dport,ack);
-		
+
+		set_snd_timeout(c_sock2, SND_TIMEOUT); // to be safe, will eventually timeout of send
 		// do some basic sanity checking
 		if (a.af!=AF_INET && a.af!=AF_INET6) {
 			WARN("Invalid AF value\n");
@@ -364,8 +347,7 @@ void *catcher_listener(void *ptr) {
 		// we include seq here, that's what's acked) as otherwise MAC OS seems to
 		// ignore RSTs unless the RST seq number is perfect (i.e. it doesn't generate ACKs
 		// in response to in-window RST seq numbers, it just stays silent).
-		estimated_c.ack = ack; // no need for lock as listener thread not started yet
-		estimated_c.seq = seq;
+		estimated_c.ack = ack; estimated_c.seq = seq;
 		
 		//sprintf(filter,"tcp and host %s and (port %u or port %u) and ( (ip6[6] == 6 and (ip6[53]&tcp-rst==0)) or (tcp[tcpflags]&tcp-rst==0) )", dn, c.sport, c.dport);
 		// this filter might be too permissive, it will catch all connections to dest on
@@ -379,11 +361,9 @@ void *catcher_listener(void *ptr) {
 		//sprintf(filter,"tcp and host %s and (port %u or port %u)", dn, estimated_c.sport, estimated_c.dport);
 		// changed to use a tighter filter, since catcher now resets seq/ack and will do
 		// this incorrectly if sniff packets from wrong flow
-		sprintf(filter,"tcp and host %s and (port %u and port %u)", dn, estimated_c.sport, estimated_c.dport);
+		snprintf(filter,STR_SIZE, "tcp and host %s and (port %u and port %u)", dn, estimated_c.sport, estimated_c.dport);
 		//start pcap listener thread
-		a.pkt_count=0;
-		catcher_sniffing = 1;
-
+		a.pkt_count=0; catcher_sniffing = 1;
 		// setup the pcap sniffers sn_esc for listener before firing up thread,
 		// this way if the thread is slow to get started then pcap will
 		// buffer any sniffed packets until the thread gets around to reading them
@@ -411,35 +391,43 @@ void *catcher_listener(void *ptr) {
 		// that way if the window size is large enough we catch it on
 		// first round i.e. quicker, otherwise on second round
 		printf("starting RST loop\n");
-		int first = 1, i=0, j, k, sent=0;
+		int first = 1, i=0, j, k, sent=0, last_pkt_count=0;
 		for (k=0; k<2; k++) {
 			// if have sniffed pkts we don't reset seq/ack here
 			// since we already have better values from the sniffed pkts
 			// TO DO: seems reasonable, but impact of this not fully checked.
-			if (!a.pkt_count)
-			  set_ack(ack + k*win/2, seq); // take lock since catcher thread also updates seq/ack
+			if (!a.pkt_count) {// should take lock on this
+			  estimated_c.ack = ack + k*win/2;
+			  estimated_c.seq = seq;
+			}
 			// seq=0 => pure RST (not RST-ACK), don't use this anymore since RST-ACK
 			// seems more effective
-			//set_ack(ack + k*win/2, 0);
+			//estimated_c.seq = 0;
 			for (i=0; i<TRIES; i++) {
 				for (j=0; j<n; j++){
 					// just send RSTs to self, so don't flood internet
+					pthread_mutex_lock(&ack_mutex);
+						if (a.pkt_count > last_pkt_count) { 
+								// we've seen a new packet, grab the info from it and use
+								// it here
+								printf("RST-to-self: last=%d, count=%d, updating to seq=%u ack=%u\n",last_pkt_count,a.pkt_count, a.last_pkt_sniffed.seq, a.last_pkt_sniffed.ack);
+								estimated_c.ack = a.last_pkt_sniffed.ack;
+								estimated_c.seq = a.last_pkt_sniffed.seq;
+						}
+						last_pkt_count = a.pkt_count;
+						pthread_mutex_unlock(&ack_mutex);
 					if (first) {
-						pthread_mutex_lock(&ack_mutex);
-					  res = snd_rst_toself(&estimated_c, &ld_prompt_toself, &intf);
+						res = snd_rst_toself(&estimated_c, &ld_prompt_toself, &intf);
 						// send more closely spaced RSTs at first to try to increase number of
 						// ACK response pkts that we generate from app (when our initial seq
 						// is based on earlier sniffed pkts there's a good chance we'll succeed
 						// here).
 						estimated_c.ack += win/2;
-						pthread_mutex_unlock(&ack_mutex);
 						sent++;
 						//if (estimated_c.af == AF_INET6) usleep(1000); // TEST for testing
 					} else {
-						pthread_mutex_lock(&ack_mutex);
 						res = snd_rst_toself(&estimated_c, &ld_prompt_toself, &intf);
 						estimated_c.ack += win;
-						pthread_mutex_unlock(&ack_mutex);
 						sent++;
 					}
 					if (res<0) goto done; // problem
@@ -459,15 +447,23 @@ void *catcher_listener(void *ptr) {
 		}
 	done:
 		printf("finished RST loop\n");
+		// stop pcap listeners.
+		stop_catcher();
 		if (ok != 1) {
 			struct timeval end; gettimeofday(&end, NULL);
 			INFO("FAILED to stop connection %d %d->%s:%u, pkts sniffed=%d, count=%d, sent=%d, time taken %fs\n",a.target_pid,a.target_sport,dn,a.target_dport,a.pkt_count,i,sent,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
 		}
 		// tell GUI we're done ...
-		//fcntl(c_sock2, F_SETFL, O_NONBLOCK); // make non-blocking
 		send(c_sock2, &ok, 1, 0);
-		// stop pcap listeners.
-		stop_catcher();
+		if (ok==0) {
+			// failed to stop connection.  if we sniffed some pkts then send the seq/ack
+			// info back to client since its valuable info
+			send(c_sock2, &a.pkt_count, sizeof(uint32_t), 0);
+			if (a.pkt_count>0) {
+				send(c_sock2, &a.last_pkt_sniffed.seq, sizeof(uint32_t), 0);
+				send(c_sock2, &a.last_pkt_sniffed.ack, sizeof(uint32_t), 0);
+			}
+		}
 		// and tidy up
 		close(c_sock2);
 		continue;

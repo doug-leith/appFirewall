@@ -15,7 +15,7 @@ char* conn_raw_hash(const void *it) {
 	robust_inet_ntop(&item->af,&item->dst_addr,dn,INET6_ADDRSTRLEN);
 	#define LEN 2*INET6_ADDRSTRLEN+64
 	char* temp = malloc(LEN);
-	sprintf(temp,"%s:%u-%s:%u",sn,item->sport,dn,item->dport);
+	snprintf(temp,LEN,"%s:%u-%s:%u",sn,item->sport,dn,item->dport);
 	return temp;
 }
 

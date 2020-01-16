@@ -131,20 +131,21 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 		}
 
 		// log the connection
-		char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
+		char dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
 		inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 		inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
-		char dns[MAXDOMAINLEN], dst_name[MAXDOMAINLEN];
+		/*char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dns[MAXDOMAINLEN], dst_name[MAXDOMAINLEN];
 		if (strnlen(c->domain,MAXDOMAINLEN)>0) {
-			sprintf(dns,"%s (%s)",c->addr_name,c->domain);
+			snprintf(dns,LOGSTRSIZE,"%s (%s)",c->addr_name,c->domain);
 			strlcpy(dst_name,c->domain,MAXDOMAINLEN);
 		} else {
 			strlcpy(dns,c->addr_name,MAXDOMAINLEN);
 			strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
 		}
-		sprintf(str,"%s%s → %s:%u", c->name, conf_str, dst_name, cr->dport);
-		sprintf(long_str,"%s\t%s:%u -> %s:%u\t(blocked=%d, confidence=%.2f)", c->name, sn, cr->sport, dns, cr->dport,blocked, confidence);
-		append_log(str, long_str, c, cr, blocked, confidence);
+		snprintf(str,LOGSTRSIZE,"%s%s → %s:%u", c->name, conf_str, dst_name, cr->dport);
+		snprintf(long_str,LOGSTRSIZE,"%s\t%s:%u -> %s:%u\t(blocked=%d, confidence=%.2f)", c->name, sn, cr->sport, dns, cr->dport,blocked, confidence);
+		append_log(str, long_str, c, cr, blocked, confidence);*/
+		log_connection(cr, c, blocked, confidence, conf_str);
 
 		if (!blocked) {
 			INFO2("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
@@ -415,12 +416,12 @@ void *listener(void *ptr) {
 					// log connection
 					char dns[MAXDOMAINLEN]={0};
 					if (strnlen(c.domain,MAXDOMAINLEN)) {
-						sprintf(dns,"%s (%s)",c.addr_name,c.domain);
+						snprintf(dns,MAXDOMAINLEN, "%s (%s)", c.addr_name,c.domain);
 					}
 					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
 					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
-					sprintf(str,"%s → UDP/QUIC %s:%u", c.name, c.domain, dport);
-					sprintf(long_str,"%s\tUDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
+					snprintf(str,LOGSTRSIZE, "%s → UDP/QUIC %s:%u", c.name, c.domain, dport);
+					snprintf(long_str,LOGSTRSIZE,"%s\tUDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
 					append_log(str, long_str, &c, &cr, 0, 1.0); // can't block QUIC yet ...
 					
 					double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
@@ -470,6 +471,10 @@ void *listener(void *ptr) {
 			cr.src_addr=dst; cr.dst_addr=src;
 			cr.sport=ntohs(tcp->th_dport); cr.dport=ntohs(tcp->th_sport);
 			cr.seq=ntohl(tcp->th_ack); cr.ack=ntohl(tcp->th_seq);
+			// our info is from a syn-ack and local host will have sent an ack in
+			// response and so we need to account for this.
+			cr.ack++;
+
 		}
 		// try to get PID name and domain for this connection ...
 		bl_item_t c = create_blockitem_from_addr(&cr, syn, pkt_pid, pkt_name);
