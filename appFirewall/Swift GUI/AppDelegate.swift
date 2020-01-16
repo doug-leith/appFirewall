@@ -228,7 +228,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("process: ")
 		print("userName ",ProcessInfo.processInfo.userName)
 		print("environment ", ProcessInfo.processInfo.environment)
-		
+
 		if (is_app_already_running()) {
 			exit_popup(msg:"appFirewall is already running!", force: 0)
 		}
@@ -292,7 +292,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				// fall back to using a builtin icon, this should always work
 				button.image = NSImage(named:NSImage.Name(NSImage.quickLookTemplateName))
 				if (button.image == nil) {
-					print("Menubar button image is *still* nil, setting menubarOk to false")
+					print("Menubar button image is *still* nil")
 				}
 			}
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"

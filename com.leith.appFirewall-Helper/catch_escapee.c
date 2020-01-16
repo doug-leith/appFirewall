@@ -410,7 +410,7 @@ void *catcher_listener(void *ptr) {
 						if (a.pkt_count > last_pkt_count) { 
 								// we've seen a new packet, grab the info from it and use
 								// it here
-								printf("RST-to-self: last=%d, count=%d, updating to seq=%u ack=%u\n",last_pkt_count,a.pkt_count, a.last_pkt_sniffed.seq, a.last_pkt_sniffed.ack);
+								DEBUG2("RST-to-self: last=%d, count=%d, updating to seq=%u ack=%u\n",last_pkt_count,a.pkt_count, a.last_pkt_sniffed.seq, a.last_pkt_sniffed.ack);
 								estimated_c.ack = a.last_pkt_sniffed.ack;
 								estimated_c.seq = a.last_pkt_sniffed.seq;
 						}

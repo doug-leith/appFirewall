@@ -367,12 +367,13 @@ func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
 			 	DispatchQueue.main.async {
 					let alert = NSAlert()
 					alert.messageText = "Check for updates"
-					alert.informativeText = msg
+					alert.informativeText = result
 					alert.alertStyle = .informational
 					alert.runModal()
-					return			 	}
+					return
+				}
 			 } else {
-				 // display popup asking useer they want to install update
+				 // display popup asking user they want to install update
 			  	DispatchQueue.main.async {
 					 updatePopup(msg:result, autoUpdate: autoUpdate)
 			 	 }

@@ -86,6 +86,7 @@ class WhiteListViewController: appViewController {
 		guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) 	as? NSTableCellView else {print("WARNING: problem in whitelistView making non-button cell"); return nil}
 		cell.textField?.stringValue = content
 		cell.textField?.toolTip = name+": "+domain
+		cell.textField?.textColor = NSColor.textColor
 		return cell
 	}
 }

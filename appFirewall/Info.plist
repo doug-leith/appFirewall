@@ -43,10 +43,14 @@
 	<true/>
 	<key>NSSupportsSuddenTermination</key>
 	<true/>
+	<key>CFBundleGetInfoString</key>
+	<string></string>
+	<key>CFBundleSignature</key>
+	<string></string>
 	<key>SMPrivilegedExecutables</key>
 	<dict>
 		<key>com.leith.appFirewall-Helper</key>
-		<string>identifier "com.leith.appFirewall-Helper"</string>
+		<string>identifier &quot;com.leith.appFirewall-Helper&quot;</string>
 	</dict>
 </dict>
 </plist>
