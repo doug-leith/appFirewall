@@ -25,10 +25,12 @@ typedef struct libnet_data_t {
 	libnet_ptag_t tcp4_ptag, tcp6_ptag, ip4_ptag, ip6_ptag, eth_ptag;
 	interface_t last_intf;
 	uint8_t last_dst_eth[ETHER_ADDR_LEN];
+	int toself;
 	pcap_t *pd;
 } libnet_data_t;
 
 void init_libnet(libnet_data_t *ld);
+void free_libnet(libnet_data_t *ld);
 void start_rst(void);
 void rst_accept_loop(void);
 void close_rst_sock(void);

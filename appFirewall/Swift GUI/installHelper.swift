@@ -127,7 +127,7 @@ func start_helper(force: Bool) {
 		let version = get_helper_version(Name: kHelperToolName)
 		if (version >= Config.minHelperVersion) {
 			print(String(format:"helper "+kHelperToolName+", version %d already installed.", version))
-			return // right version of helper already installed
+			//return // right version of helper already installed
 		}
 	}
 	
@@ -165,7 +165,6 @@ func start_helper(force: Bool) {
 		}else{
 			print(kHelperToolName+" installed successfully")
 			AuthorizationFree(authRef!, [])
-			// wait for helper to start
 			var count = 0
 			while (count<10) && (!is_helper_running(Name: kHelperToolName)) {
 				sleep(1)

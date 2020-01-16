@@ -88,9 +88,10 @@ void free_libnet(libnet_data_t *ld) {
 libnet_ptag_t append_ether6(libnet_t *l, libnet_ptag_t *eth_ptag, uint8_t eth_src[ETHER_ADDR_LEN], uint8_t eth_dst[ETHER_ADDR_LEN]) {
 	// construct link-layer ethernet header, only used for IPv6 packets
 	//int i; for(i=0; i<ETHER_ADDR_LEN;i++) printf("%02x ",eth_dst[i]); printf("\n");
+	uint8_t tmp[ETHER_ADDR_LEN]; memset(tmp,0,ETHER_ADDR_LEN);
 	*eth_ptag = libnet_build_ethernet(
-		eth_src,      				 /* ethernet destination */
-		eth_dst,     					 /* ethernet source */
+		eth_dst,      				 /* ethernet destination */
+		eth_src,     					 /* ethernet source */
 		ETHERTYPE_IPV6,        /* protocol type */
 		NULL,                  /* payload */
 		0,                     /* payload size */
@@ -146,7 +147,8 @@ int setup_ipv6(conn_raw_t* c, interface_t* intf, uint8_t dst_eth[ETHER_ADDR_LEN]
 	//printf("setup_ipv6: %s dlt=%d\n",intf->name,intf->dlt);
 	if (intf->dlt == DLT_EN10MB) { // ethernet
 		char filter_exp[STR_SIZE];
-		// we base pcap filter on ethernet addresses so we don't have to keep
+		// nb: we base pcap filter on ethernet addresses (not IP layer details)
+		// so we don't have to keep
 		// updating it for every new flow (which is slow).  this means we'll
 		// catch too many pkts in filter, but its just used for rough rate
 		// limiting so hopefully its good enough.
@@ -179,15 +181,16 @@ int setup_ipv6(conn_raw_t* c, interface_t* intf, uint8_t dst_eth[ETHER_ADDR_LEN]
 	return 1;
 }
 
-int rst_write(libnet_t *l_hdr, int dlt, pcap_t *pd) {
+int rst_write(libnet_t *l_hdr, int dlt, pcap_t *pd, int toself) {
 	uint32_t len; uint8_t *packet = NULL; ssize_t c;
 	if (dlt == -1) {
 		// IP layer write, just call libnet to use raw socket
 		return libnet_write(l_hdr);
 	} else if (dlt == DLT_EN10MB) {
 		// ethernet link layer write, contruct the pkt
-		if (libnet_pblock_coalesce(l_hdr, &packet, &len)<0) {
-			WARN("Problem with ethernet coalesce: %s", libnet_geterror(l_hdr)); return -1;
+		if (libnet_write(l_hdr)<0) {
+			WARN("Problem doing bpf write to ethernet link layer: %s",libnet_geterror(l_hdr));
+			return -1;
 		}
 	} else if (dlt == DLT_NULL) {
 		// likely an IP tunnel, trick libnet into constructing pkt without
@@ -197,16 +200,15 @@ int rst_write(libnet_t *l_hdr, int dlt, pcap_t *pd) {
 			WARN("Problem with DLT_NULL coalesce: %s", libnet_geterror(l_hdr)); return -1;
 		}
 		l_hdr->injection_type = LIBNET_LINK;
+		c = write(l_hdr->fd, packet, len);
+		if (l_hdr->aligner > 0) packet = packet - l_hdr->aligner;
+		free(packet);
+		if (c!=len) {
+			WARN("Problem doing bpf write to DLT_NULL link layer: %s (write %zd of %d)", strerror(errno),c,len); return -1;
+		}
 	} else {
 		// some other link layer, wtf?
 		return -1;
-	}
-	// link layer send
-	c = write(l_hdr->fd, packet, len);
-	if (l_hdr->aligner > 0) packet = packet - l_hdr->aligner;
-	free(packet);
-	if (c!=len) {
-		WARN("Problem doing bpf write to link layer: %s (write %zd of %d)", strerror(errno),c,len); return -1;
 	}
 
 	// *** link layer rate control ***
@@ -224,36 +226,43 @@ int rst_write(libnet_t *l_hdr, int dlt, pcap_t *pd) {
 	if (!pd) { // shouldn't happen, but fall back to crude rate limiting
 		WARN("In snd_rst() pd=NULL\n");
 		usleep(IPV6_SELECT_TIMEOUT);
-	} else {
-		int fd = pcap_get_selectable_fd(pd);
+		return 1;
+	}
+	int pkts_wanted=1; //if (toself) pkts_wanted=2;
+	int pkts_read=0, rtxs=0;
+	int fd = pcap_get_selectable_fd(pd);
+	while ((pkts_read<pkts_wanted) && (rtxs<2)) {
 		fd_set readfds; FD_ZERO(&readfds);FD_SET(fd,&readfds);
 		struct timeval timeout;
-		timeout.tv_sec = 0; timeout.tv_usec = IPV6_SELECT_TIMEOUT; // 1ms
-		ssize_t res=0;
-		while ( (res=select(fd+1, &readfds, NULL, NULL, &timeout))==EINTR);
+		timeout.tv_sec = 0; timeout.tv_usec = IPV6_SELECT_TIMEOUT;
+		ssize_t res=0, sel_count=0;
+		while ( ((res=select(fd+1, &readfds, NULL, NULL, &timeout))<0) && (errno == EINTR) && (sel_count<5) ) sel_count++;
 		if (res<0) { // res=0 on timeout, <0 on error
-			WARN("snd_rst select: %s (res=%zd)\n", strerror(errno), res);
+			WARN("snd_rst select: %s\n", strerror(errno));
+			break;
+		} else if (res==0) { // select timeout.
+				// a timeout means that no packet was sniffed, so timeouts are
+				// an indicator of loss of injected packets and we'd like to
+				// keep the number low
+				if (dlt == DLT_EN10MB) libnet_write(l_hdr); //Retransmit
+				select_timeouts++; rtxs++;
+				//break;
 		} else {
-			// a timeout means that no packet was sniffed, so timeouts are
-			// an indicator of loss of injected packets and we'd like to
-			// keep the number low
-			// TO DO ?  Retransmit RST if there's a timeout ?
-			if (res==0) select_timeouts++;
-			if (FD_ISSET(fd,&readfds)) {
-				struct pcap_pkthdr buf; const u_char* ptr;
-				int count=0;
-				while ((ptr=pcap_next(pd, &buf))!=NULL) count++;
-				//printf("read %d pkts from pcap\n", count);
-				select_num++; select_count+=count;
-			}
-			// periodically log stats ... we don't want to be seeing too many
-			// timeouts since they likely correspond to link layer losses
-			time_t select_now = time(NULL);
-			if (select_now-select_time > 600) {
-				select_time = select_now;
-				INFO("IPv6 select stats: timeouts=%d (%.2f percent), success=%d (%.2f percent), sniffed pkt count=%d (avg %.2f)\n", select_timeouts, select_timeouts*100.0/(select_timeouts+select_num), select_num, select_num*100.0/(select_timeouts+select_num), select_count, select_count*1.0/select_num);
-			}
+				if (FD_ISSET(fd,&readfds)) {
+					struct pcap_pkthdr buf; const u_char* ptr;
+					while ((ptr=pcap_next(pd, &buf))!=NULL) pkts_read++;
+					//printf("read %d pkts from pcap\n", count);
+				}
 		}
+	}
+	select_num++; select_count+=pkts_read;
+	
+	// periodically log stats ... we don't want to be seeing too many
+	// timeouts since they likely correspond to link layer losses
+	time_t select_now = time(NULL);
+	if (select_now-select_time > 10) {//600) {
+		select_time = select_now;
+		INFO("IPv6 select stats: timeouts=%d (%.2f percent), success=%d (%.2f percent), sniffed pkt count=%d (avg %.2f)\n", select_timeouts, select_timeouts*100.0/(select_timeouts+select_num), select_num, select_num*100.0/(select_timeouts+select_num), select_count, select_count*1.0/select_num);
 	}
 	return 1;
 }
@@ -281,7 +290,7 @@ int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth
 
 	interface_t temp_intf; memset(&temp_intf,0,sizeof(interface_t));
 	temp_intf.dlt = -1; // use raw socket (default for IPv4)
-	
+
 	libnet_ptag_t *tcp_hdr_ptag, *ip_hdr_ptag;
 	libnet_t *l_hdr=NULL;
 	if (c->af==AF_INET) {// ipv4
@@ -301,6 +310,7 @@ int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth
 			// remember link layer details for next time
 			memcpy(&ld->last_intf,&temp_intf,sizeof(interface_t));
 			memcpy(ld->last_dst_eth,dst_eth,ETHER_ADDR_LEN);
+			ld->toself = (memcmp(dst_eth,temp_intf.eth,ETHER_ADDR_LEN)==0);
 		}
 		l_hdr = ld->l6; tcp_hdr_ptag=&ld->tcp6_ptag; ip_hdr_ptag=&ld->ip6_ptag;
 	}
@@ -323,7 +333,7 @@ int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth
 			// add ethernet header if required (used for IPv6)
 			ld->eth_ptag = append_ether6(l_hdr, &ld->eth_ptag, temp_intf.eth, dst_eth);
 		}
-		rst_write(l_hdr,temp_intf.dlt,ld->pd);
+		rst_write(l_hdr,temp_intf.dlt,ld->pd,ld->toself);
 	}
 
 	uint8_t flags = TH_RST;
@@ -349,7 +359,7 @@ int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth
 	DEBUG2("sending %d RST(s) to %s:%d->%s:%d\n",num,sn,c->sport,dn,c->dport);
 	int i;
 	for (i=0; i< num; i++) {
-		if (rst_write(l_hdr,temp_intf.dlt,ld->pd) <= 0) {
+		if (rst_write(l_hdr,temp_intf.dlt,ld->pd,ld->toself) <= 0) {
 			WARN("rst_write() in snd_rst(): %s\n", libnet_geterror(l_hdr)); goto err;
 		}
 	}
@@ -360,10 +370,17 @@ err:
 }
 
 int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, interface_t* intf) {
+	// details in c are for an outgoing connection
 	conn_raw_t cc;
 	cc.af = c->af;
 	cc.src_addr = c->dst_addr; cc.dst_addr = c->src_addr;
 	cc.sport = c->dport; cc.dport = c->sport;
+	//rfc793: If the incoming segment has an ACK field, the reset takes its
+	//sequence number from the ACK field of the segment, otherwise the
+	//reset has sequence number zero and the ACK field is set to the sum
+	//of the sequence number and segment length of the incoming segment.
+	// -- second case is mainly for SYNs since SYN-ACKs have ACK field
+	// and response to an invalid RST is to send an ACK
 	cc.seq= c->ack; cc.ack = c->seq;
 	if (c->af == AF_INET6) {
 		if (intf==NULL) {

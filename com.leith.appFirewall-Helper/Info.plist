@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.leith.appFirewall-Helper</string>
+	<key>CFBundleName</key>
+	<string>appFirewall-Helper</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>SMAuthorizedClients</key>
+	<array>
+		<string>identifier "com.leith.appFirewall"</string>
+	</array>
+</dict>
+</plist>

@@ -12,11 +12,11 @@ import ServiceManagement
 class Config: NSObject {
 	// fixed settings ...
 	static let defaultLoggingLevel = 2 // more verbose, for testing
-	static let enableDtrace = 0 // disable for SIP testing
-	static let enableNstat = 1 // disable for SIP testing
+	static let enableDtrace = 0 // disable, replaced by nstat
+	static let enableNstat = 0 // disable, replaced by pktap
 	static let enableUpdates = 1 // disable for testing
 	
-	static let minHelperVersion = 10 // required helper version, must be an Int
+	static let minHelperVersion = 11 // required helper version, must be an Int
 	
 	static let crashURL = URL(string: "https://leith.ie/logcrash.php")!
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!
@@ -52,6 +52,7 @@ class Config: NSObject {
 	
 	static let appDelegateRefreshTime : Double = 10 // check state every 10s
 	static let appDelegateFileRefreshTime : Double = 30 // save log every 30s
+	static let appDelegateStatsRefreshTime : Double = 600 // print stats every 10min
 	static let viewRefreshTime : Double = 1 // check for window uodate every 1s
 
 	//------------------------------------------------

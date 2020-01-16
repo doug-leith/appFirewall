@@ -708,6 +708,11 @@ void *catch_escapee(void *ptr) {
 	if ( (res=send(c_sock, &e->raw.dst_addr, sizeof(struct in6_addr),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.sport, sizeof(uint16_t),0) )<=0) goto err;
 	if ( (res=send(c_sock, &e->raw.dport, sizeof(uint16_t),0) )<=0) goto err;
+	// details in e are for an outgoing connection, so rst to self should echo back the
+	// outgoing ack.  this ack is from a syn-ack so we need to add 1 to it
+	if ( (res=send(c_sock, &e->raw.seq, sizeof(uint32_t),0) )<=0) goto err;
+	e->raw.ack++;
+	//e->raw.ack++; // TEST, forces incorrect RST seq number to check RST probing works
 	if ( (res=send(c_sock, &e->raw.ack, sizeof(uint32_t),0) )<=0) goto err;
 	int8_t ok=0;
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout

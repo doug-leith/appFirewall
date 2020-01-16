@@ -52,8 +52,8 @@ int cm_add_sample_lock(cm_quantile *cm, double sample) {
 
 void print_stats() {
 	TAKE_LOCK(&cm_mutex, "print_stats");
-	INFO("pktap hits %d/misses %d, nstat hits %d/misses %d, pidinfo hits %d/misses %d, pidinfo_cache hits %d/misses %d, waitinglist hits %d/misses %d, escapees fresh %d/stale %d/old %d hits %d/misses %d/gone away %d, escapee timeouts %d/%d, procname hits %d/guesses %d/notfound %d, fdtab same %d/changed %d/%d, DNS snaplen misses %d/count %d, mDNS snaplen misses %d/count %d, DNS snaplen shortfall %.2f/%.2f, mDNS snaplen shortfall %.2f/%.2f\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f\n",
-	stats.pktap_hits,stats.pktap_misses, stats.nstat_hits, stats.nstat_misses,
+	INFO("pktap hits %d/misses %d, pidinfo hits %d/misses %d, pidinfo_cache hits %d/misses %d, waitinglist hits %d/misses %d, escapees fresh %d/stale %d/old %d hits %d/misses %d/gone away %d, escapee timeouts %d/%d, procname hits %d/guesses %d/notfound %d, fdtab same %d/changed %d/%d, DNS snaplen misses %d/count %d, mDNS snaplen misses %d/count %d, DNS snaplen shortfall %.2f/%.2f, mDNS snaplen shortfall %.2f/%.2f\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f\n",
+	stats.pktap_hits,stats.pktap_misses, 
 	stats.pidinfo_hits, stats.pidinfo_misses,
 	stats.pidinfo_cachehits, stats.pidinfo_cachemisses,
 	stats.waitinglist_hits,stats.waitinglist_misses,

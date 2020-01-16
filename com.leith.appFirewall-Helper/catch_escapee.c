@@ -22,9 +22,11 @@ static pthread_t catcher_thread; // handle to catcher thread
 static pthread_t catcher_listener_thread; // handle to catcher_listener thread
 static int c_sock, c_sock2=-1;
 static int catcher_sniffing = 0;
-static libnet_data_t ld_toself, ld_remote, ld_prompt_toself;
+static libnet_data_t ld_toself, ld_remote, ld_prompt_toself, ld_prompt_remote;
 static interface_t intf;
 static sniffers_t sn_esc;
+static conn_raw_t estimated_c; // our estimate of seq number to ACK when sending RSTs
+static pthread_mutex_t ack_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
 
 typedef struct catcher_callback_args_t {
 	int af;
@@ -70,9 +72,13 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t sport, uint16_t dpor
 		int res = proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
 		if (res != sizeof(struct socket_fdinfo)) continue;
 		
-		//int state = socketInfo.psi.soi_proto.pri_tcp.tcpsi_state;
+		int state = socketInfo.psi.soi_proto.pri_tcp.tcpsi_state;
 		if ((socketInfo.psi.soi_kind != SOCKINFO_TCP)) continue; // not TCP
-		
+		if ((socketInfo.psi.soi_kind == SOCKINFO_TCP) && (state != TSI_S_ESTABLISHED))
+			continue;
+			// TCP, but not an established connection (likely CLOSE_WAIT, since we know
+			// connection used to ESTABLISHED if catcher has been called)
+
 		struct in_sockinfo* sockinfo = &socketInfo.psi.soi_proto.pri_tcp.tcpsi_ini;
 		c.af=socketInfo.psi.soi_family;
 		memset(&c.src_addr,0,sizeof(struct in6_addr));
@@ -104,6 +110,21 @@ int find_fds(int pid, int af, struct in6_addr dst, uint16_t sport, uint16_t dpor
 
 	free(procFDInfo);
 	return -1;
+}
+
+void set_ack(int ack, int seq) {
+	pthread_mutex_lock(&ack_mutex);
+	estimated_c.ack = ack;
+	estimated_c.seq = seq;
+	pthread_mutex_unlock(&ack_mutex);
+}
+
+int get_ack() {
+	int ack;
+	pthread_mutex_lock(&ack_mutex);
+	ack = estimated_c.ack;
+	pthread_mutex_unlock(&ack_mutex);
+	return ack;
 }
 
 void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const u_char* pkt) {
@@ -158,10 +179,10 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 
 	conn_raw_t cr;
 	cr.af=af;
-	//int outgoing=0;
+	int outgoing=0;
 	if (dport == a.target_dport) {
 		// outgoing packet
-		//outgoing=1;
+		outgoing=1;
 		cr.src_addr=src; cr.dst_addr=dst;
 		cr.sport=sport; cr.dport=dport;
 		cr.seq=seq; cr.ack=ack;
@@ -174,18 +195,7 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		WARN("Received packet with mismatched ports, sport=%u/dport=%u but expected sport=%u/dport=%u (catch_escapee)\n", sport, dport, a.target_sport, a.target_dport);
 		return;
 	}
-	/*
-	if (cr.af == AF_INET6) {
-		// for debugging
-		char sn[INET6_ADDRSTRLEN],dn[INET6_ADDRSTRLEN];
-		inet_ntop(cr.af, &cr.src_addr, sn, INET6_ADDRSTRLEN);
-		inet_ntop(cr.af, &cr.dst_addr, dn, INET6_ADDRSTRLEN);
-		uint16_t win=ntohs(tcp->th_win);
-		printf("outgoing=%d %s:%d -> %s:%d seq=%u ack=%u win=%u, flags=%02x\n", outgoing,sn,cr.sport,dn,cr.dport, cr.seq, cr.ack, win, tcp->th_flags);
-		//printf("intf=%s,  mac=",intf);
-		//int i; for(i=0; i<ETHER_ADDR_LEN;i++) printf("%02x ",eth[i]); printf("\n");
-	}
-	*/
+		
 	if (tcp->th_flags & (TH_RST))  return; // let's not respond to our own RSTs
 	
 	a.pkt_count++; // record number of packets we've sniffed for this connection
@@ -207,6 +217,26 @@ void catcher_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	//printf("sending RST\n");
 	snd_rst_toremote(&cr, &ld_remote, &intf, 0); // will use cr.seq as RST seq number
 	snd_rst_toself(&cr, &ld_toself, &intf); // will use cr.ack as RST seq number
+	
+	// since we have some new info about the seq number to ack, let's tell main thread.
+	// details are for an outgoing connection.  this will reset the RST-to-self seq/ack
+	// and so should prompt more ACK packets from self that the callback here can
+	// respond to -- should help make us more robust to loss of IPv6 RST packets when
+	// injected at link layer (which is unbuffered)
+	set_ack(cr.ack, cr.seq);
+	
+	/*if (cr.af == AF_INET6) {
+		// for debugging
+		char sn[INET6_ADDRSTRLEN],dn[INET6_ADDRSTRLEN];
+		inet_ntop(cr.af, &cr.src_addr, sn, INET6_ADDRSTRLEN);
+		inet_ntop(cr.af, &cr.dst_addr, dn, INET6_ADDRSTRLEN);
+		uint16_t win=ntohs(tcp->th_win);
+		printf("outgoing=%d %s:%d -> %s:%d seq=%u ack=%u win=%u, flags=%02x\n", outgoing,sn,cr.sport,dn,cr.dport, cr.seq, cr.ack, win, tcp->th_flags);
+		//printf("intf=%s,  mac=",intf);
+		//int i; for(i=0; i<ETHER_ADDR_LEN;i++) printf("%02x ",eth[i]); printf("\n");
+	}*/
+	uint32_t win=ntohl(tcp->th_win);
+	printf("sniffed pkt seq=%u, ack=%u, win=%u, outgoing=%d\n", cr.seq, cr.ack, win, outgoing);
 }
 
 void sigusr1_handler(int signum) {
@@ -241,8 +271,11 @@ void *catcher_listener(void *ptr) {
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 
+	// nb: ok to initialise these libnet data structures once here (rather than
+	// for every new flow) even though they contain a pcap sniffer if using IPv6
+	// since we take care that the pcap filter does not depend on the flow IP layer
 	init_libnet(&ld_toself); init_libnet(&ld_remote);
-	init_libnet(&ld_prompt_toself);
+	init_libnet(&ld_prompt_toself); init_libnet(&ld_prompt_remote);
 	memset(&a,0,sizeof(catcher_callback_args_t));
 	char filter[STR_SIZE];
 	int prev_pid = -1;
@@ -280,7 +313,7 @@ void *catcher_listener(void *ptr) {
 
 		ssize_t res; uint8_t vpn;
 		memset(&a.target_dst,0,sizeof(struct in6_addr));
-		uint32_t ack;
+		uint32_t ack, seq;
 		set_recv_timeout(c_sock2, RECV_TIMEOUT); // to be safe, will eventually timeout of read
 		if ( (res=readn(c_sock2, &vpn, sizeof(uint8_t)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &a.target_pid, sizeof(int)) )<=0) goto err;
@@ -288,6 +321,7 @@ void *catcher_listener(void *ptr) {
 		if ( (res=readn(c_sock2, &a.target_dst, sizeof(struct in6_addr)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &a.target_sport, sizeof(uint16_t)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &a.target_dport, sizeof(uint16_t)) )<=0) goto err;
+		if ( (res=readn(c_sock2, &seq, sizeof(uint32_t)) )<=0) goto err;
 		if ( (res=readn(c_sock2, &ack, sizeof(uint32_t)) )<=0) goto err;
 		
 		char dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
@@ -303,8 +337,7 @@ void *catcher_listener(void *ptr) {
 			continue;
 		}
 				
-		conn_raw_t c; memset(&c,0,sizeof(c));
-		res = find_fds(a.target_pid, a.af, a.target_dst, a.target_sport, a.target_dport, &c);
+		res = find_fds(a.target_pid, a.af, a.target_dst, a.target_sport, a.target_dport, &estimated_c);
 		if (res<0) {
 			INFO("Couldn't find PID with those connection details (catch_escapee): %d %s:%u\n",a.target_pid,dn,a.target_dport);
 			ok=-1;
@@ -313,14 +346,27 @@ void *catcher_listener(void *ptr) {
 			continue;
 		}
 
-		if (!find_intf(&c, &intf)) {
+		if (!find_intf(&estimated_c, &intf)) {
 			// likely a VPN tunnel that's gone away, or the like
-			inet_ntop(c.af, &c.src_addr, sn, INET6_ADDRSTRLEN);
+			inet_ntop(estimated_c.af, &estimated_c.src_addr, sn, INET6_ADDRSTRLEN);
 			WARN("catch_escapee(): couldn't find interface for %s->%s\n",sn,dn);
 			int ok = -1;
 			send(c_sock2, &ok, 1, 0);
 			close(c_sock2);
 		}
+		// if connection is actively sending pkts then catcher thread will sniff
+		// them and use the info to send RSTs.
+		// but if the connection is idle the catcher thread has no packets to work
+		// with, so prompt the connection to come back to life by sending some
+		// RSTs. ack is the seq number from the remote.  we need to use a value
+		// that lies in current window for RST to provoke a response
+		// nb.  it seems to be important that the RST also acks the connection (hence why
+		// we include seq here, that's what's acked) as otherwise MAC OS seems to
+		// ignore RSTs unless the RST seq number is perfect (i.e. it doesn't generate ACKs
+		// in response to in-window RST seq numbers, it just stays silent).
+		estimated_c.ack = ack; // no need for lock as listener thread not started yet
+		estimated_c.seq = seq;
+		
 		//sprintf(filter,"tcp and host %s and (port %u or port %u) and ( (ip6[6] == 6 and (ip6[53]&tcp-rst==0)) or (tcp[tcpflags]&tcp-rst==0) )", dn, c.sport, c.dport);
 		// this filter might be too permissive, it will catch all connections to dest on
 		// specified port, not just ones with a particular src port.  could change to
@@ -330,26 +376,34 @@ void *catcher_listener(void *ptr) {
 		// parallel connections, so we get a bit more value out of each call to the
 		// escapee catcher here.
 		// nb: we don't filter out RSTs here, but catch them instead in catcher_callback()
-		sprintf(filter,"tcp and host %s and (port %u or port %u)", dn, c.sport, c.dport);
+		//sprintf(filter,"tcp and host %s and (port %u or port %u)", dn, estimated_c.sport, estimated_c.dport);
+		// changed to use a tighter filter, since catcher now resets seq/ack and will do
+		// this incorrectly if sniff packets from wrong flow
+		sprintf(filter,"tcp and host %s and (port %u and port %u)", dn, estimated_c.sport, estimated_c.dport);
 		//start pcap listener thread
 		a.pkt_count=0;
 		catcher_sniffing = 1;
+
+		// setup the pcap sniffers sn_esc for listener before firing up thread,
+		// this way if the thread is slow to get started then pcap will
+		// buffer any sniffed packets until the thread gets around to reading them
+		// - this is worth doing since the first RST-to-seld packets sent in the
+		// loop below are the ones most likely to generate a response (if the seq/ack we
+		// use has been sniffed from a syn-ack the seq/ack numbers likely haven't changed
+		// by all that much)
+		refresh_sniffers_list(&sn_esc, filter, 0);
 		pthread_create(&catcher_thread, NULL, catcher, filter);
-		// if connection is actively sending pkts then catcher thread will sniff
-		// them and use the info to send RSTs.
-		// but if the connection is idle the catcher thread has no packets to work
-		// with, so prompt the connection to come back to life by sending some
-		// RSTs. ack is the seq number from the remote.  we need to use a value
-		// that lies in current window for RST to provoke a response
-		c.seq = 0; c.ack = ack;
+		// as an extra measure, let's wait 1ms for thread to start before we
+		// start sending RSTs.  is this even needed ?
+		usleep(1000);
+		
 		// estimate of recv window of localhost
 		// changed top be more aggressive as suspect tcp shrinks window
 		// for idle connections
 		uint32_t win = 65536/4; // 16K, but we actually probe down to 8K windows in loop below
 		// sit here and keep an eye on procinfo.  when connection goes away we can stop.
-		//#define WAITTIME 1000 // 1ms
 		#define TRIES 33 // 32 plus 1 for initial probe with only INIT_RSTs rst's
-		#define INIT_RSTs 128
+		#define INIT_RSTs 512
 		#define MAXSEQ 0xFFFFFFFF // 2^32-1
 		uint32_t tries_per_round = MAXSEQ/win/(TRIES-1);
 		int n=INIT_RSTs;  // initial number of RSTs, enough if seq is right
@@ -359,35 +413,46 @@ void *catcher_listener(void *ptr) {
 		printf("starting RST loop\n");
 		int first = 1, i=0, j, k, sent=0;
 		for (k=0; k<2; k++) {
-			c.ack = ack + k*win/2;
+			// if have sniffed pkts we don't reset seq/ack here
+			// since we already have better values from the sniffed pkts
+			// TO DO: seems reasonable, but impact of this not fully checked.
+			if (!a.pkt_count)
+			  set_ack(ack + k*win/2, seq); // take lock since catcher thread also updates seq/ack
+			// seq=0 => pure RST (not RST-ACK), don't use this anymore since RST-ACK
+			// seems more effective
+			//set_ack(ack + k*win/2, 0);
 			for (i=0; i<TRIES; i++) {
 				for (j=0; j<n; j++){
 					// just send RSTs to self, so don't flood internet
 					if (first) {
-						res = snd_rst_toself(&c, &ld_prompt_toself, &intf); // will use c.ack as RST seq number
-						sent++;
+						pthread_mutex_lock(&ack_mutex);
+					  res = snd_rst_toself(&estimated_c, &ld_prompt_toself, &intf);
 						// send more closely spaced RSTs at first to try to increase number of
 						// ACK response pkts that we generate from app (when our initial seq
 						// is based on earlier sniffed pkts there's a good chance we'll succeed
 						// here).
-						c.ack += win/2;
-						//if (c.af == AF_INET6) usleep(1000); // for testing
-					} else {
-						res = snd_rst_toself(&c, &ld_prompt_toself, &intf); // will use c.ack as RST seq number
+						estimated_c.ack += win/2;
+						pthread_mutex_unlock(&ack_mutex);
 						sent++;
-						c.ack += win;
+						//if (estimated_c.af == AF_INET6) usleep(1000); // TEST for testing
+					} else {
+						pthread_mutex_lock(&ack_mutex);
+						res = snd_rst_toself(&estimated_c, &ld_prompt_toself, &intf);
+						estimated_c.ack += win;
+						pthread_mutex_unlock(&ack_mutex);
+						sent++;
 					}
 					if (res<0) goto done; // problem
 				}
 				conn_raw_t c_temp;
 				if (find_fds(a.target_pid, a.af, a.target_dst, a.target_sport, a.target_dport, &c_temp)<0) {
 					struct timeval end; gettimeofday(&end, NULL);
-					INFO("connection %d %u->%s:%u has STOPPED, pkts sniffed=%d, count %d, sent %d, time taken %fs.\n",a.target_pid,a.target_sport,dn,a.target_dport,a.pkt_count,i,sent,(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
+					INFO("connection %d %u->%s:%u has STOPPED, pkts sniffed=%d, count %d, sent %d, time taken %fs.\n", a.target_pid, a.target_sport, dn, a.target_dport, a.pkt_count, i, sent, (end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);
 					ok=1;
 					goto done; // connection has gone away
 				}
 				if (vpn) goto done;
-				//if (c.af == AF_INET6) goto done; // for testing
+				//if (estimated_c.af == AF_INET6) goto done; // TEST for testing
 				first = 0;
 				n = tries_per_round; // let's try a bit harder !
 			}

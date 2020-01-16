@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Version</key>
-	<integer>10</integer>
+	<integer>11</integer>
 	<key>LaunchOnlyOnce</key>
 	<true/>
 	<key>KeepAlive</key>

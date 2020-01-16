@@ -160,7 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	@objc func stats() {
 		print_stats() // output current performance stats
 		count_stats = count_stats+1
-		if (count_stats>6) {
+		if (count_stats>0) {
 			print_escapees()
 			count_stats = 0
 		}
@@ -216,6 +216,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		set_logging_level(Int32(log_level))
 		init_stats(); // must be done before any C threads are fired up
 
+		let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+		print("appFirewall version: ", appVersion ?? "<not found>")
+		
 		if (is_app_already_running()) {
 			exit_popup(msg:"appFirewall is already running!", force: 0)
 		}
@@ -285,12 +288,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			menubarOk = (button.image != nil)
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 			button.action = #selector(openapp(_:))
-			
 		} else {
 			print("Problem getting menubar button, ", statusItem, statusItem.button ?? "nil")
 			menubarOk = false // disable removal of dock icon
 		}
-		
+		/*dump(statusItem)
+		dump(statusItem.button)
+		print(statusItem.button?.appearsDisabled)
+		print(statusItem.button?.image)
+		print(statusItem.button?.state)
+		print(statusItem.button?.isEnabled)
+		print(statusItem.button?.action)
+		print(statusItem.button?.fittingSize)
+		print(statusItem.button?.isHidden)*/
+
 		// set default display state for GUI
 		UserDefaults.standard.register(defaults: ["active_asc":true])
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])
@@ -334,7 +345,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		timer_logs = Timer.scheduledTimer(timeInterval: Config.appDelegateFileRefreshTime, target: self, selector: #selector(refreshLogs), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 
-		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
+		timer_stats = Timer.scheduledTimer(timeInterval: Config.appDelegateStatsRefreshTime, target: self, selector: #selector(stats), userInfo: nil, repeats: true)
 		timer.tolerance = 1 // we don't mind if it runs quite late
 		
 		// setup handler for window close event
