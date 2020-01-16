@@ -33,6 +33,7 @@
 #define ESCAPEE_TIMEOUT 0.05 // in secs, after which we check for escapees.  we leave a delay so as to give time to kill connections via sending TCP RSTs on SYN-ACK before invoking escapee catcher process (which is relatively slow/expensive).
 #define STALE_ESCAPEE_TIMEOUT 10 // 10secs. for keeping stats on stale escapees
 #define ESCAPEEMAX 1 // max num of escapees we try to catch concurrently
+#define MAX_ESCAPEE_ATTEMPTS 3 // max number of times we call catcher for same connection
 #define CATCHER_PORT 5 // port helper listens on for catching escapees
 
 int get_pid_name(int pid, char* name);
