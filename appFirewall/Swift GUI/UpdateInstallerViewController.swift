@@ -174,12 +174,27 @@ class UpdateInstallerViewController: NSViewController {
 		// copy to Applications folder
 		DispatchQueue.main.async { self.showPopupMsg(msg: "Updating app ...") }
 		do {
-			let tempPath = NSTemporaryDirectory()
+			//let tempPath = NSTemporaryDirectory()
+			
+			// make sure we get a temp directory on the right volume to use with replaceItemAt()
+			let tempURL = try FileManager.default.url(for: .itemReplacementDirectory,
+															in: .userDomainMask,
+															appropriateFor: URL(fileURLWithPath:appPath),
+															create: true)
+			print("tempURL ", tempURL.path)
+			let tempPath = tempURL.path
+			
 			print("copying DMG contents to temp staging folder ",tempPath)
 			try? FileManager.default.removeItem(atPath: tempPath+"/"+appFile)
 			try FileManager.default.copyItem(atPath: mountPoint+"/"+appFile, toPath: tempPath+"/"+appFile)
+		  // for debugging
 			//print(try FileManager.default.attributesOfItem(atPath:tempPath+"/"+appFile))
-			
+			let p = URL(fileURLWithPath:appPath).path
+			print("appPath: ",p)
+			let attr = try FileManager.default.attributesOfItem(atPath:p) as NSDictionary
+			print(attr)
+			print("octal permissions: ", String(attr.filePosixPermissions(), radix: 0o10))
+
 			if (Config.enableUpdates == 1) {
 				print("now copying contents of staging folder ",tempPath, " to final folder ", appPath)
 				_ = try FileManager.default.replaceItemAt(URL(fileURLWithPath:appPath), withItemAt: URL(fileURLWithPath: tempPath+"/"+appFile))

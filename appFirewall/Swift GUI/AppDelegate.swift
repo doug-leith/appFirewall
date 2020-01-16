@@ -120,6 +120,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	// handle click on menubar item
 	@objc func openapp(_ sender: Any?) {
 		// reopen window
+		
+		// we've clicked on menubar button so it must exist !
+		// record this fact, so we can can now safely remove icon from Dock when
+		// next close window.
+		menubarOk = true
+		
 		// if window already exists,and it should since we don't
 		// release it on close, then we just reopen it.
 		// hopefully this should work almost all of the time
@@ -218,6 +224,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 		let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
 		print("appFirewall version: ", appVersion ?? "<not found>")
+		// for debugging
+		print("process: ")
+		print("userName ",ProcessInfo.processInfo.userName)
+		print("environment ", ProcessInfo.processInfo.environment)
 		
 		if (is_app_already_running()) {
 			exit_popup(msg:"appFirewall is already running!", force: 0)
@@ -285,23 +295,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 					print("Menubar button image is *still* nil, setting menubarOk to false")
 				}
 			}
-			menubarOk = (button.image != nil)
 			button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 			button.action = #selector(openapp(_:))
 		} else {
 			print("Problem getting menubar button, ", statusItem, statusItem.button ?? "nil")
-			menubarOk = false // disable removal of dock icon
 		}
-		/*dump(statusItem)
+		// for debugging
+		print("Menubar button info:")
+		dump(statusItem)
 		dump(statusItem.button)
-		print(statusItem.button?.appearsDisabled)
-		print(statusItem.button?.image)
-		print(statusItem.button?.state)
-		print(statusItem.button?.isEnabled)
-		print(statusItem.button?.action)
-		print(statusItem.button?.fittingSize)
-		print(statusItem.button?.isHidden)*/
-
+		print("appearsDisabled:", statusItem.button?.appearsDisabled as Any)
+		print("image:", statusItem.button?.image as Any)
+		print("state:", statusItem.button?.state as Any)
+		print("isEnabled:", statusItem.button?.isEnabled as Any)
+		print("action:",statusItem.button?.action as Any)
+		print("fittingSize:",statusItem.button?.fittingSize as Any)
+		print("isHidden:",statusItem.button?.isHidden as Any)
+		
 		// set default display state for GUI
 		UserDefaults.standard.register(defaults: ["active_asc":true])
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])

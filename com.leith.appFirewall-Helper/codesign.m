@@ -55,7 +55,7 @@ int check_signature(int sock, int port){
 	CFRelease(req_str);
 	
 	// check signature against embedded requirements
-	status = SecCodeCheckValidity(codeRef, kSecCSCheckAllArchitectures, req);
+	status = SecCodeCheckValidity(codeRef, kSecCSDefaultFlags, req);
 	CFRelease(req);
 	
 	CFStringRef err_str = SecCopyErrorMessageString(status,NULL);
