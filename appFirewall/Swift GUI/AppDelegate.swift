@@ -124,7 +124,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// we've clicked on menubar button so it must exist !
 		// record this fact, so we can can now safely remove icon from Dock when
 		// next close window.
-		menubarOk = true
+		if (sender != nil) { menubarOk = true }
 		
 		// if window already exists,and it should since we don't
 		// release it on close, then we just reopen it.
@@ -375,6 +375,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// Insert code here to tear down your application
 		// NB: don't think this function is *ever* called
 		print("going into background")
+	}
+	
+	func applicationShouldHandleReopen(_ sender: NSApplication,
+	hasVisibleWindows flag: Bool)->Bool {
+		openapp(nil)
+		return true
 	}
 }
 
