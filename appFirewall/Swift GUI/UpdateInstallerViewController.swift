@@ -173,28 +173,45 @@ class UpdateInstallerViewController: NSViewController {
 
 		// copy to Applications folder
 		DispatchQueue.main.async { self.showPopupMsg(msg: "Updating app ...") }
+		var tempURL: URL
 		do {
 			//let tempPath = NSTemporaryDirectory()
 			
 			// make sure we get a temp directory on the right volume to use with replaceItemAt()
-			let tempURL = try FileManager.default.url(for: .itemReplacementDirectory,
+			tempURL = try FileManager.default.url(for: .itemReplacementDirectory,
 															in: .userDomainMask,
 															appropriateFor: URL(fileURLWithPath:appPath),
 															create: true)
 			print("tempURL ", tempURL.path)
-			let tempPath = tempURL.path
-			
+		} catch {
+			let msg = "Problem, couldn't get temp directory: "+error.localizedDescription
+			unmount(mountPoint:mountPoint)
+			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
+			return
+		}
+		let tempPath = tempURL.path
+		do {
 			print("copying DMG contents to temp staging folder ",tempPath)
 			try? FileManager.default.removeItem(atPath: tempPath+"/"+appFile)
 			try FileManager.default.copyItem(atPath: mountPoint+"/"+appFile, toPath: tempPath+"/"+appFile)
+		} catch {
+			let msg = "Problem, couldn't copy DMG contents to temp folder: "+error.localizedDescription
+			unmount(mountPoint:mountPoint)
+			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
+			return
+		}
+		let p = URL(fileURLWithPath:appPath).path
+		print("appPath: ",p)
+		do {
 		  // for debugging
-			//print(try FileManager.default.attributesOfItem(atPath:tempPath+"/"+appFile))
-			let p = URL(fileURLWithPath:appPath).path
-			print("appPath: ",p)
 			let attr = try FileManager.default.attributesOfItem(atPath:p) as NSDictionary
 			print(attr)
 			print("octal permissions: ", String(attr.filePosixPermissions(), radix: 0o10))
-
+		} catch {
+			print("Problem, couldn't get attributes of "+p+": "+error.localizedDescription)
+			// non-fatal, we'll continue
+		}
+		do {
 			if (Config.enableUpdates == 1) {
 				print("now copying contents of staging folder ",tempPath, " to final folder ", appPath)
 				_ = try FileManager.default.replaceItemAt(URL(fileURLWithPath:appPath), withItemAt: URL(fileURLWithPath: tempPath+"/"+appFile))
