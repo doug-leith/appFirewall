@@ -395,11 +395,15 @@ void *catcher_listener(void *ptr) {
 		for (k=0; k<2; k++) {
 			// if have sniffed pkts we don't reset seq/ack here
 			// since we already have better values from the sniffed pkts
-			// TO DO: seems reasonable, but impact of this not fully checked.
-			if (!a.pkt_count) {// should take lock on this
+			// TO DO: seems reasonable, but impact of this not fully checked
+			// -- there seems to be some upper limit on the number of ACKs macos
+			// sends in response to these RSTs-to-self (about 8)
+			pthread_mutex_lock(&ack_mutex); // lock as catcher callback thread updates a.pkt_count
+			if (!a.pkt_count) {
 			  estimated_c.ack = ack + k*win/2;
 			  estimated_c.seq = seq;
 			}
+			pthread_mutex_unlock(&ack_mutex);
 			// seq=0 => pure RST (not RST-ACK), don't use this anymore since RST-ACK
 			// seems more effective
 			//estimated_c.seq = 0;
@@ -407,15 +411,15 @@ void *catcher_listener(void *ptr) {
 				for (j=0; j<n; j++){
 					// just send RSTs to self, so don't flood internet
 					pthread_mutex_lock(&ack_mutex);
-						if (a.pkt_count > last_pkt_count) { 
-								// we've seen a new packet, grab the info from it and use
-								// it here
-								DEBUG2("RST-to-self: last=%d, count=%d, updating to seq=%u ack=%u\n",last_pkt_count,a.pkt_count, a.last_pkt_sniffed.seq, a.last_pkt_sniffed.ack);
-								estimated_c.ack = a.last_pkt_sniffed.ack;
-								estimated_c.seq = a.last_pkt_sniffed.seq;
+					if (a.pkt_count > last_pkt_count) {
+							// we've seen a new packet, grab the info from it and use
+							// it here
+							DEBUG2("RST-to-self: last=%d, count=%d, updating to seq=%u ack=%u\n",last_pkt_count,a.pkt_count, a.last_pkt_sniffed.seq, a.last_pkt_sniffed.ack);
+							estimated_c.ack = a.last_pkt_sniffed.ack;
+							estimated_c.seq = a.last_pkt_sniffed.seq;
 						}
-						last_pkt_count = a.pkt_count;
-						pthread_mutex_unlock(&ack_mutex);
+					last_pkt_count = a.pkt_count;
+					pthread_mutex_unlock(&ack_mutex);
 					if (first) {
 						res = snd_rst_toself(&estimated_c, &ld_prompt_toself, &intf);
 						// send more closely spaced RSTs at first to try to increase number of
@@ -458,10 +462,14 @@ void *catcher_listener(void *ptr) {
 		if (ok==0) {
 			// failed to stop connection.  if we sniffed some pkts then send the seq/ack
 			// info back to client since its valuable info
+			pthread_mutex_lock(&ack_mutex);
+			uint32_t seq = a.last_pkt_sniffed.seq;
+			uint32_t ack = a.last_pkt_sniffed.ack;
+			pthread_mutex_unlock(&ack_mutex);
 			send(c_sock2, &a.pkt_count, sizeof(uint32_t), 0);
 			if (a.pkt_count>0) {
-				send(c_sock2, &a.last_pkt_sniffed.seq, sizeof(uint32_t), 0);
-				send(c_sock2, &a.last_pkt_sniffed.ack, sizeof(uint32_t), 0);
+				send(c_sock2, &seq, sizeof(uint32_t), 0);
+				send(c_sock2, &ack, sizeof(uint32_t), 0);
 			}
 		}
 		// and tidy up
