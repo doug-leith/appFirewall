@@ -301,7 +301,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			print("Problem getting menubar button, ", statusItem, statusItem.button ?? "nil")
 		}
 		// for debugging
-		print("Menubar button info:")
+		/*print("Menubar button info:")
 		dump(statusItem)
 		dump(statusItem.button)
 		print("appearsDisabled:", statusItem.button?.appearsDisabled as Any)
@@ -310,7 +310,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("isEnabled:", statusItem.button?.isEnabled as Any)
 		print("action:",statusItem.button?.action as Any)
 		print("fittingSize:",statusItem.button?.fittingSize as Any)
-		print("isHidden:",statusItem.button?.isHidden as Any)
+		print("isHidden:",statusItem.button?.isHidden as Any)*/
 		
 		// set default display state for GUI
 		UserDefaults.standard.register(defaults: ["active_asc":true])

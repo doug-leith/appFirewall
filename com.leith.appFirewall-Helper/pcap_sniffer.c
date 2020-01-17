@@ -16,11 +16,14 @@ static int are_sniffing = 0;
 
 // syns and syn-acks, DNS and mDNS, UDP on ports 443 likely to be quic
 // tcpflags doesn't work for ipv6, sigh.
+// we filter on udp sport 443 since incoming pkts indicate an active
+// connection plus outgoing udp pkts are sniffed by pktap even when
+// blocked by firewall (seems like a bug)
 static char *filter_exp = "\
 (udp and port 53) or (udp and port 5353) \
 or (tcp and (tcp[tcpflags]&tcp-syn!=0)) \
 or (ip6[6] == 6 and (ip6[53]&tcp-syn!=0)) \
-or (udp and port 443)";
+or (udp and sport 443)";
 
 void close_sniffer_sock() {
 	close(p_sock); close(p_sock2);
@@ -604,7 +607,11 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
 		uint16_t sport=ntohs(udp->uh_sport);
 		uint16_t dport=ntohs(udp->uh_dport);
-		int filt = (sport==443) || (dport==443) || (sport==53) || (dport==53) || (sport==5353) || (dport==5353);
+		// nb: we filter QUIC on udp sport 443 since incoming pkts indicate an active
+		// connection, plus outgoing udp pkts are sniffed by pktap even when
+		// blocked by firewall (seems like a bug) and so can be seen even if there is
+		// no actual connection
+		int filt = (sport==443) || (sport==53) || (dport==53) || (sport==5353) || (dport==5353);
 		if (args.sn->use_pktap && !filt) return;
 	} else {
 		// not TCP or UDP

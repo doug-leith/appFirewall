@@ -377,12 +377,20 @@ void *listener(void *ptr) {
 				dns_sniffer(nexth,pkt_proper_len);
 				cm_add_sample_lock(&stats.cm_t_dns,t);
 				continue;
-			} else if (dport == 443) {
+			} else if ((sport == 443) || (dport == 443)) {
 				// likely to be quic.  can't block it yet, but can log the
 				// connection
 				//printf("UDP %d/%d %d\n",sport, dport,udp_cache_size);
 				conn_raw_t cr;
-				cr.af=af; cr.src_addr=src; cr.dst_addr=dst; cr.sport=sport; cr.dport=dport; cr.udp=1;
+				cr.af=af; cr.udp=1;
+				if (sport == 443){
+					// incoming pkt, flip things around since we always store conn details
+					// with reference to outgoing pkts
+					cr.src_addr=dst; cr.dst_addr=src; cr.sport=dport; cr.dport=sport;
+				} else { //outgoing pkt
+					//printf("UDP outgoing %d/%d %d\n",sport, dport,udp_cache_size);
+					cr.src_addr=src; cr.dst_addr=dst; cr.sport=sport; cr.dport=dport;
+				}
 				int i;
 				for (i=udp_cache_start; i<udp_cache_start+udp_cache_size; i++) {
 					if (udp_cache[i%MAXUDP].af != af) continue;
