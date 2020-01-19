@@ -17,7 +17,7 @@ class Config: NSObject {
 	static let enableNstat = 0 // disable, replaced by pktap
 	static let enableUpdates = 1 // disable for testing
 	
-	static let minHelperVersion = 12 // required helper version, must be an Int
+	static let minHelperVersion = 13 // required helper version, must be an Int
 	
 	static let crashURL = URL(string: "https://leith.ie/logcrash.php")!
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!
