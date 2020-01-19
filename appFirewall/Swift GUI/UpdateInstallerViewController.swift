@@ -8,6 +8,7 @@
 
 import Foundation
 import Cocoa
+import AppKit
 
 class UpdateInstallerViewController: NSViewController {
 	
@@ -151,23 +152,27 @@ class UpdateInstallerViewController: NSViewController {
 		handle.write(yes)
 		mountTask.waitUntilExit()
 		print("done")
-		if (mountTask.terminationStatus != 0) {
-			let msg = "Problem, hdiutil mount of DMG failed"
+			
+		var msg : String = ""
+		defer {
+			// make sure we unmount DMG before exiting
+			unmount(mountPoint:mountPoint)
+			// and show message
 			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
-			return
+		}
+		if (mountTask.terminationStatus != 0) {
+				msg = "Problem, hdiutil mount of DMG failed"
+				return
 		}
 
 		// check contents look sane
 		DispatchQueue.main.async { self.showPopupMsg(msg: "Extracting app ...") }
 		if !FileManager.default.fileExists(atPath: mountPoint+"/"+appFile) {
-			unmount(mountPoint:mountPoint)
-			let msg = "Problem, couldn't find "+appFile+" in DMG"
-			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
+			msg = "Problem, couldn't find "+appFile+" in DMG"
 			return
 		}
 		if !checkSignature(bundle: mountPoint+"/"+appFile) {
-			let msg = "Problem, signature invalid for "+appFile+" in DMG"
-			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
+			msg = "Problem, signature invalid for "+appFile+" in DMG"
 			return
 		}
 
@@ -184,51 +189,61 @@ class UpdateInstallerViewController: NSViewController {
 															create: true)
 			print("tempURL ", tempURL.path)
 		} catch {
-			let msg = "Problem, couldn't get temp directory: "+error.localizedDescription
-			unmount(mountPoint:mountPoint)
-			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
+			msg = "Problem, couldn't get temp directory: "+error.localizedDescription
 			return
 		}
 		let tempPath = tempURL.path
 		do {
+			// nb: we're running as old app when do this updating and so when copy from DMG
+			// new app should acquire same owner/group as old app
 			print("copying DMG contents to temp staging folder ",tempPath)
 			try? FileManager.default.removeItem(atPath: tempPath+"/"+appFile)
 			try FileManager.default.copyItem(atPath: mountPoint+"/"+appFile, toPath: tempPath+"/"+appFile)
 		} catch {
-			let msg = "Problem, couldn't copy DMG contents to temp folder: "+error.localizedDescription
-			unmount(mountPoint:mountPoint)
-			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
+			msg = "Problem, couldn't copy DMG contents to temp folder: "+error.localizedDescription
 			return
 		}
 		let p = URL(fileURLWithPath:appPath).path
 		print("appPath: ",p)
-		do {
-		  // for debugging
-			let attr = try FileManager.default.attributesOfItem(atPath:p) as NSDictionary
+		// for debugging
+		if let attr = try? FileManager.default.attributesOfItem(atPath:p) as NSDictionary {
 			print(attr)
 			print("octal permissions: ", String(attr.filePosixPermissions(), radix: 0o10))
-		} catch {
-			print("Problem, couldn't get attributes of "+p+": "+error.localizedDescription)
-			// non-fatal, we'll continue
 		}
+		if let attr = try? FileManager.default.attributesOfItem(atPath:"/Applications") as NSDictionary {
+			print(attr)
+			print("octal permissions: ", String(attr.filePosixPermissions(), radix: 0o10))
+		}
+		if let attr = try? FileManager.default.attributesOfItem(atPath:tempPath+"/"+appFile) as NSDictionary {
+			print(attr)
+			print("octal permissions: ", String(attr.filePosixPermissions(), radix: 0o10))
+		}
+		// TO DO: should we remove quarantine from new app ?
 		do {
 			if (Config.enableUpdates == 1) {
 				print("now copying contents of staging folder ",tempPath, " to final folder ", appPath)
 				_ = try FileManager.default.replaceItemAt(URL(fileURLWithPath:appPath), withItemAt: URL(fileURLWithPath: tempPath+"/"+appFile))
 			}
 		} catch {
-			let msg = "Problem, couldn't copy updated app into final location: "+error.localizedDescription
-			unmount(mountPoint:mountPoint)
-			DispatchQueue.main.async { self.showPopupMsg(msg:msg) }
-			return
+			// for debugging
+			if let err = error as NSError? {
+				print("Error trying to copy app into final location. Error Domain: ",err.domain, "Error Code: ",err.code,"Error Info: ",err.userInfo)
+			} else {
+				print("Couldn't convert error to NSError after trying to copy app into final location")
+			}
+			// fall back to using brute force and ask helper to move the app folder as root
+			if let msg_ptr = helper_cmd_install(tempPath, appPath, appFile) {
+				// if non-null response from helper_cmd_install its an error
+				let helper_msg = String(cString: msg_ptr);
+				msg = "Problem, couldn't copy updated app into final location: "+error.localizedDescription+"("+helper_msg+")"
+				return
+			}
+			print("Helper recovered from error trying to copy app into final location.")
 		}
-		
-		// unmount DMG
-		unmount(mountPoint:mountPoint)
-		
+				
 		// and now relaunch app
 		if (Config.enableUpdates == 1) {
-			DispatchQueue.main.async { self.showPopupMsg(msg: "Updated, restarting.") }
+			msg = "Updated, restarting."
 			restart_app()
 		} else {
 			window?.close()

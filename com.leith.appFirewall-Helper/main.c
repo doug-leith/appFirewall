@@ -41,6 +41,7 @@
 #include "dtrace.h"
 #include "send_rst.h"
 #include "catch_escapee.h"
+#include "cmd.h"
 
 #define LOGFILE "/Library/Logs/appFirewall-Helper.log"
 #define ROTFILE "/etc/newsyslog.d/appFirewall-Helper.conf"
@@ -149,6 +150,9 @@ int main(int argc, char *argv[]) {
 	start_catcher_listener();
 	INFO("catcher listener started\n");
 
+	start_cmd();
+	INFO("recv cmd started\n");
+	
 	// once we get this far any errors are treated as non-fatal i.e.
 	// won't kill process but instead will try to repair things
 	

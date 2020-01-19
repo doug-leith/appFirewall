@@ -61,6 +61,50 @@ int connect_to_helper(int port, int quiet) {
 	return sock;
 }
 
+char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* file) {
+	char* msg = NULL;
+	static char msg_buf[STR_SIZE];
+
+	if (strcmp(file,"appFirewall.app"))
+		return "Tried to call helper with invalid file";
+	int c_sock=-1;
+	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
+		return "Couldn't connect to helper";
+	}
+	ssize_t res;
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	uint8_t cmd = 1;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	size_t len = strnlen(src_dir, STR_SIZE);
+	if ( (res=send(c_sock, &len, sizeof(int), 0) )<=0) goto err;
+	if ( (res=send(c_sock, src_dir, len, 0) )<=0) goto err;
+	len = strnlen(dst_dir, STR_SIZE);
+	if ( (res=send(c_sock, &len, sizeof(int), 0) )<=0) goto err;
+	if ( (res=send(c_sock, dst_dir, len, 0) )<=0) goto err;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	int8_t ok=0;
+	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
+	if (ok != 1) {
+		WARN("helper_cmd_install: command execution failed, return value %d\n",ok);
+		snprintf(msg_buf,STR_SIZE, "helper command execution failed, return value %d\n",ok);
+		msg = msg_buf;
+	}
+	close(c_sock);
+	return msg;
+
+err:
+	if (errno == EAGAIN) {
+		WARN("helper_cmd_install timeout\n");
+		msg = "Timeout when calling helper";
+	} else {
+		WARN("helper_cmd_install: %s\n", strerror(errno));
+		snprintf(msg_buf,STR_SIZE,"helper socket error: %s",strerror(errno));
+		msg = msg_buf;
+	}
+	close(c_sock);
+	return msg;
+}
+
 void start_helper_listeners(int_sw dtrace, int_sw nstat) {
 	// fire up thread that listens for pkts sent by helper
 	start_listener(); // pkt sniffer

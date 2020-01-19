@@ -66,6 +66,7 @@
 		91ABB29823773595007F8FFE /* hostlists.c in Sources */ = {isa = PBXBuildFile; fileRef = 91ABB29723773595007F8FFE /* hostlists.c */; };
 		91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B590952390F7BC000F418D /* HyperlinkTextView.swift */; };
 		91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B5909923925620000F418D /* libdtrace.tbd */; };
+		91B976FE23D3108A00B4BE16 /* cmd.c in Sources */ = {isa = PBXBuildFile; fileRef = 91B976FD23D3108A00B4BE16 /* cmd.c */; };
 		91C0DF9923B0B05500E5215B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C0DF9823B0B05500E5215B /* AppDelegate.swift */; };
 		91C0DF9D23B0B05600E5215B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9C23B0B05600E5215B /* Assets.xcassets */; };
 		91C0DFA023B0B05600E5215B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9E23B0B05600E5215B /* Main.storyboard */; };
@@ -223,6 +224,8 @@
 		91B590952390F7BC000F418D /* HyperlinkTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperlinkTextView.swift; sourceTree = "<group>"; };
 		91B5909923925620000F418D /* libdtrace.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libdtrace.tbd; path = usr/lib/libdtrace.tbd; sourceTree = SDKROOT; };
 		91B67F2723793C1C00706027 /* TODO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
+		91B976FC23D3108A00B4BE16 /* cmd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cmd.h; sourceTree = "<group>"; };
+		91B976FD23D3108A00B4BE16 /* cmd.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = cmd.c; sourceTree = "<group>"; };
 		91C0DF9623B0B05500E5215B /* appFirewall-loginLaunch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "appFirewall-loginLaunch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		91C0DF9823B0B05500E5215B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91C0DF9C23B0B05600E5215B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -345,6 +348,8 @@
 				9180E1762389D4DB007002CB /* catch_escapee.h */,
 				9180E174238927A2007002CB /* catch_escapee.c */,
 				9135AEF823C3DA7700BBC39F /* conn.h */,
+				91B976FC23D3108A00B4BE16 /* cmd.h */,
+				91B976FD23D3108A00B4BE16 /* cmd.c */,
 			);
 			path = "com.leith.appFirewall-Helper";
 			sourceTree = "<group>";
@@ -609,6 +614,7 @@
 			files = (
 				9139F670237BB18600600D37 /* dtrace.c in Sources */,
 				9139F676237BB20F00600D37 /* util.c in Sources */,
+				91B976FE23D3108A00B4BE16 /* cmd.c in Sources */,
 				9180E175238927A2007002CB /* catch_escapee.c in Sources */,
 				9180E181238DECEB007002CB /* codesign.m in Sources */,
 				91607C2C2372FF7F002E50A8 /* main.c in Sources */,
@@ -790,7 +796,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.9.4;
+				MARKETING_VERSION = 1.9.5;
 				OTHER_CFLAGS = "";
 				"OTHER_CFLAGS[arch=*]" = "-Wthread-safety";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
@@ -833,7 +839,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.9.4;
+				MARKETING_VERSION = 1.9.5;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
 				PRODUCT_NAME = "$(TARGET_NAME)";

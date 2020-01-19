@@ -228,7 +228,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("process: ")
 		print("userName ",ProcessInfo.processInfo.userName)
 		print("environment ", ProcessInfo.processInfo.environment)
-
+				
 		if (is_app_already_running()) {
 			exit_popup(msg:"appFirewall is already running!", force: 0)
 		}
@@ -361,6 +361,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
 		NSApp.mainWindow?.delegate = self
+		
 	}
 	
 	func applicationWillTerminate(_ aNotification: Notification) {
