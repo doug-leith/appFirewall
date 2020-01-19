@@ -1,0 +1,3 @@
+#!/bin/bash
+appdmg appdmg.json appFirewall.dmg
+fileicon set appFirewall.dmg app.jpg
