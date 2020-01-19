@@ -10,8 +10,9 @@
 static list_t block_list=LIST_INITIALISER;
 static pthread_mutex_t block_mutex = MUTEX_INITIALIZER;
 // we keep a separate table of processes for which all conns are blocked
-static int blockall_list_size=0;
+static int blockall_list_size=0, blockdomain_list_size=0;
 static Hashtable *blockall_htab=NULL;
+static Hashtable *blockdomain_htab=NULL;
 
 char* bl_hash(const void *it) {
 	// generate table lookup key string from block list item
@@ -32,6 +33,8 @@ void init_block_list() {
 	if (blockall_htab!=NULL) hashtable_free(blockall_htab);
 	blockall_htab = hashtable_new(HTABSIZE);
 	blockall_list_size=0;
+	blockdomain_htab = hashtable_new(HTABSIZE);
+	blockdomain_list_size=0;
 }
 
 static int_sw asc=1, col=0;
@@ -118,6 +121,37 @@ void add_blockallitem(bl_item_t *item) {
 	sort_block_list(0, -1); // takes it own lock
 }
 
+void *in_blockdomainlist_htab(const bl_item_t *item, int debug) {
+	// called by is_blocked() and by GUI
+	TAKE_LOCK(&block_mutex,"in_blockdomainlist_htab()");
+	if (blockall_htab!=NULL) {
+		void* res = hashtable_get(blockdomain_htab, item->domain);
+		pthread_mutex_unlock(&block_mutex);
+		return res;
+	}
+	pthread_mutex_unlock(&block_mutex);
+	return NULL;
+}
+
+void add_blockdomainitem_htab(char *domain) {
+	printf("add_blockdomainitem_htab %s\n", domain);
+	hashtable_put(blockdomain_htab, domain, blockdomain_htab); // last parameter is just a placeholder
+	blockdomain_list_size++;
+}
+
+void add_blockdomainitem(bl_item_t *item) {
+	// take lock so we don't tread on toes of other threads reading list
+	TAKE_LOCK(&block_mutex,"add_blockdomainitem()");
+	add_blockdomainitem_htab(item->domain);
+	bl_item_t temp;
+	memcpy(&temp,item, sizeof(bl_item_t));
+	strlcpy(temp.name,ANYAPP,MAXCOMLEN);
+	add_item(&block_list, &temp, sizeof(bl_item_t));
+	pthread_mutex_unlock(&block_mutex);
+	
+	sort_block_list(0, -1); // takes it own lock
+}
+
 void add_blockitem(bl_item_t *item) {
 	// called by GUI
 	if (strcmp(item->name,NOTFOUND)==0) {
@@ -131,6 +165,11 @@ void add_blockitem(bl_item_t *item) {
 	if (strcmp(item->domain,ANYDOMAIN)==0) {
 		// we are blocking all connections for this process
 		add_blockallitem(item);
+		return;
+	}
+	if (strcmp(item->name,ANYAPP)==0) {
+		// we are blocking all apps for this domaon
+		add_blockdomainitem(item);
 		return;
 	}
 	
@@ -150,6 +189,13 @@ int del_blockitem(bl_item_t *item) {
 		} else {
 			if (hashtable_remove(blockall_htab, item->name)!=NULL)
 				blockall_list_size--;
+		}
+	} else if (strcmp(item->name,ANYAPP)==0) {
+		if (blockdomain_htab == NULL) { // shouldn't happen
+			WARN("blockdomain_htab==NULL in del_blockitem()\n");
+		} else {
+			if (hashtable_remove(blockdomain_htab, item->domain)!=NULL)
+				blockdomain_list_size--;
 		}
 	}
 	del_item(&block_list,item);
@@ -222,6 +268,7 @@ void load_blocklist(const char* fname) {
 		bl_item_t *b = (bl_item_t*)get_list_item(&block_list,i);
 		//printf("%s %s\n", b->name, b->domain);
 		if (strcmp(b->domain,ANYDOMAIN)==0) add_blockallitem_htab(b->name);
+		if (strcmp(b->name,ANYAPP)==0) add_blockdomainitem_htab(b->domain);
 	}
 	pthread_mutex_unlock(&block_mutex);
 	sort_block_list(0, -1); // takes its own lock

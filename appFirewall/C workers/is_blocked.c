@@ -19,6 +19,9 @@ int_sw blocked_status(bl_item_t *c) {
 	if (in_blockalllist_htab(c,0)!=NULL) {
 		// all conns for this process are blocked by user
 		blocked=1;
+	} else if (in_blockdomainlist_htab(c,0)!=NULL) {
+		// all apps for this domain are blocked by user
+		blocked=1;
 	} else if (in_blocklist_htab(c,0)!=NULL) {
 		// this conn is blocked by user
 		blocked=1;
@@ -35,7 +38,7 @@ int_sw blocked_status(bl_item_t *c) {
 
 int_sw is_white(bl_item_t *c) {
 	// user white list
-	return (in_whitelist_htab(c,0)!=NULL) || (in_allowalllist_htab(c,0)!=NULL);
+	return (in_whitelist_htab(c,0)!=NULL) || (in_allowalllist_htab(c,0)!=NULL) || (in_allowdomainlist_htab(c,0)!=NULL);
 }
 
 int_sw is_blocked(bl_item_t *c) {

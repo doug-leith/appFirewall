@@ -20,8 +20,10 @@
 void init_white_list(void);
 bl_item_t *in_whitelist_htab(const bl_item_t *item, int debug);
 void *in_allowalllist_htab(const bl_item_t *item, int debug);
+void *in_allowdomainlist_htab(const bl_item_t *item, int debug);
 void add_whiteitem(bl_item_t *item);
 void add_allowallitem(bl_item_t *item);
+void add_allowdomainitem(bl_item_t *item);
 int del_whiteitem(bl_item_t *item);
 
 // swift

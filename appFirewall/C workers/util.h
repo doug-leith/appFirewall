@@ -44,6 +44,7 @@ extern int verbose;          // debugging level
 #define SND_TIMEOUT 20 // socket send timeout, nice and long
 #define NOTFOUND "<not found>" // label for connections for which process not found
 #define ANYDOMAIN "<all connections>" // label for blocking all conns
+#define ANYAPP "<all apps>" // label for blocking all conns
 
 // for debugging locks
 #define MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER

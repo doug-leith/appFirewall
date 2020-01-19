@@ -31,8 +31,10 @@ class appViewController: NSViewController {
 		let menu = NSMenu()
 		menu.addItem(NSMenuItem(title: "Copy", action: #selector(copyLine), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Get Info", action: #selector(getInfo), keyEquivalent: ""))
-		menu.addItem(NSMenuItem(title: "Block all connections for this app", action: #selector(blockAll), keyEquivalent: ""))
-		menu.addItem(NSMenuItem(title: "Allow all connections for this app", action: #selector(allowAll), keyEquivalent: ""))
+		menu.addItem(NSMenuItem(title: "Block this app for all domains", action: #selector(blockAll), keyEquivalent: ""))
+		menu.addItem(NSMenuItem(title: "Block this domain for all apps", action: #selector(blockDomain), keyEquivalent: ""))
+		menu.addItem(NSMenuItem(title: "Allow this app for all domains", action: #selector(allowAll), keyEquivalent: ""))
+		menu.addItem(NSMenuItem(title: "Allow this domain for all apps", action: #selector(allowDomain), keyEquivalent: ""))
 		// force using ! since shouldn't fail here and its serious if it does
 		guard tableView != nil else {
 			print("ERROR: appViewDidLoad() tableView is nil!");
@@ -189,6 +191,14 @@ class appViewController: NSViewController {
 		add_blockallitem(&bl_item);
 	}
 	
+	@objc func blockDomain(sender: AnyObject?){
+		guard let row = appTableView?.selectedRow else {print("WARNING: problem in blockDomain getting selected row"); return}
+		if (row<0) { return }
+		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in blockDomain getting cell"); return}
+		guard var bl_item = cell.bl_item else {return}
+		add_blockdomainitem(&bl_item);
+	}
+	
 	@objc func allowAll(sender: AnyObject?){
 		guard let row = appTableView?.selectedRow else {print("WARNING: problem in allowAll getting selected row"); return}
 		if (row<0) { return }
@@ -201,6 +211,14 @@ class appViewController: NSViewController {
 			return
 		}*/
 		add_allowallitem(&bl_item);
+	}
+	
+	@objc func allowDomain(sender: AnyObject?){
+		guard let row = appTableView?.selectedRow else {print("WARNING: problem in allowDomain getting selected row"); return}
+		if (row<0) { return }
+		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowDomain getting cell"); return}
+		guard var bl_item = cell.bl_item else {return}
+		add_allowdomainitem(&bl_item);
 	}
 	
 	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {
