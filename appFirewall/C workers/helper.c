@@ -131,6 +131,7 @@ char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* f
 	}
 	ssize_t res;
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	printf("helper_cmd_install src_dir=%s, dst_dir=%s\n",src_dir,dst_dir);
 	uint8_t cmd = 1;
 	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
 	size_t len = strnlen(src_dir, STR_SIZE);

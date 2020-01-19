@@ -227,12 +227,13 @@ class UpdateInstallerViewController: NSViewController {
 		} catch {
 			// for debugging
 			if let err = error as NSError? {
-				print("Error trying to copy app into final location. Error Domain: ",err.domain, "Error Code: ",err.code,"Error Info: ",err.userInfo)
+				print("Error trying to copy app into final location. Error Domain: ",err.domain, " Error Code: ",err.code," Error Info: ",err.userInfo)
 			} else {
 				print("Couldn't convert error to NSError after trying to copy app into final location")
 			}
 			// fall back to using brute force and ask helper to move the app folder as root
 			let appDirPath = URL(fileURLWithPath:appPath).deletingLastPathComponent().path
+			print("appDirPath: ",appDirPath, "tempPath: ",tempPath)
 			if let msg_ptr = helper_cmd_install(tempPath, appDirPath, appFile) {
 				// if non-null response from helper_cmd_install its an error
 				let helper_msg = String(cString: msg_ptr);
