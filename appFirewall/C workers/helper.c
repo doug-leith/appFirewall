@@ -61,6 +61,64 @@ int connect_to_helper(int port, int quiet) {
 	return sock;
 }
 
+int block_QUIC() {
+	int c_sock=-1;
+	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
+		return -1;
+	}
+	ssize_t res;
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	uint8_t cmd = 2;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	int8_t ok=0;
+	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
+	close(c_sock);
+	if (ok != 1) {
+		WARN("block_QUIC: command execution failed, return value %d\n",ok);
+		return -1;
+	}
+	return 1;
+
+err:
+	close(c_sock);
+	if (errno == EAGAIN) {
+		WARN("block_QUIC timeout\n");
+	} else {
+		WARN("block_QUIC: %s\n", strerror(errno));
+	}
+	return -1;
+}
+
+int unblock_QUIC() {
+	int c_sock=-1;
+	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
+		return -1;
+	}
+	ssize_t res;
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	uint8_t cmd = 3;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	int8_t ok=0;
+	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
+	close(c_sock);
+	if (ok != 1) {
+		WARN("unblock_QUIC: command execution failed, return value %d\n",ok);
+		return -1;
+	}
+	return 1;
+
+err:
+	close(c_sock);
+	if (errno == EAGAIN) {
+		WARN("unblock_QUIC timeout\n");
+	} else {
+		WARN("unblock_QUIC: %s\n", strerror(errno));
+	}
+	return -1;
+}
+
 char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* file) {
 	char* msg = NULL;
 	static char msg_buf[STR_SIZE];

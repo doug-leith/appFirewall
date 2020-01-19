@@ -24,5 +24,7 @@ void stop_listener(void); // sniffer_blocker.h
 void start_helper_listeners(int_sw dtrace, int_sw nstat);
 void stop_helper_listeners(void);
 char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* file);
+int unblock_QUIC(void);
+int block_QUIC(void);
 
 #endif /* helper_h */

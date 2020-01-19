@@ -133,7 +133,7 @@ class Config: NSObject {
 					// fall back to using a builtin icon, this should always work
 					button.image = NSImage(named:NSImage.Name(NSImage.quickLookTemplateName))
 					if (button.image == nil) {
-						print("Menubar button image is *still* nil")
+						print("Menubar button image is *still* nil, disabling button")
 						delegate.statusItem.isVisible = false
 						useMenuBar(value:false) // disable menubar
 					}
@@ -141,7 +141,7 @@ class Config: NSObject {
 				button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 				button.action = #selector(delegate.openapp(_:))
 			} else {
-				print("Problem getting menubar button, ", delegate.statusItem, delegate.statusItem.button ?? "nil")
+				print("Problem getting menubar button, disabling button: ", delegate.statusItem, delegate.statusItem.button ?? "nil")
 				delegate.statusItem.isVisible = false
 				useMenuBar(value:false) // disable menubar
 			}
@@ -149,7 +149,17 @@ class Config: NSObject {
 	}
 	
 	static func initBlockQUIC() {
-		// do nothing (yet)
+		if (getBlockQUIC() == false) {
+			if (unblock_QUIC() < 0) {
+				print("Problem trying to unblock QUIC")
+				// should we blockQUIC(value:true) since it might still be enabled ?
+			}
+		} else {
+			if (block_QUIC() < 0) {
+				print("Problem trying to block QUIC")
+				blockQUIC(value:false)
+			}
+		}
 	}
 	
 	static func initLoad() {

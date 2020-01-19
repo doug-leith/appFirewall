@@ -46,11 +46,11 @@
 	<key>NSSupportsAutomaticTermination</key>
 	<true/>
 	<key>NSSupportsSuddenTermination</key>
-	<true/>
+	<false/>
 	<key>SMPrivilegedExecutables</key>
 	<dict>
 		<key>com.leith.appFirewall-Helper</key>
-		<string>identifier "com.leith.appFirewall-Helper"</string>
+		<string>identifier &quot;com.leith.appFirewall-Helper&quot;</string>
 	</dict>
 </dict>
 </plist>

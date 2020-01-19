@@ -99,6 +99,27 @@ void* cmd_accept_loop(void* ptr) {
 					printf("install update successful\n");
 					ok = 1;
 					break;
+				case 2:
+					//sudo pfctl -a com.apple/appFirewall -s rules // list rules
+					printf("Received block QUIC command\n");
+					snprintf(cmd_str,STR_SIZE,"/bin/echo \"block drop quick proto udp from any to any port 443\" | /sbin/pfctl -a com.apple/appFirewall -f -");
+					printf("block QUIC do: %s\n",cmd_str);
+					if ((res=system(cmd_str)) != 0) {
+						WARN("Problem blocking QUIC, res=%zd\n",res);
+						break;
+					}
+					printf("Block QUIC command successful\n");
+					ok = 1;
+					break;
+				case 3:
+					printf("Received unblock QUIC command\n");
+					if ((res=system("/sbin/pfctl -a com.apple/appFirewall -F rules")) != 0) {
+						WARN("Problem unblocking QUIC, res=%zd\n",res);
+						break;
+					}
+					printf("Unblock QUIC command successful\n");
+					ok = 1;
+					break;
 				default:
 					WARN("Unexpected command received: %d\n", cmd);
 					break; // close connection

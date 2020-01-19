@@ -355,6 +355,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		print("stopping")
 		//stop_listener()
 		stop_helper_listeners()
+		if (Config.getBlockQUIC()) { unblock_QUIC() }
 	}
 	
 	func applicationDidEnterBackground(_ aNotification: Notification) {
@@ -372,7 +373,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate: NSWindowDelegate {
 	func windowWillClose(_ notification: Notification) {
-		print("window close")
 		// hide the dock icon and main menu
 		disableMenu()
 	}

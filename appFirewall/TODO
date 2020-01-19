@@ -13,8 +13,3 @@ longer term:
 7. compress log samples uploaded to server?
 
 
-sudo pfctl -a appFirewall -F rules // flush rules
-sudo pfctl -a appFirewall -s rules // list rules
-echo -e "block drop quick proto udp from any to any port 443\nblock drop quick inet6 proto udp from any to any port 443" | sudo pfctl -a com.apple/appFirewall -f -
-
-
