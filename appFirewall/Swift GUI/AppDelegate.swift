@@ -21,7 +21,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	var count_stats: Int = 0
 	// menubar button ...
 	var statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
-	var menubarOk: Bool = false
 
 	//--------------------------------------------------------
 	// menu item event handlers
@@ -99,8 +98,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	}
 	
 	func disableMenu() {
-		// hide the dock icon and main menu
-		NSApp.setActivationPolicy(.accessory)
+		if (Config.getUseMenuBar()) {
+			// hide the dock icon and main menu
+			NSApp.setActivationPolicy(.accessory)
+		}
 	}
 	
 	func enableMenu() {
@@ -120,12 +121,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	// handle click on menubar item
 	@objc func openapp(_ sender: Any?) {
 		// reopen window
-		
-		// we've clicked on menubar button so it must exist !
-		// record this fact, so we can can now safely remove icon from Dock when
-		// next close window.
-		if (sender != nil) { menubarOk = true }
-		
+			
 		// if window already exists,and it should since we don't
 		// release it on close, then we just reopen it.
 		// hopefully this should work almost all of the time
@@ -282,7 +278,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// reset, force is one time only
 		UserDefaults.standard.set(false, forKey: "force_helper_restart")
 		
-		// setup menubar action
+		/*// setup menubar action
 		let val = UserDefaults.standard.integer(forKey: "Number of connections blocked")
 		set_num_conns_blocked(Int32(val))
 		if let button = statusItem.button {
@@ -299,19 +295,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			button.action = #selector(openapp(_:))
 		} else {
 			print("Problem getting menubar button, ", statusItem, statusItem.button ?? "nil")
-		}
-		// for debugging
-		/*print("Menubar button info:")
-		dump(statusItem)
-		dump(statusItem.button)
-		print("appearsDisabled:", statusItem.button?.appearsDisabled as Any)
-		print("image:", statusItem.button?.image as Any)
-		print("state:", statusItem.button?.state as Any)
-		print("isEnabled:", statusItem.button?.isEnabled as Any)
-		print("action:",statusItem.button?.action as Any)
-		print("fittingSize:",statusItem.button?.fittingSize as Any)
-		print("isHidden:",statusItem.button?.isHidden as Any)*/
-		
+		}*/
+	
 		// set default display state for GUI
 		UserDefaults.standard.register(defaults: ["active_asc":true])
 		UserDefaults.standard.register(defaults: ["blocklist_asc":true])
@@ -389,6 +374,6 @@ extension AppDelegate: NSWindowDelegate {
 	func windowWillClose(_ notification: Notification) {
 		print("window close")
 		// hide the dock icon and main menu
-		if (menubarOk) { disableMenu() }
+		disableMenu()
 	}
 }

@@ -1276,12 +1276,36 @@
                                     <action selector="runAtLoginClick:" target="XPy-PT-yGD" id="S6j-fc-jAZ"/>
                                 </connections>
                             </button>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0rF-Ul-Mtb">
+                                <rect key="frame" x="40" y="164" width="120" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="check" title="Enable Menubar" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="0bp-9C-D1A">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="useMenuBarClick:" target="XPy-PT-yGD" id="eNQ-Z3-cDn"/>
+                                </connections>
+                            </button>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8cJ-0h-doJ">
+                                <rect key="frame" x="40" y="123" width="184" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="check" title="Block QUIC (Experimental)" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="KFp-N0-gzf">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="blockQUICClick:" target="XPy-PT-yGD" id="mRQ-1w-aqb"/>
+                                </connections>
+                            </button>
                         </subviews>
                     </view>
                     <connections>
                         <outlet property="autoCheckUpdates" destination="Wb7-4A-Hag" id="ude-Me-fbQ"/>
                         <outlet property="autoUpdate" destination="4vg-zR-jeb" id="0rT-bj-5rF"/>
+                        <outlet property="blockQUIC" destination="8cJ-0h-doJ" id="Zw6-s1-umj"/>
                         <outlet property="runAtLogin" destination="Y6R-QM-wQC" id="eOM-uN-a4f"/>
+                        <outlet property="useMenuBar" destination="0rF-Ul-Mtb" id="WAQ-xj-S0S"/>
                     </connections>
                 </viewController>
                 <customObject id="J8x-W8-jtO" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>

@@ -8,6 +8,7 @@
 
 import Foundation
 import ServiceManagement
+import AppKit
 
 class Config: NSObject {
 	// fixed settings ...
@@ -113,17 +114,59 @@ class Config: NSObject {
 			SMLoginItemSetEnabled("com.leith.appFirewall-loginLaunch" as CFString, false)
 		}
 	}
+	
+	static func initMenuBar() {
+		// setup menubar action
+		guard let delegate = NSApp.delegate as? AppDelegate else { print("Problem getting delegatre in Config.initMenuBar"); useMenuBar(value:false); return}
+
+		if (getUseMenuBar() == false) {
+			delegate.statusItem.isVisible = false
+			return
+		} else {
+			delegate.statusItem.isVisible = true
+			let val = UserDefaults.standard.integer(forKey: "Number of connections blocked")
+			set_num_conns_blocked(Int32(val))
+			if let button = delegate.statusItem.button {
+				button.image = NSImage(named:NSImage.Name("StatusBarButtonImage"))
+				if (button.image == nil) {
+					print("Menubar button image is nil, falling back to using builtin image")
+					// fall back to using a builtin icon, this should always work
+					button.image = NSImage(named:NSImage.Name(NSImage.quickLookTemplateName))
+					if (button.image == nil) {
+						print("Menubar button image is *still* nil")
+						delegate.statusItem.isVisible = false
+						useMenuBar(value:false) // disable menubar
+					}
+				}
+				button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
+				button.action = #selector(delegate.openapp(_:))
+			} else {
+				print("Problem getting menubar button, ", delegate.statusItem, delegate.statusItem.button ?? "nil")
+				delegate.statusItem.isVisible = false
+				useMenuBar(value:false) // disable menubar
+			}
+		}
+	}
+	
+	static func initBlockQUIC() {
+		// do nothing (yet)
+	}
+	
 	static func initLoad() {
 		// called by app delegate at startup
 		load_hostlists()
 		initTimedCheckForUpdate()
 		initRunAtLogin()
+		initMenuBar()
+		initBlockQUIC()
 	}
 	
 	static func refresh() {
 		// run after updating config
 		initTimedCheckForUpdate()
 		initRunAtLogin()
+		initMenuBar()
+		initBlockQUIC()
 	}
 	
 	static func autoCheckUpdates(value: Bool) {
@@ -136,6 +179,14 @@ class Config: NSObject {
 	
 	static func runAtLogin(value: Bool) {
 		UserDefaults.standard.set(value, forKey: "runAtLogin")
+	}
+	
+	static func useMenuBar(value: Bool) {
+		UserDefaults.standard.set(value, forKey: "useMenuBar")
+	}
+
+	static func blockQUIC(value: Bool) {
+		UserDefaults.standard.set(value, forKey: "blockQUIC")
 	}
 
 	static func getSetting(label: String, def: Bool)->Bool {
@@ -153,6 +204,14 @@ class Config: NSObject {
 
 	static func getRunAtLogin()->Bool {
 		return getSetting(label: "runAtLogin", def: false)
+	}
+
+	static func getUseMenuBar()->Bool {
+		return getSetting(label: "useMenuBar", def: true)
+	}
+
+	static func getBlockQUIC()->Bool {
+		return getSetting(label: "blockQUIC", def: false)
 	}
 
   static func updateAvailableLists() {

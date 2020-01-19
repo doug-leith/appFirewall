@@ -13,7 +13,9 @@ class SettingsViewController: NSViewController {
 	@IBOutlet weak var autoCheckUpdates: NSButton!
 	@IBOutlet weak var autoUpdate: NSButton!
 	@IBOutlet weak var runAtLogin: NSButton!
-
+	@IBOutlet weak var useMenuBar: NSButton!
+	@IBOutlet weak var blockQUIC: NSButton!
+	
 	func boolToState(value: Bool) -> NSControl.StateValue {
 		if (value) {
 			return .on
@@ -35,6 +37,8 @@ class SettingsViewController: NSViewController {
 		autoCheckUpdates.state = boolToState(value: Config.getAutoCheckUpdates())
 		autoUpdate.state = boolToState(value: Config.getAutoUpdate())
 		runAtLogin.state = boolToState(value: Config.getRunAtLogin())
+		useMenuBar.state = boolToState(value: Config.getUseMenuBar())
+		blockQUIC.state = boolToState(value: Config.getBlockQUIC())
 		//runAtLogin.isEnabled = false // for now
 	}
 	
@@ -52,4 +56,14 @@ class SettingsViewController: NSViewController {
 		Config.refresh()
 	}
 	
+	@IBAction func useMenuBarClick(_ sender: Any) {
+		Config.useMenuBar(value: stateToBool(state:useMenuBar.state))
+		Config.refresh()
+	}
+	
+	
+	@IBAction func blockQUICClick(_ sender: Any) {
+		Config.blockQUIC(value: stateToBool(state:blockQUIC.state))
+		Config.refresh()
+	}
 }
