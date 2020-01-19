@@ -220,7 +220,6 @@ class UpdateInstallerViewController: NSViewController {
 		}
 		// TO DO: should we remove quarantine from new app ?
 		do {
-			throw CocoaError(.fileWriteNoPermission) // for testing
 			if (Config.enableUpdates == 1) {
 				print("now copying contents of staging folder ",tempPath, " to final folder ", appPath)
 				_ = try FileManager.default.replaceItemAt(URL(fileURLWithPath:appPath), withItemAt: URL(fileURLWithPath: tempPath+"/"+appFile))
