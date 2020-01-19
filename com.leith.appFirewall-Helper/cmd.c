@@ -48,19 +48,23 @@ void* cmd_accept_loop(void* ptr) {
 			switch (cmd) {
 				case 1:
 					// install update
+					printf("Received install update command\n");
 					if ( (res=readn(s2, &src_len, sizeof(size_t)) )<=0) break;
 					if ((src_len<0) || (src_len>STR_SIZE)) break;
 					if ( (res=readn(s2, src, src_len) )<=0) break;
 					if ( (res=readn(s2, &dst_len, sizeof(size_t)) )<=0) break;
 					if ((dst_len<0) || (dst_len>STR_SIZE)) break;
 					if ( (res=readn(s2, dst, dst_len) )<=0) break;
+					printf("Received install update command parameters: src %s, dst %s\n",src,dst);
+					
 					// values passed in are the src and dst directories, so add filename
 					// (use a fixed filename to add a bit of extra safety since running as root)
-					strlcat(src,"appFirewall.app",STR_SIZE);
-					strlcat(dst,"appFirewall.app",STR_SIZE);
+					strlcat(src,"/appFirewall.app",STR_SIZE);
+					strlcat(dst,"/appFirewall.app",STR_SIZE);
 					
 					char *rm = "/bin/rm", *mv = "/bin/mv";
 					snprintf(cmd_str,STR_SIZE,"%s -rf %s.bak",rm,dst);
+					printf("install update do: %s\n",cmd_str);
 					if ((res=system(cmd_str))!=0) {
 						WARN("Problem executing command %s: %s (res=%zd)", cmd_str, strerror(errno), res);
 						ok = -1;
@@ -68,13 +72,15 @@ void* cmd_accept_loop(void* ptr) {
 					}
 					// keep copy of existing app
 					snprintf(cmd_str,STR_SIZE,"%s %s %s.bak",mv,dst,dst);
+					printf("install update do: %s\n",cmd_str);
 					if ((res=system(cmd_str))!=0) {
 						WARN("Problem executing command %s: %s (res=%zd)", cmd_str, strerror(errno), res);
 						ok = -2;
 						break;
 					}
 					// install new app
-					snprintf(cmd_str,STR_SIZE,"%s %s %s",mv,src,dst);
+					snprintf(cmd_str,STR_SIZE,"%s '%s' %s",mv,src,dst);
+					printf("install update do: %s\n",cmd_str);
 					if ((res=system(cmd_str))!=0) {
 						WARN("Problem installing update using %s: %s (res=%zd)", cmd_str, strerror(errno), res);
 						// try to restore old app
@@ -85,10 +91,12 @@ void* cmd_accept_loop(void* ptr) {
 					}
 					// successful install, tidy up
 					snprintf(cmd_str,STR_SIZE,"%s -rf %s.bak",rm, dst);
+					printf("install update do: %s\n",cmd_str);
 					if ((res=system(cmd_str))!=0) {
 						WARN("Problem removing backup with command %s: %s (res=%zd)", cmd_str, strerror(errno), res);
-						// not fatal
+						// not fatal ?
 					}
+					printf("install update successful\n");
 					ok = 1;
 					break;
 				default:

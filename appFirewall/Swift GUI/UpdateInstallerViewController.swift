@@ -220,6 +220,7 @@ class UpdateInstallerViewController: NSViewController {
 		}
 		// TO DO: should we remove quarantine from new app ?
 		do {
+			throw CocoaError(.fileWriteNoPermission) // for testing
 			if (Config.enableUpdates == 1) {
 				print("now copying contents of staging folder ",tempPath, " to final folder ", appPath)
 				_ = try FileManager.default.replaceItemAt(URL(fileURLWithPath:appPath), withItemAt: URL(fileURLWithPath: tempPath+"/"+appFile))
@@ -232,7 +233,8 @@ class UpdateInstallerViewController: NSViewController {
 				print("Couldn't convert error to NSError after trying to copy app into final location")
 			}
 			// fall back to using brute force and ask helper to move the app folder as root
-			if let msg_ptr = helper_cmd_install(tempPath, appPath, appFile) {
+			let appDirPath = URL(fileURLWithPath:appPath).deletingLastPathComponent().path
+			if let msg_ptr = helper_cmd_install(tempPath, appDirPath, appFile) {
 				// if non-null response from helper_cmd_install its an error
 				let helper_msg = String(cString: msg_ptr);
 				msg = "Problem, couldn't copy updated app into final location: "+error.localizedDescription+"("+helper_msg+")"

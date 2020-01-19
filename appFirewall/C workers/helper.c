@@ -76,10 +76,10 @@ char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* f
 	uint8_t cmd = 1;
 	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
 	size_t len = strnlen(src_dir, STR_SIZE);
-	if ( (res=send(c_sock, &len, sizeof(int), 0) )<=0) goto err;
+	if ( (res=send(c_sock, &len, sizeof(size_t), 0) )<=0) goto err;
 	if ( (res=send(c_sock, src_dir, len, 0) )<=0) goto err;
 	len = strnlen(dst_dir, STR_SIZE);
-	if ( (res=send(c_sock, &len, sizeof(int), 0) )<=0) goto err;
+	if ( (res=send(c_sock, &len, sizeof(size_t), 0) )<=0) goto err;
 	if ( (res=send(c_sock, dst_dir, len, 0) )<=0) goto err;
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
 	int8_t ok=0;
