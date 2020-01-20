@@ -246,6 +246,7 @@ class UpdateInstallerViewController: NSViewController {
 		// and now relaunch app
 		if (Config.enableUpdates == 1) {
 			msg = "Updated, restarting."
+			sleep(5) // so user can see restart message
 			restart_app()
 		} else {
 			window?.close()

@@ -187,11 +187,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 	@objc func refreshLogs() {
 		save_log(Config.logName)
+		
+		let date = UserDefaults.standard.object(forKey: "lastSampleDate") as? NSDate
+		if (date == nil) { // first time sent a sample
+			UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
+		} else {
+			if let diff = date?.timeIntervalSinceNow {
+				if (diff < -Config.sampleInterval) {
+					sampleLogData(fname: Config.logTxtName) // send a sample from log file
+					UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
+				}
+			} else {
+				print("WARNING: Problem getting time interval in refreshLogs()")
+			}
+		}
 		if (need_log_rotate(logName: Config.logTxtName)) {
 			close_logtxt() // close human-readable log file
 			log_rotate(logName: Config.logTxtName)
 			open_logtxt(Config.logTxtName); // open new log file
-			sampleLogData(fname: Config.logTxtName+"0") // senda sample of last log file
+			sampleLogData(fname: Config.logTxtName+"0") // send a sample of last log file
+			UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
 		}
 		if (need_log_rotate(logName: Config.appLogName)) {
 			log_rotate(logName: Config.appLogName)
