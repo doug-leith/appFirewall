@@ -548,6 +548,8 @@ void start_listener() {
 
 void stop_listener() {
 	pthread_kill(thread, SIGTERM);
+	pthread_join(thread,NULL);
+	close(p_sock); // end connection to helper, this will let helper close pktap dev
 }
 
 int sniffer_blocker_error() {

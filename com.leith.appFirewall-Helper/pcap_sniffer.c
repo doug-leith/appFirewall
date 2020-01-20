@@ -13,6 +13,7 @@ static int p_sock, p_sock2=-1;
 static int pid = -1;
 static pthread_t listener_thread; // handle to listener thread
 static int are_sniffing = 0;
+static sniffers_t sn_pktap;
 
 // syns and syn-acks, DNS and mDNS, UDP on ports 443 likely to be quic
 // tcpflags doesn't work for ipv6, sigh.
@@ -720,6 +721,14 @@ void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_e
 
 }
 
+void stop_sniffer() {
+	are_sniffing = 0;
+	for (int i=0; i<sn_pktap.num_pds; i++) {
+		if (sn_pktap.sn[i].pd) pcap_close(sn_pktap.sn[i].pd);
+		sn_pktap.sn[i].pd = NULL;
+	}
+}
+
 void *listener(void *ptr) {
 	// wait in accept() loop to handle connections from GUI to receive pcap info
 	struct sockaddr_in remote;
@@ -756,7 +765,7 @@ void *listener(void *ptr) {
 			INFO("Interfaces up, pcap loop continuing.\n");
 		}
 		are_sniffing = 1;
-		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp, NULL, USE_PKTAP);
+		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp, &sn_pktap, USE_PKTAP);
 		close(p_sock2);
 	}
 	return NULL;

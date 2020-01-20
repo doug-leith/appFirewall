@@ -20,5 +20,6 @@
 #define CATCHER_PORT 5
 
 void start_catcher_listener(void);
+void stop_catcher(void);
 
 #endif /* catch_escapee_h */

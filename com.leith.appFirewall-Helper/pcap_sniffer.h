@@ -117,6 +117,7 @@ void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_ch
 void *listener(void *ptr);
 void start_listener(void);
 void close_sniffer_sock(void);
+void stop_sniffer(void);
 int get_DLT_offset2(int datalink);
 
 #endif /* pcap_sniffer_h */

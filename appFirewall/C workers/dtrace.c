@@ -146,6 +146,8 @@ void start_dtrace_listener() {
 
 void stop_dtrace_listener() {
 	pthread_kill(thread, SIGTERM);
+	pthread_join(thread,NULL);
+	close(d_sock);
 }
 
 int dtrace_error() {

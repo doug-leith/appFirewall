@@ -56,6 +56,7 @@
 void sigterm_handler(int signum) {
 	INFO("signal %d (SIGTERM=%d) received.\n", signum, SIGTERM);
 	INFO("appFirewall-Helper exiting.\n");
+	stop_sniffer(); stop_catcher(); // release /dev/bpf
 	exit(EXIT_SUCCESS);
 }
 

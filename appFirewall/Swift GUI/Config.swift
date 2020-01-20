@@ -52,7 +52,7 @@ class Config: NSObject {
 	static let dnsConnListName = "dns_connlist.dat"
 	
 	static let appDelegateRefreshTime : Double = 10 // check state every 10s
-	static let appDelegateFileRefreshTime : Double = 30 // save log every 30s
+	static let appDelegateFileRefreshTime : Double = 300 // save log every 5min
 	static let appDelegateStatsRefreshTime : Double = 600 // print stats every 10min
 	static let viewRefreshTime : Double = 1 // check for window uodate every 1s
 

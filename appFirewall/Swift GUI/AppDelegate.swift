@@ -350,10 +350,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	}
 	
 	func applicationWillTerminate(_ aNotification: Notification) {
-		// Insert code here to tear down your application
-		// NB: don't think this function is *ever* called
 		print("stopping")
-		//stop_listener()
+		// viewWillDisappear() event is triggered for any open windows
+		// and will call save_state(), so no need to do it again here
 		stop_helper_listeners()
 		if (Config.getBlockQUIC()) { unblock_QUIC() }
 	}
@@ -366,6 +365,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	func applicationShouldHandleReopen(_ sender: NSApplication,
 	hasVisibleWindows flag: Bool)->Bool {
+		// called when click on dock icon to reopen window
 		openapp(nil)
 		return true
 	}
