@@ -217,6 +217,40 @@ func setColor(cell: NSTableCellView, udp: Bool, white: Int, blocked: Int) {
 
 import Compression
 
+func getSampleDir()->String? {
+	let sampleDir = String(cString:get_path())+"samples/"
+	if !FileManager.default.fileExists(atPath: sampleDir) {
+			do {
+					try FileManager.default.createDirectory(atPath: sampleDir, withIntermediateDirectories: true, attributes: nil)
+					print("created "+sampleDir)
+			} catch {
+					print("WARNING: problem making sample dir: "+error.localizedDescription);
+					return nil
+			}
+	}
+	return sampleDir
+}
+
+func uploadSample(str: String, type: String) {
+	var request = URLRequest(url: Config.sampleURL); request.httpMethod = "POST"
+	let uploadData=(type+"="+String(str)+"&compression=none").data(using: .ascii)
+	let session = URLSession(configuration: .default)
+	let task = session.uploadTask(with: request, from: uploadData)
+			{ data, response, error in
+			if let error = error {
+					print ("WARNING: error when sending app sample: \(error)")
+					return
+			}
+			if let resp = response as? HTTPURLResponse {
+				if !(200...299).contains(resp.statusCode) {
+					print ("WARNING: server error when sending app sample: ",resp.statusCode)
+				}
+			}
+	}
+	task.resume()
+	session.finishTasksAndInvalidate()
+}
+
 func sampleLogData(fname: String) {
 	// upload a sample from the app connection log
 	let path = String(cString:get_path())+fname
@@ -277,43 +311,19 @@ func sampleLogData(fname: String) {
 				print("Encoding failed.")
 		}*/
 		// now upload
-		var request = URLRequest(url: Config.sampleURL); request.httpMethod = "POST"
-		let uploadData=("sample="+String(str)+"&compression=none").data(using: .ascii)
-		let session = URLSession(configuration: .default)
-		let task = session.uploadTask(with: request, from: uploadData)
-				{ data, response, error in
-				if let error = error {
-						print ("WARNING: error when sending app sample: \(error)")
-						return
-				}
-				if let resp = response as? HTTPURLResponse {
-					if !(200...299).contains(resp.statusCode) {
-						print ("WARNING: server error when sending app sample: ",resp.statusCode)
-					}
-				}
-		}
-		task.resume()
-		session.finishTasksAndInvalidate()
+		uploadSample(str: str, type: "sample")
 		// and save a copy to ~/Library/Application Support/appFilewall/samples/
 		// so that use has a record of what has been uploaded
-		let sampleDir = String(cString:get_path())+"samples/"
-		if !FileManager.default.fileExists(atPath: sampleDir) {
-				do {
-						try FileManager.default.createDirectory(atPath: sampleDir, withIntermediateDirectories: true, attributes: nil)
-						print("created "+sampleDir)
-				} catch {
-						print("WARNING: problem making sample dir: "+error.localizedDescription);
-						return
-				}
-		}
-		let dateString = String(cString:get_date())
-		let dateString2 = dateString.replacingOccurrences(of: " ", with: "_", options: .literal, range: nil)
-		let sampleFile = sampleDir + "sample_" + dateString2
-		print("uploaded sample of app connections to ", Config.sampleURL, " and saved copy in ",sampleFile)
-		do {
-			try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
-		} catch {
-			print("WARNING: problem saving "+sampleFile+":"+error.localizedDescription)
+		if let sampleDir = getSampleDir() {
+			let dateString = String(cString:get_date())
+			let dateString2 = dateString.replacingOccurrences(of: " ", with: "_", options: .literal, range: nil)
+			let sampleFile = sampleDir + "sample_" + dateString2
+			print("uploaded sample of app connections to ", Config.sampleURL, " and saved copy in ",sampleFile)
+			do {
+				try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
+			} catch {
+				print("WARNING: problem saving "+sampleFile+":"+error.localizedDescription)
+			}
 		}
 	} catch {
 		print("WARNING: sampleLogData() problem reading ",path,":", error.localizedDescription)
@@ -389,4 +399,55 @@ func updatePopup(msg: String, autoUpdate: Bool) {
 	let storyboard = NSStoryboard(name:"Main", bundle:nil)
 	let controller : UpdateInstallerViewController = storyboard.instantiateController(withIdentifier: "UpdateInstallerViewController") as! UpdateInstallerViewController
 	controller.start(autoUpdate: autoUpdate, msg: msg)
+}
+
+func runCmd(cmd: String, args: [String])->String {
+	let task = Process();
+	task.launchPath = cmd
+	task.arguments = args
+	let pipe = Pipe()
+	task.standardOutput = pipe
+	task.standardError = pipe
+	task.launch()
+	let resp = pipe.fileHandleForReading.readDataToEndOfFile()
+	task.waitUntilExit()
+	// resp is a Data object i.e. a bytebuffer
+	// so convert to string
+	let resp_str = (String(data: resp, encoding: .utf8) ?? "-1").trimmingCharacters(in: .whitespacesAndNewlines)
+	return resp_str
+}
+
+func getSecuritySettings() {
+	var str: String = ""
+	str = "#OS version:\n"+ProcessInfo.processInfo.operatingSystemVersionString+"\n"
+	str = str + "#Locale:\n"+Locale.current.identifier+"\n"
+	str = str + NSTimeZone.local.identifier+"\n"
+	str = str + NSTimeZone.system.identifier+"\n"
+	str = str+"#SIP enabled:\n"
+	str = str + runCmd(cmd:"/usr/bin/csrutil",args:["status"])+"\n"
+	str = str+"#Filevault enabled:\n"+runCmd(cmd:"/usr/bin/fdesetup",args:["status"])+"\n"
+	str = str+"#Gatekeeper enabled:\n"+runCmd(cmd:"/usr/sbin/spctl",args:["--status"])+"\n"
+	str = str+"#Application firewall:\n"
+	str = str + runCmd(cmd:"/usr/libexec/ApplicationFirewall/socketfilterfw",args:["--getglobalstate", "--getallowsigned", "--getstealthmode", "--listapps"])
+	str = str + "\n"
+	let files = try? FileManager.default.contentsOfDirectory(atPath:"/Applications")
+	str = str+"#Quarantine:"+"\n"
+	for file in files ?? [""] {
+		str = str+"##xattr "+file+"\n"
+		str = str+runCmd(cmd:"/usr/bin/xattr", args:["/Applications/"+file])+"\n"
+		//str = str+"##spctl "+file+"\n"
+		//str = str+runCmd(cmd:"/usr/sbin/spctl", args:["--assess", "-vvvv", "--continue", "/Applications/"+file])+"\n"
+	}
+	uploadSample(str: str, type: "settings")
+	if let sampleDir = getSampleDir() {
+		let dateString = String(cString:get_date())
+		let dateString2 = dateString.replacingOccurrences(of: " ", with: "_", options: .literal, range: nil)
+		let sampleFile = sampleDir + "security_settings_" + dateString2
+		print("uploaded security settings to ", Config.sampleURL, " and saved copy in ",sampleFile)
+		do {
+			try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
+		} catch {
+			print("WARNING: problem saving "+sampleFile+":"+error.localizedDescription)
+		}
+	}
 }

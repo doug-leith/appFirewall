@@ -361,7 +361,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
 		NSApp.mainWindow?.delegate = self
-		
+
+		UserDefaults.standard.register(defaults: ["first_run": true])
+		let first = UserDefaults.standard.bool(forKey: "first_run")
+		if (first) {
+			// things to do on first run of app
+    	DispatchQueue.global(qos: .background).async {
+    		// log security settings (SIP, gatekeeper etc)
+				getSecuritySettings()
+			}
+			UserDefaults.standard.set(false, forKey: "first_run")
+		}
 	}
 	
 	func applicationWillTerminate(_ aNotification: Notification) {
