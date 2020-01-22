@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:/Users/doug/Desktop/appFirewall/appFirewall/Swift GUI/consent.rtf">
+   </FileRef>
+   <FileRef
       location = "self:">
    </FileRef>
 </Workspace>

@@ -72,6 +72,8 @@
 		91C0DF9D23B0B05600E5215B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9C23B0B05600E5215B /* Assets.xcassets */; };
 		91C0DFA023B0B05600E5215B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9E23B0B05600E5215B /* Main.storyboard */; };
 		91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 91D96AD2239648D400AAA73B /* dns_conn_cache.c */; };
+		91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FDE82623D856130097BBCA /* ConsentViewController.swift */; };
+		91FDE82B23D85D840097BBCA /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82A23D85D760097BBCA /* consent.rtf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -237,6 +239,8 @@
 		91D96AD1239648D400AAA73B /* dns_conn_cache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dns_conn_cache.h; sourceTree = "<group>"; };
 		91D96AD2239648D400AAA73B /* dns_conn_cache.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns_conn_cache.c; sourceTree = "<group>"; };
 		91D96AD5239718CF00AAA73B /* latest release */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "latest release"; sourceTree = "<group>"; };
+		91FDE82623D856130097BBCA /* ConsentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentViewController.swift; sourceTree = "<group>"; };
+		91FDE82A23D85D760097BBCA /* consent.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = consent.rtf; path = "/Users/doug/Desktop/appFirewall/appFirewall/Swift GUI/consent.rtf"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -373,11 +377,13 @@
 				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
 				916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */,
+				91FDE82623D856130097BBCA /* ConsentViewController.swift */,
 				919074172397BA7900DE49DE /* Config.swift */,
 				916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */,
 				9180E17B238D2882007002CB /* installHelper.swift */,
 				9180E17D238D2D07007002CB /* Helpers.swift */,
 				91B590952390F7BC000F418D /* HyperlinkTextView.swift */,
+				91FDE82A23D85D760097BBCA /* consent.rtf */,
 			);
 			path = "Swift GUI";
 			sourceTree = "<group>";
@@ -546,6 +552,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91FDE82B23D85D840097BBCA /* consent.rtf in Resources */,
 				9190741A2399077100DE49DE /* dns_connlist.dat in Resources */,
 				9157B052238FC2290027457A /* icons in Resources */,
 				9180E178238BC731007002CB /* Credits.html in Resources */,
@@ -579,6 +586,7 @@
 				91607BF6237142A0002E50A8 /* log.c in Sources */,
 				91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */,
 				9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */,
+				91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */,
 				9139F68E2381E3FF00600D37 /* blButton.swift in Sources */,
 				9180E17E238D2D07007002CB /* Helpers.swift in Sources */,
 				91ABB29823773595007F8FFE /* hostlists.c in Sources */,

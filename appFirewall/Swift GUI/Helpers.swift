@@ -295,7 +295,11 @@ func sampleLogData(fname: String) {
 		}
 		
 		// concatenate the lines back together
-		var str: String = ""
+		var str: String = "#OS version:\n"+ProcessInfo.processInfo.operatingSystemVersionString+"\n"
+		str = str + "#Locale:\n"+Locale.current.identifier+"\n"
+		str = str + NSTimeZone.local.identifier+"\n"
+		str = str + NSTimeZone.system.identifier+"\n"
+		str = str + "#App connections\n"
 		for line in lines_selected {
 			str = str + line + "\n"
 		}
