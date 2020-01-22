@@ -98,7 +98,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	}
 	
 	@IBAction func showSampleFolder(_ sender: NSMenuItem) {
-		NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath:getSampleDir()!)])
+		if let sampleDir = getSampleDir() {
+			NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath:sampleDir)])
+		}
 	}
 	
 	func disableMenu() {
@@ -230,23 +232,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// important to call make_data_dir() first so that logfile has somewhere to live
 		redirect_stdout(Config.appLogName)
 		
+		UserDefaults.standard.register(defaults: ["first_run": true])
+		let first = UserDefaults.standard.bool(forKey: "first_run")
+		if (first) {
+			// things to do on first run of app
+			// get consent or exit, we check for this early of course
+			let storyboard = NSStoryboard(name:"Main", bundle:nil)
+			let controller : ConsentViewController = storyboard.instantiateController(withIdentifier: "ConsentViewController") as! ConsentViewController
+			let window = NSWindow(contentViewController: controller)
+			window.styleMask.remove(.miniaturizable)
+			window.styleMask.remove(.resizable) // fixed size
+			// now block here until user gives consent or exits
+			NSApp.runModal(for: window)
+			
+			// we got consent, proceed
+			// log basic security settings (SIP, gatekeeper etc)
+			DispatchQueue.global(qos: .background).async {
+				getSecuritySettings()
+			}
+			UserDefaults.standard.set(false, forKey: "first_run")
+		}
+
 		// set default logging level, again do this early
 		UserDefaults.standard.register(defaults: ["logging_level":Config.defaultLoggingLevel])
 		// can change this at command line using "defaults write" command
 		let log_level = UserDefaults.standard.integer(forKey: "logging_level")
 		set_logging_level(Int32(log_level))
 		init_stats(); // must be done before any C threads are fired up
-
-		let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-		print("appFirewall version: ", appVersion ?? "<not found>")
-		// for debugging
-		print("process: ")
-		print("userName ",ProcessInfo.processInfo.userName)
-		print("environment ", ProcessInfo.processInfo.environment)
 				
 		if (is_app_already_running()) {
 			exit_popup(msg:"appFirewall is already running!", force: 0)
 		}
+
+		// useful for debugging
+		let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+		print("appFirewall version: ", appVersion ?? "<not found>")
+		// for debugging
+		print("process: ")
+		print("environment ", ProcessInfo.processInfo.environment)
 
 		UserDefaults.standard.register(defaults: ["signal":-1])
 		UserDefaults.standard.register(defaults: ["logcrashes":1])
@@ -365,27 +388,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
 		NSApp.mainWindow?.delegate = self
-
-		UserDefaults.standard.register(defaults: ["first_run": true])
-		let first = UserDefaults.standard.bool(forKey: "first_run")
-		if (first) {
-			// things to do on first run of app
-			// get consent or exit
-			let storyboard = NSStoryboard(name:"Main", bundle:nil)
-			let controller : ConsentViewController = storyboard.instantiateController(withIdentifier: "ConsentViewController") as! ConsentViewController
-			let window = NSWindow(contentViewController: controller)
-			window.styleMask.remove(.miniaturizable)
-			window.styleMask.remove(.resizable) // fixed size
-			// now block here until user gives consent or exits
-			NSApp.runModal(for: window)
-			
-			// we got consent, proceed
-			// log security settings (SIP, gatekeeper etc)
-			DispatchQueue.global(qos: .background).async {
-				getSecuritySettings()
-			}
-			UserDefaults.standard.set(false, forKey: "first_run")
-		}
 	}
 	
 	func applicationWillTerminate(_ aNotification: Notification) {

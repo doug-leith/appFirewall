@@ -295,6 +295,8 @@ func sampleLogData(fname: String) {
 		}
 		
 		// concatenate the lines back together
+		// locale/time zone gives a v rough idea of location, so we can tell if app
+		// behaviour depends on whether in Europe, US, China etc
 		var str: String = "#OS version:\n"+ProcessInfo.processInfo.operatingSystemVersionString+"\n"
 		str = str + "#Locale:\n"+Locale.current.identifier+"\n"
 		str = str + NSTimeZone.local.identifier+"\n"
