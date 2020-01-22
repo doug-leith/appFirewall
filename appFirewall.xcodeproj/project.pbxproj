@@ -522,7 +522,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1120;
-				LastUpgradeCheck = 1120;
+				LastUpgradeCheck = 1130;
 				ORGANIZATIONNAME = "Doug Leith";
 				TargetAttributes = {
 					91607BAE236AB280002E50A8 = {
@@ -823,7 +823,7 @@
 					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks/NetworkStatistics.framework/Versions/A",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.9.5;
+				MARKETING_VERSION = 1.9.6;
 				OTHER_CFLAGS = "";
 				"OTHER_CFLAGS[arch=*]" = "-Wthread-safety";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
@@ -871,7 +871,7 @@
 					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks/NetworkStatistics.framework/Versions/A",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 1.9.5;
+				MARKETING_VERSION = 1.9.6;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -953,6 +953,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "appFirewall-loginLaunch/appFirewall_loginLaunch.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
@@ -976,6 +977,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "appFirewall-loginLaunch/appFirewall_loginLaunch.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
