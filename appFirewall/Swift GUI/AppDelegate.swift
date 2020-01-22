@@ -236,16 +236,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		let first = UserDefaults.standard.bool(forKey: "first_run")
 		if (first) {
 			// things to do on first run of app
-			// get consent or exit, we check for this early of course
-			let storyboard = NSStoryboard(name:"Main", bundle:nil)
-			let controller : ConsentViewController = storyboard.instantiateController(withIdentifier: "ConsentViewController") as! ConsentViewController
-			let window = NSWindow(contentViewController: controller)
-			window.styleMask.remove(.miniaturizable)
-			window.styleMask.remove(.resizable) // fixed size
-			// now block here until user gives consent or exits
-			NSApp.runModal(for: window)
-			
-			// we got consent, proceed
+			if (Config.enableConsentForm > 0) {
+				// get consent or exit, we check for this early of course
+				let storyboard = NSStoryboard(name:"Main", bundle:nil)
+				let controller : ConsentViewController = storyboard.instantiateController(withIdentifier: "ConsentViewController") as! ConsentViewController
+				let window = NSWindow(contentViewController: controller)
+				window.styleMask.remove(.miniaturizable)
+				window.styleMask.remove(.resizable) // fixed size
+				// now block here until either user gives consent or the app exits
+				NSApp.runModal(for: window)
+			}
 			// log basic security settings (SIP, gatekeeper etc)
 			DispatchQueue.global(qos: .background).async {
 				getSecuritySettings()

@@ -212,11 +212,6 @@ class UpdateInstallerViewController: NSViewController {
 		}
 		if let attr = try? FileManager.default.attributesOfItem(atPath:"/Applications") as NSDictionary {
 			print(attr)
-			print("octal permissions: ", String(attr.filePosixPermissions(), radix: 0o10))
-		}
-		if let attr = try? FileManager.default.attributesOfItem(atPath:tempPath+"/"+appFile) as NSDictionary {
-			print(attr)
-			print("octal permissions: ", String(attr.filePosixPermissions(), radix: 0o10))
 		}
 		// TO DO: should we remove quarantine from new app ?
 		do {

@@ -423,6 +423,36 @@ func runCmd(cmd: String, args: [String])->String {
 	return resp_str
 }
 
+func getFileXattribs(file:String)->[String] {
+
+	/*
+	// this is nicer but doesn't return all of the extended attributes
+	var names:[String] = []
+	if let attr = try? FileManager.default.attributesOfItem(atPath:file) as NSDictionary {
+		if let xattribs = attr["NSFileExtendedAttributes"] as? NSDictionary {
+			for (key,_) in xattribs {
+				if let str = key as? String {
+					names.append(str)
+				}
+			}
+		}
+	}
+	return names*/
+
+	let bufLength = listxattr(file, nil, 0, 0)
+	if bufLength != -1 {
+		let buf = UnsafeMutablePointer<Int8>.allocate(capacity: bufLength)
+		if listxattr(file, buf, bufLength, 0) != -1 {
+			if var names = NSString(bytes: buf, length: bufLength, encoding: String.Encoding.utf8.rawValue)?.components(separatedBy: "\0") {
+				names.removeLast()
+				return names
+			}
+		}
+	}
+	return []
+	
+}
+
 func getSecuritySettings() {
 	var str: String = ""
 	str = "#OS version:\n"+ProcessInfo.processInfo.operatingSystemVersionString+"\n"
@@ -440,10 +470,12 @@ func getSecuritySettings() {
 	str = str+"#Quarantine:"+"\n"
 	for file in files ?? [""] {
 		str = str+"##xattr "+file+"\n"
-		str = str+runCmd(cmd:"/usr/bin/xattr", args:["/Applications/"+file])+"\n"
+		//str = str+runCmd(cmd:"/usr/bin/xattr", args:["/Applications/"+file])+"\n"
+		str = str + (getFileXattribs(file:"/Applications/"+file)).joined(separator:",")+"\n"
 		//str = str+"##spctl "+file+"\n"
 		//str = str+runCmd(cmd:"/usr/sbin/spctl", args:["--assess", "-vvvv", "--continue", "/Applications/"+file])+"\n"
 	}
+	//print(str)
 	uploadSample(str: str, type: "settings")
 	if let sampleDir = getSampleDir() {
 		let dateString = String(cString:get_date())

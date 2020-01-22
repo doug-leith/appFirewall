@@ -54,8 +54,6 @@
 		9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9183583623A1BF81008FDBB4 /* appViewController.swift */; };
 		9183583A23A4B86B008FDBB4 /* pgrep.c in Sources */ = {isa = PBXBuildFile; fileRef = 9183583923A4B86B008FDBB4 /* pgrep.c */; };
 		9185AD2923C066F3002AE0D6 /* netstats.c in Sources */ = {isa = PBXBuildFile; fileRef = 9185AD2823C066F3002AE0D6 /* netstats.c */; };
-		9185AD2B23C07069002AE0D6 /* NetworkStatistics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */; };
-		9185AD2C23C07069002AE0D6 /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		919074182397BA7900DE49DE /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919074172397BA7900DE49DE /* Config.swift */; };
 		9190741A2399077100DE49DE /* dns_connlist.dat in Resources */ = {isa = PBXBuildFile; fileRef = 919074192399072500DE49DE /* dns_connlist.dat */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
@@ -67,13 +65,15 @@
 		91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B590952390F7BC000F418D /* HyperlinkTextView.swift */; };
 		91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B5909923925620000F418D /* libdtrace.tbd */; };
 		91B976FE23D3108A00B4BE16 /* cmd.c in Sources */ = {isa = PBXBuildFile; fileRef = 91B976FD23D3108A00B4BE16 /* cmd.c */; };
-		91B9770023D5D2B500B4BE16 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */; };
+		91B9770023D5D2B500B4BE16 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		91C0DF9923B0B05500E5215B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C0DF9823B0B05500E5215B /* AppDelegate.swift */; };
 		91C0DF9D23B0B05600E5215B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9C23B0B05600E5215B /* Assets.xcassets */; };
 		91C0DFA023B0B05600E5215B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9E23B0B05600E5215B /* Main.storyboard */; };
 		91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 91D96AD2239648D400AAA73B /* dns_conn_cache.c */; };
 		91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FDE82623D856130097BBCA /* ConsentViewController.swift */; };
-		91FDE82B23D85D840097BBCA /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82A23D85D760097BBCA /* consent.rtf */; };
+		91FDE83023D8901B0097BBCA /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
+		91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; };
+		91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -112,7 +112,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				9185AD2C23C07069002AE0D6 /* NetworkStatistics.framework in Embed Frameworks */,
+				91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -240,8 +240,12 @@
 		91D96AD2239648D400AAA73B /* dns_conn_cache.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns_conn_cache.c; sourceTree = "<group>"; };
 		91D96AD5239718CF00AAA73B /* latest release */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "latest release"; sourceTree = "<group>"; };
 		91FDE82623D856130097BBCA /* ConsentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentViewController.swift; sourceTree = "<group>"; };
-		91FDE82A23D85D760097BBCA /* consent.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = consent.rtf; path = "/Users/doug/Desktop/appFirewall/appFirewall/Swift GUI/consent.rtf"; sourceTree = "<absolute>"; };
+		91FDE82A23D85D760097BBCA /* consent.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = consent.rtf; path = "/Users/doug/Desktop/stuff/appFirewall/appFirewall/Swift GUI/../../../../appFirewall/appFirewall/Swift GUI/consent.rtf"; sourceTree = "<absolute>"; };
 		91FDE82C23D869D30097BBCA /* INFORMATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = INFORMATION.md; path = /Users/doug/Desktop/appFirewall/INFORMATION.md; sourceTree = "<absolute>"; };
+		91FDE82F23D8901B0097BBCA /* consent.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = consent.rtf; sourceTree = "<group>"; };
+		91FDE83123D8909F0097BBCA /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = ../../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework; sourceTree = "<group>"; };
+		91FDE83423D891830097BBCA /* NetworkStatistics */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = NetworkStatistics; path = ../../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework/Versions/A/NetworkStatistics; sourceTree = "<group>"; };
+		91FDE83823D893300097BBCA /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = appFirewall/NetworkStatistics.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -249,7 +253,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9185AD2B23C07069002AE0D6 /* NetworkStatistics.framework in Frameworks */,
+				91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */,
 				91B9770023D5D2B500B4BE16 /* NetworkExtension.framework in Frameworks */,
 				91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */,
 			);
@@ -325,6 +329,9 @@
 		91607BCB236AD6BA002E50A8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				91FDE83823D893300097BBCA /* NetworkStatistics.framework */,
+				91FDE83423D891830097BBCA /* NetworkStatistics */,
+				91FDE83123D8909F0097BBCA /* NetworkStatistics.framework */,
 				91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */,
 				9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */,
 				91494786239F909F00C01432 /* libSystem.B_asan.tbd */,
@@ -367,6 +374,7 @@
 		9180E16223865418007002CB /* Swift GUI */ = {
 			isa = PBXGroup;
 			children = (
+				91FDE82F23D8901B0097BBCA /* consent.rtf */,
 				9139F68D2381E3FF00600D37 /* blButton.swift */,
 				9139F68F2382890700600D37 /* helpButton.swift */,
 				9139F68B2380936800600D37 /* helpViewController.swift */,
@@ -554,7 +562,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				91FDE82B23D85D840097BBCA /* consent.rtf in Resources */,
 				9190741A2399077100DE49DE /* dns_connlist.dat in Resources */,
 				9157B052238FC2290027457A /* icons in Resources */,
 				9180E178238BC731007002CB /* Credits.html in Resources */,
@@ -562,6 +569,7 @@
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
 				916ECB0323AF8EF900023AEA /* version in Resources */,
+				91FDE83023D8901B0097BBCA /* consent.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -799,6 +807,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/appFirewall",
+				);
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
 				INFOPLIST_FILE = appFirewall/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -808,6 +820,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/appFirewall",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks/NetworkStatistics.framework/Versions/A",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MARKETING_VERSION = 1.9.5;
@@ -842,6 +855,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/appFirewall",
+				);
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
 				INFOPLIST_FILE = appFirewall/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -851,6 +868,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/appFirewall",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks/NetworkStatistics.framework/Versions/A",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MARKETING_VERSION = 1.9.5;
