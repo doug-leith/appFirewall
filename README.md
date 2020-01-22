@@ -4,7 +4,7 @@ A free, fully open-source application firewall for macOS 10.13 High Sierra and l
 
 ![Screenshot](https://github.com/doug-leith/appFirewall/raw/master/Screenshot.png)
 
-The app is part of a research project in the [School of Computer Science and Statistics](https://www.scss.tcd.ie) at Trinity College Dublin, Ireland.   Note: the app is still at the beta stage and the project is not fully started yet.  See [draft information for participants](https://github.com/doug-leith/appFirewall/blob/master/INFORMATION.md)
+The app is part of a research project in the [School of Computer Science and Statistics](https://www.scss.tcd.ie/doug.leith/) at Trinity College Dublin, Ireland.   Note: the app is still at the beta stage and the project is not fully started yet.  See [draft information for participants](https://github.com/doug-leith/appFirewall/blob/master/INFORMATION.md)
 
 ## Getting Started
 
