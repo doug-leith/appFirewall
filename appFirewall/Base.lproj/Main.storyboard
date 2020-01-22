@@ -43,7 +43,7 @@
                                             </connections>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="H0K-fN-pyH"/>
-                                        <menuItem title="Show Sample Folder" id="H3j-vD-aVb">
+                                        <menuItem title="Show Uploaded Data" id="H3j-vD-aVb">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="showSampleFolder:" target="Voe-Tx-rLC" id="qeS-4C-fM5"/>

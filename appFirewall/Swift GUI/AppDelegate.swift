@@ -387,7 +387,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		
 		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
-		NSApp.mainWindow?.delegate = self
+		NSApp.mainWindow?.delegate = self		
 	}
 	
 	func applicationWillTerminate(_ aNotification: Notification) {
