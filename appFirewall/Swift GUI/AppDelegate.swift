@@ -97,6 +97,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		restart_app() 
 	}
 	
+	@IBAction func showSampleFolder(_ sender: NSMenuItem) {
+		NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath:getSampleDir()!)])
+	}
+	
 	func disableMenu() {
 		if (Config.getUseMenuBar()) {
 			// hide the dock icon and main menu

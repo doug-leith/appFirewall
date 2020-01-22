@@ -43,6 +43,13 @@
                                             </connections>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="H0K-fN-pyH"/>
+                                        <menuItem title="Show Sample Folder" id="H3j-vD-aVb">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="showSampleFolder:" target="Voe-Tx-rLC" id="qeS-4C-fM5"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem isSeparatorItem="YES" id="mOs-ua-WnT"/>
                                         <menuItem title="Hide appFirewall" keyEquivalent="h" id="Olw-nP-bQN">
                                             <connections>
                                                 <action selector="hide:" target="Ady-hI-5gd" id="PnN-Uc-m68"/>

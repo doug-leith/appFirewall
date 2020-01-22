@@ -241,6 +241,7 @@
 		91D96AD5239718CF00AAA73B /* latest release */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "latest release"; sourceTree = "<group>"; };
 		91FDE82623D856130097BBCA /* ConsentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentViewController.swift; sourceTree = "<group>"; };
 		91FDE82A23D85D760097BBCA /* consent.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = consent.rtf; path = "/Users/doug/Desktop/appFirewall/appFirewall/Swift GUI/consent.rtf"; sourceTree = "<absolute>"; };
+		91FDE82C23D869D30097BBCA /* INFORMATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = INFORMATION.md; path = /Users/doug/Desktop/appFirewall/INFORMATION.md; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -281,6 +282,7 @@
 				916ECB0223AF8EF900023AEA /* version */,
 				9157B04A238FB09E0027457A /* README.md */,
 				9190741C239B9FD000DE49DE /* KNOWN_ISSUES.md */,
+				91FDE82C23D869D30097BBCA /* INFORMATION.md */,
 				919074152397B59100DE49DE /* Screenshot.png */,
 				9180E16A2387FCC9007002CB /* LICENSE.md */,
 				91607BB1236AB280002E50A8 /* appFirewall */,
