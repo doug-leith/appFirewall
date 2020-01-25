@@ -243,7 +243,7 @@ void dump_blocklist() {
 	// only used for debugging, don't bother with locks
 	size_t i;
 	for (i=block_list.list_start; i<block_list.list_start+block_list.list_size;i++) {
-		bl_item_t *b = (bl_item_t*)&block_list.list[i%MAXLIST];
+		bl_item_t *b = (bl_item_t*)&block_list.list[i%block_list.maxsize];
 		printf("%s %s\n",b->name,b->domain);
 		bl_item_t *res = in_blocklist_htab(b, 0);
 		if (res!=NULL) {

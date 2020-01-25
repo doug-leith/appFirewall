@@ -18,6 +18,7 @@
 #define BUFSIZE 1024 // needs to be big enough to hold DNS pkt payload
 #define MAXDNS 21
 #define DNS_FILE_VERSION 1
+#define DNS_CACHE_SIZE 4096 
 
 typedef struct dns_item_t {
 	struct in6_addr addr;

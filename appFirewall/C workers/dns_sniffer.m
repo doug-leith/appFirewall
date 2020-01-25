@@ -171,7 +171,7 @@ void load_dns_cache(const char* fname) {
 	char path[STR_SIZE]; strlcpy(path,get_path(),STR_SIZE);
 	strlcat(path,fname,STR_SIZE);
 	TAKE_LOCK(&dns_mutex,"load_dns_cache()");
-	init_list(&dns_cache,dns_hash,NULL,1,-1,"dns_cache");
+	init_list(&dns_cache,dns_hash,NULL,1,DNS_CACHE_SIZE,"dns_cache");
 	load_list(&dns_cache,path,sizeof(dns_item_t),DNS_FILE_VERSION);
 	pthread_mutex_unlock(&dns_mutex);
 }

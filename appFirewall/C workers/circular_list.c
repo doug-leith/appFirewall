@@ -27,32 +27,37 @@ void init_list(list_t *l, char* (*hash)(const void* item), int (*cmp)(char* (*ha
 	}
 	l->circular = circular;
 	l->list_size=0; l->list_start=0;
-	if ((size>0) && (size < MAXLIST)) {
+	if (size>0) {
 		l->maxsize=(size_t)size;
 	} else {
-		l->maxsize=MAXLIST;
+		l->maxsize=DEFAULT_LIST;
 	}
+	l->list = calloc(l->maxsize,sizeof(void*));
 	l->htab = hashtable_new(l->maxsize);
-	for (int i=0; i<MAXLIST;i++) l->list[i]=NULL;
+	//for (int i=0; i<l->maxsize;i++) l->list[i]=NULL;
 	strlcpy(l->list_name,name,STR_SIZE);
 }
 
 void free_list(list_t *l) {
 	// free all memory used by list, list is unusable
-	// afterwards as hashtable is not allocated
-	for (size_t i=l->list_start; i<l->list_start+l->list_size;i++) {
-		if (l->list[i%l->maxsize]) {
-			free(l->list[i%l->maxsize]);
-			l->list[i%l->maxsize]=NULL;
+	// afterwards as list and hashtable are not allocated
+	if (l->list) {
+		for (size_t i=l->list_start; i<l->list_start+l->list_size;i++) {
+			if (l->list[i%l->maxsize]) {
+				free(l->list[i%l->maxsize]);
+				l->list[i%l->maxsize]=NULL;
+			}
 		}
+		free(l->list);
 	}
 	if (l->htab!=NULL) { hashtable_free(l->htab); l->htab = NULL;}
 	l->list_size=0; l->list_start=0;
 }
 
 void clear_list(list_t *l) {
-	// empty list contents
+	// empty list contents but keep max_size etc
 	free_list(l);
+	l->list = calloc(l->maxsize,sizeof(void*));
 	l->htab = hashtable_new(l->maxsize);
 }
 
@@ -70,7 +75,7 @@ void deep_copy_list(list_t *l1, list_t *l2, size_t item_size) {
 
 void* in_list(list_t *l, const void *item, int debug) {
 	// table lookup of list
-	if (l->hash == NULL) return NULL;
+	if ((l->hash == NULL)||(item==NULL)) return NULL;
 	char *temp = (l->hash)(item);
 	if (debug) { // extra logging requested
 		INFO("hash='%s'\n", temp);
@@ -82,7 +87,7 @@ void* in_list(list_t *l, const void *item, int debug) {
 }
 
 ssize_t find_item_row(list_t *l, const void* item) {
-	if (l->hash == NULL) return -1;
+	if ((l->hash == NULL) || (l->list==NULL) || (item==NULL)) return -1;
 	size_t posn;
 	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
 		if ((l->cmp(l->hash,l->list[posn%l->maxsize],item))) {
@@ -94,7 +99,7 @@ ssize_t find_item_row(list_t *l, const void* item) {
 
 void add_item_to_htab(list_t *l, void *item) {
 	// add item to hash table
-	if (l->hash == NULL) return;
+	if ((l->hash == NULL)||(item==NULL)) return;
 	char * temp = (l->hash)(item);
 	void* prev = hashtable_put(l->htab, temp, item);
 	if (prev) free(prev);
@@ -102,7 +107,7 @@ void add_item_to_htab(list_t *l, void *item) {
 }
 
 void del_from_htab(list_t *l, const void *item) {
-	if (l->hash == NULL) return;
+	if ((l->hash == NULL)||(item==NULL)) return;
 	char * temp = (l->hash)(item);
 	hashtable_remove(l->htab, temp);
 	//void* prev = hashtable_remove(l->htab, temp);
@@ -111,7 +116,7 @@ void del_from_htab(list_t *l, const void *item) {
 }
 
 void* add_item(list_t *l, void* item, size_t item_size) {
-	if (l->hash == NULL) return NULL;
+	if ((l->hash == NULL)||(l->list==NULL)||(item==NULL)) return NULL;
 	void* ptr = in_list(l, item, 0);
 	if (ptr) {
 		char* hash = l->hash(item);
@@ -157,7 +162,7 @@ void* add_item(list_t *l, void* item, size_t item_size) {
 }
 
 int del_item(list_t *l, const void* item) {
-	if (l->hash == NULL) return -1;
+	if ((l->hash == NULL)||(l->list==NULL)||(item==NULL)) return -1;
 	size_t i,posn;
 	for (posn=l->list_start; posn<l->list_start+l->list_size; posn++) {
 		if ((l->cmp(l->hash,l->list[posn%l->maxsize],item))) {
@@ -185,16 +190,22 @@ size_t get_list_size(list_t *l) {
 }
 
 void* get_list_item(list_t *l, size_t row) {
-	return l->list[(l->list_start+row)%l->maxsize];
+	if (l->list==NULL) // shouldn't happen
+		return NULL; // will likely cause seg fault in caller, so really an assert()
+	else
+		return l->list[(l->list_start+row)%l->maxsize];
 }
 
 void sort_list(list_t *l, int (*sort_cmp)(const void *, const void *)) {
+	if (l->list==NULL) return; // shouldn't happen
 	if (l->list_start != 0) return; // to do
 	if (!sort_cmp) return;
 	qsort(l->list,l->list_size,sizeof(void*),sort_cmp);
 }
 
 void save_list(list_t *l, char* path, size_t item_size, uint8_t file_version) {
+	if (l->list == NULL) return; // just being careful
+	
 	FILE *fp = fopen(path,"w");
 	if (fp==NULL) {
 		WARN("Problem opening %s for writing: %s\n", path, strerror(errno));
@@ -225,6 +236,7 @@ void save_list(list_t *l, char* path, size_t item_size, uint8_t file_version) {
 
 int load_list(list_t *l, char* path, size_t item_size, uint8_t file_version) {
 	
+	// init_list() must have been called before this
 	// partial re-initialisation of list (keep maxsize, name etc)
 	clear_list(l);
 	//return;

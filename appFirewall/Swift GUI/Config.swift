@@ -18,7 +18,7 @@ class Config: NSObject {
 	static let enableUpdates = 1 // disable for testing
 	static let enableConsentForm = 0 // disable for testing
 	
-	static let minHelperVersion = 13 // required helper version, must be an Int
+	static let minHelperVersion = 14 // required helper version, must be an Int
 	
 	static let crashURL = URL(string: "https://leith.ie/logcrash.php")!
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!

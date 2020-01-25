@@ -12,9 +12,11 @@
 #include "table.h"
 #include "util.h"
 
-#define MAXLIST 2048
+//#define MAXLIST 2048
+#define DEFAULT_LIST 2048
 typedef struct list_t {
-	void* list[MAXLIST];
+	//void* list[MAXLIST];
+	void** list;
 	size_t list_start, list_size, maxsize;
 	Hashtable *htab; // hash table of pointers intlist for fast lookup
 	char* (*hash)(const void* item); // hash function for table
@@ -22,7 +24,7 @@ typedef struct list_t {
 	int circular; // is list circular ?
 	char list_name[STR_SIZE];
 } list_t;
-#define LIST_INITIALISER {{NULL},0,0,0,NULL,NULL,NULL,0,{0}}
+#define LIST_INITIALISER {NULL,0,0,0,NULL,NULL,NULL,0,{0}}
 
 void* in_list(list_t *l, const void *item, int debug);
 ssize_t find_item_row(list_t *l, const void* item);

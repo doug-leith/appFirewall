@@ -73,7 +73,8 @@ struct pktap_header {
 #define PCAP_PORT 3
 #define MAX_MACS 32 // max number of MAC addresses, nice and large
 #define SNIFFER_LOOP_TIMEOUT 1 // 1 sec
-#define SNAPLEN 512 // needs to be big enough to capture dns payload and allow for PKTAP header (which is around 150B)
+//#define SNAPLEN 512 // needs to be big enough to capture dns payload and allow for PKTAP header (which is around 150B)
+#define SNAPLEN 768 // needs to be big enough to capture dns payload and allow for PKTAP header (which is around 150B)
 #define MAX_INTS 5 // max number of interfaces to monitor, not too large
 #define PCAP_BUFFER_SIZE 2097152*8  // default is 2M=2097152, but we increase it to 16M
 
