@@ -19,5 +19,4 @@
 #include "is_blocked.h"
 #include "dns_conn_cache.h"
 #include "pgrep.h"
-#include "dnscrypt-proxy.h"
 

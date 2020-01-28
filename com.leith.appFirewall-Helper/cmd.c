@@ -7,7 +7,6 @@
 //
 
 #include "cmd.h"
-#include "dnscrypt-proxy.h"
 
 static int c_sock=-1;
 static pthread_t cmd_thread, dns_thread;

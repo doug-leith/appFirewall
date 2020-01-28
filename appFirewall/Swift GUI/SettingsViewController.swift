@@ -80,6 +80,6 @@ class SettingsViewController: NSViewController {
 	
 	
 	@IBAction func DoHHelpClick(_ sender: helpButton?) {
-		sender?.clickButton(msg:"This sets all network interfaces to use encrypted DNS-over-HTTPS.  It does this by redirecting DNS queries to 127.0.0.1 where they are resolved by an embedded copy of dnscrypt-proxy (see https://github.com/DNSCrypt/dnscrypt-proxy/wiki).")
+		sender?.clickButton(msg:"Encrypt DNS queries using DNS-over-HTTPS. DNS is used to convert domain names, e.g www.google.com, to server IP addresses and so unencrypted DNS can reveal quite a lot about your network activity.  appFirewall has an embedded DNS-over-HTTPS server which can listen for DNS queries on 127.0.0.1 port 53 and resolve these using encrypted DNS-over-HTTPS.  Enabling this option redirects all DNS system queries to this DNS server.")
 	}
 }
