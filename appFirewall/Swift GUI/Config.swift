@@ -164,6 +164,19 @@ class Config: NSObject {
 		}
 	}
 	
+	static func initDnscrypt_proxy() {		
+		if (getDnscrypt_proxy() == false) {
+			if (stop_dnscrypt_proxy() < 0) {
+				print("Problem trying to stop dnscrypt-proxy")
+			}
+		} else {
+			if (start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents/Resources") < 0) {
+				print("Problem trying to start dnscrypt-proxy")
+				blockQUIC(value:false)
+			}
+		}
+	}
+	
 	static func initLoad() {
 		// called by app delegate at startup
 		load_hostlists()
@@ -171,6 +184,7 @@ class Config: NSObject {
 		initRunAtLogin()
 		initMenuBar()
 		initBlockQUIC()
+		initDnscrypt_proxy()
 	}
 	
 	static func refresh() {
@@ -179,6 +193,7 @@ class Config: NSObject {
 		initRunAtLogin()
 		initMenuBar()
 		initBlockQUIC()
+		initDnscrypt_proxy()
 	}
 	
 	static func autoCheckUpdates(value: Bool) {
@@ -199,6 +214,10 @@ class Config: NSObject {
 
 	static func blockQUIC(value: Bool) {
 		UserDefaults.standard.set(value, forKey: "blockQUIC")
+	}
+	
+	static func dnscrypt_proxy(value: Bool) {
+		UserDefaults.standard.set(value, forKey: "dnscrypt_proxy")
 	}
 
 	static func getSetting(label: String, def: Bool)->Bool {
@@ -224,6 +243,10 @@ class Config: NSObject {
 
 	static func getBlockQUIC()->Bool {
 		return getSetting(label: "blockQUIC", def: false)
+	}
+	
+	static func getDnscrypt_proxy()->Bool {
+		return getSetting(label: "dnscrypt_proxy", def: false)
 	}
 
   static func updateAvailableLists() {

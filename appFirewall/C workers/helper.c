@@ -61,6 +61,70 @@ int connect_to_helper(int port, int quiet) {
 	return sock;
 }
 
+int start_dnscrypt_proxy(const char* path) {
+	// start dnscrypt-proxy service
+	int c_sock=-1;
+	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
+		return -1;
+	}
+	ssize_t res;
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	uint8_t cmd = 4;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	size_t len = strlen(path);
+	if ( (res=send(c_sock, &len, sizeof(size_t), 0) )<=0) goto err;
+	if ( (res=send(c_sock, path, len, 0) )<=0) goto err;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	int8_t ok=0;
+	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
+	// set DNS server to localhost
+	cmd = 6;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	if (read(c_sock, &ok, 1)<=0) goto err;
+	close(c_sock);
+	return 1;
+	
+err:
+	close(c_sock);
+	if (errno == EAGAIN) {
+		WARN("start_dnscrypt_proxy timeout\n");
+	} else {
+		WARN("start_dnscrypt_proxy: %s\n", strerror(errno));
+	}
+	return -1;
+}
+
+int stop_dnscrypt_proxy() {	
+	int c_sock=-1;
+	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
+		return -1;
+	}
+	// reset DNS server back to default
+	ssize_t res;
+	int8_t ok=0;
+	uint8_t cmd = 7;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	if (read(c_sock, &ok, 1)<=0) goto err;
+	// and stop dnscrypt-proxy service
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	cmd = 5;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
+	close(c_sock);
+	return 1;
+	
+err:
+	close(c_sock);
+	if (errno == EAGAIN) {
+		WARN("stop_dnscrypt_proxy timeout\n");
+	} else {
+		WARN("stop_dnscrypt_proxy: %s\n", strerror(errno));
+	}
+	return -1;
+}
+
+
 int block_QUIC() {
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){

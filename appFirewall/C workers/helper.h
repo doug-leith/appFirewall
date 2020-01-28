@@ -26,5 +26,7 @@ void stop_helper_listeners(void);
 char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* file);
 int unblock_QUIC(void);
 int block_QUIC(void);
+int start_dnscrypt_proxy(const char* path);
+int stop_dnscrypt_proxy(void);
 
 #endif /* helper_h */

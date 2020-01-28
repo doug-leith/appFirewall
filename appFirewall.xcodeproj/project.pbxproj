@@ -65,7 +65,6 @@
 		91B590962390F7BC000F418D /* HyperlinkTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B590952390F7BC000F418D /* HyperlinkTextView.swift */; };
 		91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B5909923925620000F418D /* libdtrace.tbd */; };
 		91B976FE23D3108A00B4BE16 /* cmd.c in Sources */ = {isa = PBXBuildFile; fileRef = 91B976FD23D3108A00B4BE16 /* cmd.c */; };
-		91B9770023D5D2B500B4BE16 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		91C0DF9923B0B05500E5215B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C0DF9823B0B05500E5215B /* AppDelegate.swift */; };
 		91C0DF9D23B0B05600E5215B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9C23B0B05600E5215B /* Assets.xcassets */; };
 		91C0DFA023B0B05600E5215B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9E23B0B05600E5215B /* Main.storyboard */; };
@@ -74,6 +73,10 @@
 		91FDE83023D8901B0097BBCA /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
 		91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; };
 		91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		91FDE83D23DBFF0F0097BBCA /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */; };
+		91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE84223DC00BC0097BBCA /* libcurl.tbd */; };
+		91FDE89623E0B8210097BBCA /* dnscrypt-proxy in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE89523E0B8210097BBCA /* dnscrypt-proxy */; };
+		91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -246,6 +249,9 @@
 		91FDE83123D8909F0097BBCA /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = ../../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework; sourceTree = "<group>"; };
 		91FDE83423D891830097BBCA /* NetworkStatistics */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = NetworkStatistics; path = ../../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework/Versions/A/NetworkStatistics; sourceTree = "<group>"; };
 		91FDE83823D893300097BBCA /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = appFirewall/NetworkStatistics.framework; sourceTree = "<group>"; };
+		91FDE84223DC00BC0097BBCA /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
+		91FDE89523E0B8210097BBCA /* dnscrypt-proxy */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "dnscrypt-proxy"; sourceTree = "<group>"; };
+		91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "dnscrypt-proxy.toml"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -253,8 +259,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */,
 				91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */,
-				91B9770023D5D2B500B4BE16 /* NetworkExtension.framework in Frameworks */,
+				91FDE83D23DBFF0F0097BBCA /* NetworkExtension.framework in Frameworks */,
 				91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -310,6 +317,8 @@
 		91607BB1236AB280002E50A8 /* appFirewall */ = {
 			isa = PBXGroup;
 			children = (
+				91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */,
+				91FDE89523E0B8210097BBCA /* dnscrypt-proxy */,
 				9180E177238BC731007002CB /* Credits.html */,
 				919074192399072500DE49DE /* dns_connlist.dat */,
 				91ABB292237734DE007F8FFE /* BlackLists */,
@@ -329,6 +338,7 @@
 		91607BCB236AD6BA002E50A8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				91FDE84223DC00BC0097BBCA /* libcurl.tbd */,
 				91FDE83823D893300097BBCA /* NetworkStatistics.framework */,
 				91FDE83423D891830097BBCA /* NetworkStatistics */,
 				91FDE83123D8909F0097BBCA /* NetworkStatistics.framework */,
@@ -565,10 +575,12 @@
 				9190741A2399077100DE49DE /* dns_connlist.dat in Resources */,
 				9157B052238FC2290027457A /* icons in Resources */,
 				9180E178238BC731007002CB /* Credits.html in Resources */,
+				91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */,
 				91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */,
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
 				916ECB0323AF8EF900023AEA /* version in Resources */,
+				91FDE89623E0B8210097BBCA /* dnscrypt-proxy in Resources */,
 				91FDE83023D8901B0097BBCA /* consent.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

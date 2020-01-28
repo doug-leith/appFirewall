@@ -1,6 +1,9 @@
 TO DO
 
 short term:
+- embed dnscrypt-proxy
+- option to manually add blacklist/whitelist rules
+- show udp traffic?
 
 longer term:
 1. allow addition of user specified host name lists
@@ -12,5 +15,9 @@ longer term:
 6. use of network extensions, only for catalina onwards though
 7. compress log samples uploaded to server?
 
-
-https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPFrameworks/Concepts/WeakLinking.html
+dnscrypt-proxy
+-- go build -ldflags="-s -w" -mod vendor
+https://youngdynasty.net/posts/writing-mac-apps-in-go/
+-- add //export before funcs
+-- go build --buildmode=c-archive
+https://golang.org/cmd/go/#hdr-Build_modes

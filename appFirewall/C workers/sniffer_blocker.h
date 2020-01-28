@@ -32,7 +32,7 @@
 #define RST_PORT 2 // port help listens for instructions to send TCP RSTs
 #define PCAP_PORT 3 // port helper sends sniffed pkt info on
 
-#define SNAPLEN 512 // needs to be big enough to capture dns payload
+#define SNAPLEN 1500 // needs to be big enough to capture dns payload
 
 // algorithm parameters
 #define WAIT_TIMEOUT 0.02 // 20ms timeout after which we either guess the process associated with a new SYN-ACK or declare the process NOTFOUND.  in latter case, if a long-enough lived connection that should be blocked then it will become an escapee and be caught and blocked.  if connection is v short then we can leak packets here -- either by TCP RSTs failing since pkt seq numbers have advanced or by escapee catcher being too slow, so we'd like to keep this timeout short e.g. might reduce it to 10ms

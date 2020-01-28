@@ -14,7 +14,8 @@ class SettingsViewController: NSViewController {
 	@IBOutlet weak var autoUpdate: NSButton!
 	@IBOutlet weak var runAtLogin: NSButton!
 	@IBOutlet weak var useMenuBar: NSButton!
-	@IBOutlet weak var blockQUIC: NSButton!
+	@IBOutlet weak var blockQUIC: NSButton!	
+	@IBOutlet weak var useDOH: NSButton!
 	
 	func boolToState(value: Bool) -> NSControl.StateValue {
 		if (value) {
@@ -39,7 +40,7 @@ class SettingsViewController: NSViewController {
 		runAtLogin.state = boolToState(value: Config.getRunAtLogin())
 		useMenuBar.state = boolToState(value: Config.getUseMenuBar())
 		blockQUIC.state = boolToState(value: Config.getBlockQUIC())
-		//runAtLogin.isEnabled = false // for now
+		useDOH.state = boolToState(value: Config.getDnscrypt_proxy())
 	}
 	
 	@IBAction func autoCheckUpdatesClick(_ sender: NSButton!) {
@@ -65,5 +66,20 @@ class SettingsViewController: NSViewController {
 	@IBAction func blockQUICClick(_ sender: Any) {
 		Config.blockQUIC(value: stateToBool(state:blockQUIC.state))
 		Config.refresh()
+	}
+	
+	
+	@IBAction func blockQUICHelpClick(_ sender: helpButton?) {
+		sender?.clickButton(msg:"This blocks traffic using Google's QUIC/UDP protocol, forcing Chrome etc to fallback to using TCP.  Unlike TCP traffic, just now appFirewall can't selectively block QUIC traffic.  Enabling this option is a workaround that allows Chrome traffic to be fully controlled. Its safe to enable, just not very elegant.")
+	}
+	
+	@IBAction func DoHClick(_ sender: Any) {
+		Config.dnscrypt_proxy(value: stateToBool(state:useDOH.state))
+		Config.refresh()
+	}
+	
+	
+	@IBAction func DoHHelpClick(_ sender: helpButton?) {
+		sender?.clickButton(msg:"This sets all network interfaces to use encrypted DNS-over-HTTPS.  It does this by redirecting DNS queries to 127.0.0.1 where they are resolved by an embedded copy of dnscrypt-proxy (see https://github.com/DNSCrypt/dnscrypt-proxy/wiki).")
 	}
 }

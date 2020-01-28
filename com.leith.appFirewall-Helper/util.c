@@ -206,3 +206,16 @@ inline int is_ipv6_localhost(struct in6_addr* addr){
 	// is in6addr_loopback in host or network byte order ?
 	return memcmp(&addr->s6_addr,&in6addr_loopback.s6_addr,16)==0;
 }
+
+int run_cmd(char* cmd) {
+	FILE *out = popen(cmd,"r");
+	if (out == NULL) return -1;
+	char *resp=NULL; size_t llen = 0;
+	if (getline(&resp, &llen, out)>0) {
+		WARN("Output from %s: %s\n", cmd, resp);
+		free(resp); pclose(out);
+		return 1;
+	}
+	pclose(out);
+	return 0;
+}

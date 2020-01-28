@@ -727,17 +727,17 @@
             <objects>
                 <viewController title="Log" id="0NI-P3-O8z" customClass="LogViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
                     <customView key="view" misplaced="YES" id="n8h-bI-efk">
-                        <rect key="frame" x="0.0" y="0.0" width="587" height="188"/>
+                        <rect key="frame" x="0.0" y="0.0" width="587" height="163"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
                             <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zql-6r-CwW">
-                                <rect key="frame" x="0.0" y="0.0" width="587" height="38"/>
+                                <rect key="frame" x="0.0" y="0.0" width="587" height="138"/>
                                 <clipView key="contentView" id="2D7-H0-xKw">
-                                    <rect key="frame" x="1" y="0.0" width="585" height="37"/>
+                                    <rect key="frame" x="1" y="0.0" width="585" height="137"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="VF7-ky-Vo1" viewBased="YES" id="yku-Jn-JpS">
-                                            <rect key="frame" x="0.0" y="0.0" width="585" height="53"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="585" height="112"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <size key="intercellSpacing" width="3" height="2"/>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -867,7 +867,7 @@
                                 </tableHeaderView>
                             </scrollView>
                             <button horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="7A1-Hy-mPv" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
-                                <rect key="frame" x="524" y="11" width="25" height="25"/>
+                                <rect key="frame" x="524" y="111" width="25" height="25"/>
                                 <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Yp7-dI-FyF">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -877,7 +877,7 @@
                                 </connections>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Lnk-5Q-xmV">
-                                <rect key="frame" x="382" y="16" width="96" height="18"/>
+                                <rect key="frame" x="382" y="116" width="96" height="18"/>
                                 <buttonCell key="cell" type="check" title="Show Blocked" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="IQa-4s-LLy">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="smallSystem"/>
@@ -887,7 +887,7 @@
                                 </connections>
                             </button>
                             <searchField wantsLayer="YES" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8qx-1F-b8z">
-                                <rect key="frame" x="249" y="15" width="125" height="22"/>
+                                <rect key="frame" x="249" y="115" width="125" height="22"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="125" id="EeH-wu-1FT"/>
                                 </constraints>
@@ -1305,6 +1305,39 @@
                                     <action selector="blockQUICClick:" target="XPy-PT-yGD" id="mRQ-1w-aqb"/>
                                 </connections>
                             </button>
+                            <button horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="NP7-KU-Dqg" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
+                                <rect key="frame" x="228" y="118" width="25" height="25"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="oTA-gP-I34">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="blockQUICHelpClick:" target="XPy-PT-yGD" id="ch7-mm-bR8"/>
+                                </connections>
+                            </button>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0eU-PF-O5m">
+                                <rect key="frame" x="40" y="82" width="157" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="check" title="Use DNS-over-HTTPS" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="Toe-w4-vx7">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="DoHClick:" target="XPy-PT-yGD" id="2pQ-0v-weO"/>
+                                </connections>
+                            </button>
+                            <button horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mdP-4p-EVU" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
+                                <rect key="frame" x="202" y="76" width="25" height="25"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="KBv-eb-iwk">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="DoHHelpClick:" target="XPy-PT-yGD" id="d1v-dG-eCF"/>
+                                </connections>
+                            </button>
                         </subviews>
                     </view>
                     <connections>
@@ -1312,6 +1345,7 @@
                         <outlet property="autoUpdate" destination="4vg-zR-jeb" id="0rT-bj-5rF"/>
                         <outlet property="blockQUIC" destination="8cJ-0h-doJ" id="Zw6-s1-umj"/>
                         <outlet property="runAtLogin" destination="Y6R-QM-wQC" id="eOM-uN-a4f"/>
+                        <outlet property="useDOH" destination="0eU-PF-O5m" id="ORY-HJ-vTv"/>
                         <outlet property="useMenuBar" destination="0rF-Ul-Mtb" id="WAQ-xj-S0S"/>
                     </connections>
                 </viewController>

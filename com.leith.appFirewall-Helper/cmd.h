@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <signal.h>
 #include "util.h"
 
 #define CMD_PORT 6

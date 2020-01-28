@@ -159,13 +159,10 @@ int main(int argc, char *argv[]) {
 	
 	// flush DNS
 	INFO("Flushing DNS (sending HUP to mDNSResponder) ...\n");
-	int res=system("/usr/bin/pkill -HUP mDNSResponder");
-	if ((res<0) || (res==127)) {
-		WARN("Problem flushing DNS: %s (res=%d)", strerror(errno), res);
-	}
+	run_cmd("/usr/bin/pkill -HUP mDNSResponder");
 	
 	INFO("Starting RST loop ...\n");
-		
+			
 	// now wait in accept() loop to handle connections from GUI to send RST pkts
 	rst_accept_loop();
 }

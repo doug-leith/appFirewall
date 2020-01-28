@@ -489,3 +489,22 @@ func getSecuritySettings() {
 		}
 	}
 }
+
+func getIntstalledApps()->[String] {
+	// returns a list of app names from /Applications.  doesn't include
+	// embedded apps e.g. Google Chrome Helper (which is embedded inside
+	// Google Chrome and its metadata isn't tagged as an app)
+	
+	// to do ? could also use NSMetadataQuery but it seems much nastier
+	let output = runCmd(cmd:"/usr/bin/mdfind",args:["kMDItemContentTypeTree=com.apple.application-bundle","-onlyin","/Applications"])
+	//print(output)
+	var apps: [String] = []
+	for item in output.components(separatedBy:"\n") {
+		//if let b = Bundle(path: item) {
+			//print(b.infoDictionary?["CFBundleName"], " ", p.lastPathComponent)
+		//}
+		let p = URL(fileURLWithPath:item).deletingPathExtension()
+		apps.append(p.lastPathComponent)
+	}
+	return apps
+}

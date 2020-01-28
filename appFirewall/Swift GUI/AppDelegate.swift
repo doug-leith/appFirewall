@@ -387,7 +387,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		
 		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
-		NSApp.mainWindow?.delegate = self		
+		NSApp.mainWindow?.delegate = self
 	}
 	
 	func applicationWillTerminate(_ aNotification: Notification) {
@@ -396,6 +396,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// and will call save_state(), so no need to do it again here
 		stop_helper_listeners()
 		if (Config.getBlockQUIC()) { unblock_QUIC() }
+		if (Config.getDnscrypt_proxy()) { stop_dnscrypt_proxy() }
 	}
 	
 	func applicationDidEnterBackground(_ aNotification: Notification) {
