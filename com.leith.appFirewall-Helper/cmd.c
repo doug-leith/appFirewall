@@ -22,11 +22,19 @@ void* dnscrypt(void* ptr) {
 		res=getline(&resp, &llen, out);
 		if (res == -1) {
 			if (errno==EINTR) continue; // interrupted by signal
-			WARN("Problem reading dnscrypt-proxy output: %s\n",strerror(errno));
+			if (feof(out)) {
+				WARN("Problem reading dnscrypt-proxy output: end of file\n");
+			} else {
+				WARN("Problem reading dnscrypt-proxy output: %s\n",strerror(errno));
+			}
 			tries++;
 			// we give it a few goes before stopping
 			// since loss of dns server is pretty bad
 			if (tries>10) break; // bail
+			// restart and try again
+			pclose(out);
+			out = popen(dnscrypt_cmd,"r");
+			continue;
 		}
 		tries = 0; // reset counter
 		printf("dnscrypt-proxy: %s",resp);
@@ -176,11 +184,11 @@ void* cmd_accept_loop(void* ptr) {
 					break;
 				case 4:
 					printf("Received start dnscrypt-proxy command\n");
+					if ( (res=readn(s2, &src_len, sizeof(size_t)) )<=0) break;
+					if ((src_len<0) || (src_len>STR_SIZE)) break;
+					memset(src,0,STR_SIZE);
+					if ( (res=readn(s2, src, src_len) )<=0) break;
 					if (!dnscrypt_proxy_running) {
-						if ( (res=readn(s2, &src_len, sizeof(size_t)) )<=0) break;
-						if ((src_len<0) || (src_len>STR_SIZE)) break;
-						memset(src,0,STR_SIZE);
-						if ( (res=readn(s2, src, src_len) )<=0) break;
 						// TO DO: check signature of executable
 						snprintf(dnscrypt_cmd,STR_SIZE,"%s/dnscrypt-proxy -config %s/dnscrypt-proxy.toml 2>&1",src,src);
 						printf("cmd=%s\n",dnscrypt_cmd);
