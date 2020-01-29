@@ -204,7 +204,7 @@ class Config: NSObject {
 				DispatchQueue.main.async { error_popup(msg:msg) }
 			}
 		} else {
-			if let msg_ptr = start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents/Resources") {
+			if let msg_ptr = start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents") {
 				print("WARNING: Problem trying to start dnscrypt-proxy")
 				dnscrypt_proxy(value:false)
 				let helper_msg = String(cString: msg_ptr);

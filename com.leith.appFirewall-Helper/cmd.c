@@ -31,19 +31,20 @@ void* dnscrypt(void* ptr) {
 			tries++;
 			// we give it a few goes before stopping
 			// since loss of dns server is pretty bad
-			if (tries>5) break; // bail
+			//if (tries>5) break; // bail
+			break; // bail, to be safe
 			// restart and try again
-			//char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
-			//if (run_cmd(cmd,CMD_TIMEOUT)!=0) { break; } // an error running cmd, bail
+			/*
+			fclose(out);
 			if (kill(pid,SIGKILL)!=0) {
 				WARN("Problem killing dnscrypt-proxy on error: %s\n",strerror(errno));
 				break; // an error running kill, seems bad !  bail
 			}
-			fclose(out);
 			out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&pid);
-			continue;
+			*/
+		} else {
+			tries = 0; // reset counter
 		}
-		tries = 0; // reset counter
 		printf("dnscrypt-proxy: %s",resp);
 	}
 	// stop service
@@ -220,8 +221,8 @@ void* cmd_accept_loop(void* ptr) {
 					if ( (res=readn(s2, src, src_len) )<=0) break;
 					if (!dnscrypt_proxy_running) {
 						// TO DO: check signature of executable
-						snprintf(dnscrypt_cmd,STR_SIZE,"%s/dnscrypt-proxy",src);
-						snprintf(dnscrypt_arg,STR_SIZE,"-config=%s/dnscrypt-proxy.toml",src);
+						snprintf(dnscrypt_cmd,STR_SIZE,"%s/Library/dnscrypt-proxy",src);
+						snprintf(dnscrypt_arg,STR_SIZE,"-config=%s/Resources/dnscrypt-proxy.toml",src);
 						printf("cmd=%s %s\n",dnscrypt_cmd, dnscrypt_arg);
 						pthread_create(&dns_thread, NULL, dnscrypt, NULL);
 						pthread_detach(dns_thread); // so we don't need to join

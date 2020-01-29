@@ -75,8 +75,10 @@
 		91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		91FDE83D23DBFF0F0097BBCA /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */; };
 		91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE84223DC00BC0097BBCA /* libcurl.tbd */; };
-		91FDE89623E0B8210097BBCA /* dnscrypt-proxy in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE89523E0B8210097BBCA /* dnscrypt-proxy */; };
 		91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */; };
+		91FDE8B423E1A8AE0097BBCA /* dnscrypt-proxy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE89523E0B8210097BBCA /* dnscrypt-proxy */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		91FDE8B623E1A8C20097BBCA /* dnscrypt-proxy.toml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */; };
+		91FDE8C223E1AD800097BBCA /* dnscrypt-proxy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE8AB23E1A6CF0097BBCA /* dnscrypt-proxy */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -127,6 +129,36 @@
 			dstSubfolderSpec = 7;
 			files = (
 				91ABB2952377350A007F8FFE /* BlackLists in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91FDE8A923E1A6CF0097BBCA /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 12;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				91FDE8B423E1A8AE0097BBCA /* dnscrypt-proxy in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91FDE8B523E1A8B70097BBCA /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 12;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				91FDE8B623E1A8C20097BBCA /* dnscrypt-proxy.toml in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91FDE8BF23E1AC360097BBCA /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 12;
+			dstPath = Contents/Library;
+			dstSubfolderSpec = 1;
+			files = (
+				91FDE8C223E1AD800097BBCA /* dnscrypt-proxy in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -252,6 +284,9 @@
 		91FDE84223DC00BC0097BBCA /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91FDE89523E0B8210097BBCA /* dnscrypt-proxy */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "dnscrypt-proxy"; sourceTree = "<group>"; };
 		91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "dnscrypt-proxy.toml"; sourceTree = "<group>"; };
+		91FDE8AB23E1A6CF0097BBCA /* dnscrypt-proxy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "dnscrypt-proxy"; sourceTree = BUILT_PRODUCTS_DIR; };
+		91FDE8B223E1A75D0097BBCA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		91FDE8B323E1A7E80097BBCA /* dnscrypt_proxy.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = dnscrypt_proxy.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -283,6 +318,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		91FDE8A823E1A6CF0097BBCA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -299,6 +341,7 @@
 				91607BB1236AB280002E50A8 /* appFirewall */,
 				91607C1F2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
 				91C0DF9723B0B05500E5215B /* appFirewall-loginLaunch */,
+				91FDE8AC23E1A6CF0097BBCA /* dnscrypt-proxy */,
 				91607BB0236AB280002E50A8 /* Products */,
 				91607BCB236AD6BA002E50A8 /* Frameworks */,
 			);
@@ -310,6 +353,7 @@
 				91607BAF236AB280002E50A8 /* appFirewall.app */,
 				91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
 				91C0DF9623B0B05500E5215B /* appFirewall-loginLaunch.app */,
+				91FDE8AB23E1A6CF0097BBCA /* dnscrypt-proxy */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -317,8 +361,6 @@
 		91607BB1236AB280002E50A8 /* appFirewall */ = {
 			isa = PBXGroup;
 			children = (
-				91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */,
-				91FDE89523E0B8210097BBCA /* dnscrypt-proxy */,
 				9180E177238BC731007002CB /* Credits.html */,
 				919074192399072500DE49DE /* dns_connlist.dat */,
 				91ABB292237734DE007F8FFE /* BlackLists */,
@@ -467,6 +509,17 @@
 			path = "appFirewall-loginLaunch";
 			sourceTree = "<group>";
 		};
+		91FDE8AC23E1A6CF0097BBCA /* dnscrypt-proxy */ = {
+			isa = PBXGroup;
+			children = (
+				91FDE8B323E1A7E80097BBCA /* dnscrypt_proxy.entitlements */,
+				91FDE8B223E1A75D0097BBCA /* Info.plist */,
+				91FDE89523E0B8210097BBCA /* dnscrypt-proxy */,
+				91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */,
+			);
+			path = "dnscrypt-proxy";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -480,6 +533,7 @@
 				91607C182372EA7D002E50A8 /* CopyFiles */,
 				916ECB2123AFA0EA00023AEA /* CopyFiles */,
 				9185AD2D23C07069002AE0D6 /* Embed Frameworks */,
+				91FDE8BF23E1AC360097BBCA /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -525,6 +579,24 @@
 			productReference = 91C0DF9623B0B05500E5215B /* appFirewall-loginLaunch.app */;
 			productType = "com.apple.product-type.application";
 		};
+		91FDE8AA23E1A6CF0097BBCA /* dnscrypt-proxy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 91FDE8AF23E1A6CF0097BBCA /* Build configuration list for PBXNativeTarget "dnscrypt-proxy" */;
+			buildPhases = (
+				91FDE8A723E1A6CF0097BBCA /* Sources */,
+				91FDE8A823E1A6CF0097BBCA /* Frameworks */,
+				91FDE8A923E1A6CF0097BBCA /* CopyFiles */,
+				91FDE8B523E1A8B70097BBCA /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "dnscrypt-proxy";
+			productName = "dnscrypt-proxy";
+			productReference = 91FDE8AB23E1A6CF0097BBCA /* dnscrypt-proxy */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -545,6 +617,9 @@
 					91C0DF9523B0B05500E5215B = {
 						CreatedOnToolsVersion = 11.2.1;
 					};
+					91FDE8AA23E1A6CF0097BBCA = {
+						CreatedOnToolsVersion = 11.3.1;
+					};
 				};
 			};
 			buildConfigurationList = 91607BAA236AB280002E50A8 /* Build configuration list for PBXProject "appFirewall" */;
@@ -563,6 +638,7 @@
 				91607BAE236AB280002E50A8 /* appFirewall */,
 				91607C1D2372FF40002E50A8 /* com.leith.appFirewall-Helper */,
 				91C0DF9523B0B05500E5215B /* appFirewall-loginLaunch */,
+				91FDE8AA23E1A6CF0097BBCA /* dnscrypt-proxy */,
 			);
 		};
 /* End PBXProject section */
@@ -572,15 +648,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */,
 				9190741A2399077100DE49DE /* dns_connlist.dat in Resources */,
 				9157B052238FC2290027457A /* icons in Resources */,
 				9180E178238BC731007002CB /* Credits.html in Resources */,
-				91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */,
 				91607BB7236AB282002E50A8 /* Assets.xcassets in Resources */,
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
 				916ECB0323AF8EF900023AEA /* version in Resources */,
-				91FDE89623E0B8210097BBCA /* dnscrypt-proxy in Resources */,
 				91FDE83023D8901B0097BBCA /* consent.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -662,6 +737,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				91C0DF9923B0B05500E5215B /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91FDE8A723E1A6CF0097BBCA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1009,6 +1091,61 @@
 			};
 			name = Release;
 		};
+		91FDE8B023E1A6CF0097BBCA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "$(SRCROOT)/dnscrypt-proxy/Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MARKETING_VERSION = 1;
+				"OTHER_LDFLAGS[arch=*]" = (
+					"-sectcreate",
+					__TEXT,
+					__info_plist,
+					"com.leith.appFirewall-Helper/Info.plist",
+					"-sectcreate",
+					__TEXT,
+					__launchd_plist,
+					"com.leith.dnscrypt-proxy/Info.plist",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.leith.dnscrypt-proxy";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		91FDE8B123E1A6CF0097BBCA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "$(SRCROOT)/dnscrypt-proxy/Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MARKETING_VERSION = 1;
+				"OTHER_LDFLAGS[arch=*]" = (
+					"-sectcreate",
+					__TEXT,
+					__info_plist,
+					"com.leith.appFirewall-Helper/Info.plist",
+					"-sectcreate",
+					__TEXT,
+					__launchd_plist,
+					"com.leith.dnscrypt-proxy/Info.plist",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.leith.dnscrypt-proxy";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1044,6 +1181,15 @@
 			buildConfigurations = (
 				91C0DFA323B0B05600E5215B /* Debug */,
 				91C0DFA423B0B05600E5215B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		91FDE8AF23E1A6CF0097BBCA /* Build configuration list for PBXNativeTarget "dnscrypt-proxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91FDE8B023E1A6CF0097BBCA /* Debug */,
+				91FDE8B123E1A6CF0097BBCA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
