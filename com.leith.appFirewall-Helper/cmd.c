@@ -60,9 +60,10 @@ int set_dns_server(char* dns) {
 	if (out==NULL) {
 		WARN("Problem getting list of network services in set_dns_server(): %s\n", strerror(errno));
 		pclose(out);
-		return -1;
+		return -3;
 	}
 	int count = 0, res = 0;
+	int failedforsome=0, okforsome=0;
 	char service[STR_SIZE], cmd_str[STR_SIZE];
 	while ((res=readline_timed(service, STR_SIZE, out,CMD_TIMEOUT))>0) {
 		count++;
@@ -71,15 +72,21 @@ int set_dns_server(char* dns) {
 		// this command seems to hang intermittently, but run_cmd() times out
 		snprintf(cmd_str,STR_SIZE,"/usr/sbin/networksetup setdnsservers \"%s\" \"%s\"",tmp,dns);
 		printf("setting dns server for %s to %s\n",tmp,dns);
-		if (run_cmd(cmd_str,CMD_TIMEOUT)==-2) {
+		int res2=0;
+		if ( (res2=run_cmd(cmd_str,CMD_TIMEOUT))==-2) {
 			// timedout, try again
-			run_cmd(cmd_str,CMD_TIMEOUT);
+			res2=run_cmd(cmd_str,CMD_TIMEOUT);
+		}
+		if (res2<0) {
+			failedforsome++; // keep a log of the failure
+		} else {
+			okforsome++; // keep a log of success
 		}
 		// if this cmd fails, just continue to next network service
 	}
 	printf("set_dns_server() finished\n");
 	pclose(out);
-	return res;
+	return okforsome;
 }
 
 void* cmd_accept_loop(void* ptr) {
@@ -118,7 +125,7 @@ void* cmd_accept_loop(void* ptr) {
 			int tries=0;
 			if ( (res=readn(s2, &cmd, 1) )<=0) break;
 			switch (cmd) {
-				case 1:
+				case IntallUpdatecmd:
 					// install update
 					printf("Received install update command\n");
 					if ( (res=readn(s2, &src_len, sizeof(size_t)) )<=0) break;
@@ -173,7 +180,7 @@ void* cmd_accept_loop(void* ptr) {
 					printf("install update successful\n");
 					ok = 1;
 					break;
-				case 2:
+				case BlockQUICcmd:
 					//sudo pfctl -a com.apple/appFirewall -s rules // list rules
 					printf("Received block QUIC command\n");
 					snprintf(cmd_str,STR_SIZE,"/bin/echo \"block drop quick proto udp from any to any port 443\" | /sbin/pfctl -a com.apple/appFirewall -f -");
@@ -185,7 +192,7 @@ void* cmd_accept_loop(void* ptr) {
 					printf("Block QUIC command successful\n");
 					ok = 1;
 					break;
-				case 3:
+				case UnblockQUICcmd:
 					printf("Received unblock QUIC command\n");
 					if ((res=run_cmd("/sbin/pfctl -a com.apple/appFirewall -F rules", CMD_TIMEOUT)) != 0) {
 						WARN("Problem unblocking QUIC, res=%zd\n",res);
@@ -194,7 +201,7 @@ void* cmd_accept_loop(void* ptr) {
 					printf("Unblock QUIC command successful\n");
 					ok = 1;
 					break;
-				case 4:
+				case StartDNScmd:
 					printf("Received start dnscrypt-proxy command\n");
 					if ( (res=readn(s2, &src_len, sizeof(size_t)) )<=0) break;
 					if ((src_len<0) || (src_len>STR_SIZE)) break;
@@ -211,10 +218,30 @@ void* cmd_accept_loop(void* ptr) {
 					} else {
 						printf("start dnscrypt-proxy: already running\n");
 					}
-					ok = 1;
+					printf("Set DNS server to localhost\n");
+					// we try a few times as seems prone to timing out
+					res=0;
+					while (((res=set_dns_server("127.0.0.1"))==0) && (tries<5)){tries++;}
+					if (res>0)
+						ok = 1; // success;
+					else
+						ok = -1;
+					printf("set DNS server to 127.0.0.1 completed\n");
 					break;
-				case 5:
+				case StopDNScmd:
 					printf("Received stop dnscrypt-proxy command\n");
+					printf("Set DNS server to default\n");
+					while (( (res=set_dns_server("empty"))==0) && (tries<5)){tries++;}
+					if (res>0)
+						ok = 1; // success;
+					else {
+						ok = -1;
+						// try to rollback ...
+						set_dns_server("127.0.0.1");
+						break; // bail here, since interfaces still using dnscrypt-proxy
+					}
+					printf("set DNS server to default completed\n");
+					printf("Stopping dnscrypt-proxy ...\n");
 					if (dnscrypt_proxy_running) {
 						dnscrypt_proxy_running=0;
 						// interrupt getline() in dns_thread so it checks
@@ -224,22 +251,6 @@ void* cmd_accept_loop(void* ptr) {
 					} else {
 						printf("stop dnscrypt-proxy: not running.\n");
 					}
-					ok = 1;
-					break;
-				case 6:
-					printf("Received set DNS server to localhost command\n");
-					ok = 1;
-					// we try a few times as seems prone to timing out
-					while ((set_dns_server("127.0.0.1")<0) && (tries<5)){tries++;}
-					ok = tries<5;
-					printf("set DNS server to 127.0.0.1 completed\n");
-					break;
-				case 7:
-					printf("Received set DNS server to default command\n");
-					ok = 1;
-					while ((set_dns_server("empty")<0) && (tries<5)){tries++;}
-					ok = tries<5;
-					printf("set DNS server to default completed\n");
 					break;
 				default:
 					WARN("Unexpected command received: %d\n", cmd);

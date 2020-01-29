@@ -61,15 +61,18 @@ int connect_to_helper(int port, int quiet) {
 	return sock;
 }
 
-int start_dnscrypt_proxy(const char* path) {
+char* start_dnscrypt_proxy(const char* path) {
 	// start dnscrypt-proxy service
+	char* msg = NULL;
+	static char msg_buf[STR_SIZE];
+
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
-		return -1;
+		return "Couldn't connect to helper";
 	}
 	ssize_t res;
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
-	uint8_t cmd = 4;
+	uint8_t cmd = StartDNScmd;
 	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
 	size_t len = strlen(path);
 	if ( (res=send(c_sock, &len, sizeof(size_t), 0) )<=0) goto err;
@@ -77,62 +80,75 @@ int start_dnscrypt_proxy(const char* path) {
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
 	int8_t ok=0;
 	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
-	// set DNS server to localhost
-	cmd = 6;
-	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
-	if (read(c_sock, &ok, 1)<=0) goto err;
 	close(c_sock);
-	return 1;
+	if (ok != 1) {
+		WARN("start_dnscrypt_proxy: command execution failed, return value %d\n",ok);
+		snprintf(msg_buf,STR_SIZE, "helper command execution failed, return value %d\n",ok);
+		msg = msg_buf;
+	}
+	return msg;
 	
 err:
 	close(c_sock);
 	if (errno == EAGAIN) {
 		WARN("start_dnscrypt_proxy timeout\n");
+		msg = "Timeout when calling helper";
 	} else {
 		WARN("start_dnscrypt_proxy: %s\n", strerror(errno));
+		snprintf(msg_buf,STR_SIZE,"helper socket error: %s",strerror(errno));
+		msg = msg_buf;
 	}
-	return -1;
+	return msg;
 }
 
-int stop_dnscrypt_proxy() {	
+char* stop_dnscrypt_proxy() {	
+	char* msg = NULL;
+	static char msg_buf[STR_SIZE];
+
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
-		return -1;
+		return "Couldn't connect to helper";
 	}
-	// reset DNS server back to default
-	ssize_t res;
-	int8_t ok=0;
-	uint8_t cmd = 7;
-	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
-	if (read(c_sock, &ok, 1)<=0) goto err;
-	// and stop dnscrypt-proxy service
+	// stop dnscrypt-proxy service
+	ssize_t res; int8_t ok=0;
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
-	cmd = 5;
+	uint8_t cmd = StopDNScmd;
 	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
 	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
 	close(c_sock);
-	return 1;
+	if (ok != 1) {
+		WARN("stop_dnscrypt_proxy: command execution failed, return value %d\n",ok);
+		snprintf(msg_buf,STR_SIZE, "helper command execution failed, return value %d\n",ok);
+		msg = msg_buf;
+	}
+	return msg;
 	
 err:
 	close(c_sock);
 	if (errno == EAGAIN) {
 		WARN("stop_dnscrypt_proxy timeout\n");
+		msg = "Timeout when calling helper";
 	} else {
 		WARN("stop_dnscrypt_proxy: %s\n", strerror(errno));
+		snprintf(msg_buf,STR_SIZE,"helper socket error: %s",strerror(errno));
+		msg = msg_buf;
 	}
-	return -1;
+	return msg;
 }
 
 
-int block_QUIC() {
+char* block_QUIC() {
+	char* msg = NULL;
+	static char msg_buf[STR_SIZE];
+
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
-		return -1;
+		return "Couldn't connect to helper";
 	}
 	ssize_t res;
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
-	uint8_t cmd = 2;
+	uint8_t cmd = BlockQUICcmd;
 	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
 	int8_t ok=0;
@@ -140,28 +156,35 @@ int block_QUIC() {
 	close(c_sock);
 	if (ok != 1) {
 		WARN("block_QUIC: command execution failed, return value %d\n",ok);
-		return -1;
+		snprintf(msg_buf,STR_SIZE, "helper command execution failed, return value %d\n",ok);
+		msg = msg_buf;
 	}
-	return 1;
+	return msg;
 
 err:
 	close(c_sock);
 	if (errno == EAGAIN) {
 		WARN("block_QUIC timeout\n");
+		msg = "Timeout when calling helper";
 	} else {
 		WARN("block_QUIC: %s\n", strerror(errno));
+		snprintf(msg_buf,STR_SIZE,"helper socket error: %s",strerror(errno));
+		msg = msg_buf;
 	}
-	return -1;
+	return msg;
 }
 
-int unblock_QUIC() {
+char* unblock_QUIC() {
+	char* msg = NULL;
+	static char msg_buf[STR_SIZE];
+
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
-		return -1;
+		return "Couldn't connect to helper";
 	}
 	ssize_t res;
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
-	uint8_t cmd = 3;
+	uint8_t cmd = UnblockQUICcmd;
 	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
 	int8_t ok=0;
@@ -169,18 +192,22 @@ int unblock_QUIC() {
 	close(c_sock);
 	if (ok != 1) {
 		WARN("unblock_QUIC: command execution failed, return value %d\n",ok);
-		return -1;
+		snprintf(msg_buf,STR_SIZE, "helper command execution failed, return value %d\n",ok);
+		msg = msg_buf;
 	}
-	return 1;
+	return msg;
 
 err:
 	close(c_sock);
 	if (errno == EAGAIN) {
 		WARN("unblock_QUIC timeout\n");
+		msg = "Timeout when calling helper";
 	} else {
 		WARN("unblock_QUIC: %s\n", strerror(errno));
+		snprintf(msg_buf,STR_SIZE,"helper socket error: %s",strerror(errno));
+		msg = msg_buf;
 	}
-	return -1;
+	return msg;
 }
 
 char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* file) {
@@ -196,7 +223,7 @@ char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* f
 	ssize_t res;
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
 	printf("helper_cmd_install src_dir=%s, dst_dir=%s\n",src_dir,dst_dir);
-	uint8_t cmd = 1;
+	uint8_t cmd = IntallUpdatecmd;
 	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
 	size_t len = strnlen(src_dir, STR_SIZE);
 	if ( (res=send(c_sock, &len, sizeof(size_t), 0) )<=0) goto err;

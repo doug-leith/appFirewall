@@ -265,7 +265,7 @@ int run_cmd(char* cmd, int t) {
 	} else if (res<0) {
 		// an error
 		pclose(out);
-		return -1;
+		return res;
 	}
 	pclose(out);
 	return 0;

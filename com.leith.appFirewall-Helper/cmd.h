@@ -18,7 +18,14 @@
 #define CMD_PORT 6
 
 #define CMD_TIMEOUT 1 // in secs
-#define LONG_CMD_TIMEOUT 5
+#define LONG_CMD_TIMEOUT 10
+
+#define IntallUpdatecmd 1
+#define BlockQUICcmd 2
+#define UnblockQUICcmd 3
+#define StartDNScmd 4
+#define StopDNScmd 5
+
 void start_cmd(void);
 
 #endif /* cmd_h */

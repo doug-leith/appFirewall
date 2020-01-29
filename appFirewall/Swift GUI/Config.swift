@@ -138,6 +138,7 @@ class Config: NSObject {
 						print("Menubar button image is *still* nil, disabling button")
 						delegate.statusItem.isVisible = false
 						useMenuBar(value:false) // disable menubar
+						DispatchQueue.main.async { error_popup(msg:"Problem getting menubar button, disabling button") }
 					}
 				}
 				button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
@@ -146,32 +147,46 @@ class Config: NSObject {
 				print("Problem getting menubar button, disabling button: ", delegate.statusItem, delegate.statusItem.button ?? "nil")
 				delegate.statusItem.isVisible = false
 				useMenuBar(value:false) // disable menubar
+				DispatchQueue.main.async { error_popup(msg:"Problem getting menubar button, disabling button") }
 			}
 		}
 	}
 	
 	static func initBlockQUIC() {
 		if (getBlockQUIC() == false) {
-			if (unblock_QUIC() < 0) {
+			if let msg_ptr = unblock_QUIC() {
 				print("Problem trying to unblock QUIC")
+				let helper_msg = String(cString: msg_ptr);
+				let msg = "Problem trying to unblock QUIC ("+helper_msg+")"
+				DispatchQueue.main.async { error_popup(msg:msg) }
 				// should we blockQUIC(value:true) since it might still be enabled ?
 			}
 		} else {
-			if (block_QUIC() < 0) {
+			if let msg_ptr = block_QUIC()  {
 				print("Problem trying to block QUIC")
+				let helper_msg = String(cString: msg_ptr);
+				let msg = "Problem trying to block QUIC ("+helper_msg+")"
+				DispatchQueue.main.async { error_popup(msg:msg) }
 				blockQUIC(value:false)
 			}
 		}
 	}
 	
+	
 	static func initDnscrypt_proxy() {		
 		if (getDnscrypt_proxy() == false) {
-			if (stop_dnscrypt_proxy() < 0) {
+			if let msg_ptr = stop_dnscrypt_proxy() {
 				print("Problem trying to stop dnscrypt-proxy")
+				let helper_msg = String(cString: msg_ptr);
+				let msg = "Problem trying to stop DNS server ("+helper_msg+")"
+				DispatchQueue.main.async { error_popup(msg:msg) }
 			}
 		} else {
-			if (start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents/Resources") < 0) {
+			if let msg_ptr = start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents/Resources") {
 				print("Problem trying to start dnscrypt-proxy")
+				let helper_msg = String(cString: msg_ptr);
+				let msg = "Problem trying to start DNS server ("+helper_msg+")"
+				DispatchQueue.main.async { error_popup(msg:msg) }
 				dnscrypt_proxy(value:false)
 			}
 		}
