@@ -3,6 +3,7 @@ TO DO
 short term:
 - option to manually add blacklist/whitelist rules
 - initialise cache with dnscrypt domains
+- report last outpout from dnscrypt, bail on [FATAL]
 
 longer term:
 1. allow addition of user specified host name lists

@@ -22,6 +22,7 @@
 #define StartDNScmd 4
 #define StopDNScmd 5
 #define QUICStatuscmd 6
+#define GetDNSOutputcmd 7
 
 int connect_to_helper(int port,int quiet);
 void start_listener(void); // sniffer_blocker.h
@@ -36,5 +37,6 @@ char* block_QUIC(void);
 int QUIC_status(void);
 char* start_dnscrypt_proxy(const char* path);
 char* stop_dnscrypt_proxy(void);
+char* GetDNSOutput(int *dnscrypt_proxy_stopped, int *dnscrypt_proxy_running);
 
 #endif /* helper_h */

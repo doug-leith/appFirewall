@@ -10,55 +10,88 @@
 
 static int c_sock=-1;
 static pthread_t cmd_thread, dns_thread;
-static int dnscrypt_proxy_running=0;
+static pthread_mutex_t dns_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
+static int dnscrypt_proxy_running=0, dnscrypt_proxy_stopped=0;
 static char dnscrypt_cmd[STR_SIZE], dnscrypt_arg[STR_SIZE];
+static char dnscrypt_lastline[STR_SIZE]; // last line of output
 
 void* dnscrypt(void* ptr) {
-	int pid = 0;
+	// run dnscrypt service
+	int pid = 0, interfaces_setup=0, error=0;
 	FILE *out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&pid);
-	char *resp=NULL; size_t llen = 0;
-	ssize_t res=0;
-	int tries = 0;
+	char *resp=NULL; size_t llen = 0; ssize_t res=0;
+	pthread_mutex_lock(&dns_mutex);
 	while (dnscrypt_proxy_running) {
+		pthread_mutex_unlock(&dns_mutex);
 		res=getline(&resp, &llen, out);
 		if (res == -1) {
+			pthread_mutex_lock(&dns_mutex);
 			if (errno==EINTR) continue; // interrupted by signal
-			if (feof(out)) {
+			dnscrypt_proxy_running = 0;
+			pthread_mutex_unlock(&dns_mutex);
+			if (feof(out)) { // likely dnscrypt has exited
 				WARN("Problem reading dnscrypt-proxy output: end of file\n");
-			} else {
+			} else { // something else has gone wrong ?
 				WARN("Problem reading dnscrypt-proxy output: %s\n",strerror(errno));
 			}
-			tries++;
-			// we give it a few goes before stopping
-			// since loss of dns server is pretty bad
-			//if (tries>5) break; // bail
-			break; // bail, to be safe
-			// restart and try again
-			/*
-			fclose(out);
-			if (kill(pid,SIGKILL)!=0) {
-				WARN("Problem killing dnscrypt-proxy on error: %s\n",strerror(errno));
-				break; // an error running kill, seems bad !  bail
-			}
-			out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&pid);
-			*/
-		} else {
-			tries = 0; // reset counter
+			error = 1;
+			break; // bail
 		}
 		printf("dnscrypt-proxy: %s",resp);
+		// keep a copy of the most recent line with res>0, it'll contain
+		// details of error that caused dnscrypt to quit
+		pthread_mutex_lock(&dns_mutex);
+		if (resp != NULL) strlcpy(dnscrypt_lastline,resp,STR_SIZE);
+		pthread_mutex_unlock(&dns_mutex);
+		if (!interfaces_setup) {
+			// now that dns server is running and we have seen first line
+			// of output from it, set interfaces to point to the server.
+			// nb: the API used by set_dns_server() is slow and a bit flaky (prone
+			// to hangs/timeouts), so we have a few tries before giving up
+			int tries = 0;
+			while (((res=set_dns_server("127.0.0.1"))==0) && (tries<5)){tries++;}
+			if (res==0) {
+				// failed to set interfaces to point to server, let's exit
+				WARN("Problem setting interface DNS to point to dnscrypt-proxy server, stopping dnscrypt-proxy\n");
+				pthread_mutex_lock(&dns_mutex);
+				dnscrypt_proxy_running = 0;
+				pthread_mutex_unlock(&dns_mutex);
+				break; // bail
+			} else {
+				interfaces_setup = 1;
+			}
+		}
 	}
-	// stop service
-	if (dnscrypt_proxy_running) {
-		ERR("dnscrypt_proxy stopped prematurely: %s\n",strerror(errno));
-	} else {
-		printf("Dnscrypt-proxy thread stopped.\n");
+	if (!error) {
+		// planned exit, clear most recent line
+		pthread_mutex_lock(&dns_mutex);
+		memset(dnscrypt_lastline,0,STR_SIZE);
+		pthread_mutex_unlock(&dns_mutex);
 	}
-	//char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
-	//run_cmd(cmd,CMD_TIMEOUT); // nothing much we can do if this fails
-	if (kill(pid,SIGKILL)!=0) {
+
+	// reset interface DNS settings, else user DNS will fail completely
+	// since dnscrypt has stopped.
+	// NB: if set_dns_server() fails here then that's pretty bad news
+	// but not sure what we can do to recover without user intervention
+	int tries = 0;
+	while ((set_dns_server("empty")==0) && (tries<5)){tries++;}
+
+	// now make sure dnscrypt is dead
+	if ((pid>0) && (kill(pid,SIGKILL)!=0)) {
 		WARN("Problem killing dnscrypt-proxy on exit: %s\n",strerror(errno));
 	}
+	// tidy up
 	fclose(out); free(resp);
+	// and exit thread
+	printf("Dnscrypt-proxy thread stopped.\n");
+	// we keep dnscrypt_proxy_stopped=0 all the way to here, so as to prevent a race
+	// between starting a new dnscrypt instance while the instance here
+	// is still closing down (and, in particular, bound to port 53).
+	// at this point dnscrypt instance is fully closed, so we can finally
+	// set dnscrypt_proxy_stopped=1.
+	pthread_mutex_lock(&dns_mutex);
+	dnscrypt_proxy_stopped = 1;
+	pthread_mutex_unlock(&dns_mutex);
 	return NULL;
 }
 
@@ -127,11 +160,11 @@ void* cmd_accept_loop(void* ptr) {
 				if (check_signature(s2, CMD_PORT)<0) break;
 			}
 			pid = current_pid;
-			uint8_t cmd; int8_t ok=0;
+			uint8_t cmd; int8_t ok=0, running = 0;
 			char src[STR_SIZE], dst[STR_SIZE], cmd_str[STR_SIZE];
 			size_t src_len=0, dst_len=0;
-			int tries=0;
 			if ( (res=readn(s2, &cmd, 1) )<=0) break;
+			set_snd_timeout(s2, SND_TIMEOUT); // to be safe, will eventually timeout of send
 			switch (cmd) {
 				case IntallUpdatecmd:
 					// install update
@@ -219,59 +252,69 @@ void* cmd_accept_loop(void* ptr) {
 					if ((src_len<0) || (src_len>STR_SIZE)) break;
 					memset(src,0,STR_SIZE);
 					if ( (res=readn(s2, src, src_len) )<=0) break;
-					if (!dnscrypt_proxy_running) {
-						// TO DO: check signature of executable
-						snprintf(dnscrypt_cmd,STR_SIZE,"%s/Library/dnscrypt-proxy",src);
-						snprintf(dnscrypt_arg,STR_SIZE,"-config=%s/Resources/dnscrypt-proxy.toml",src);
-						printf("cmd=%s %s\n",dnscrypt_cmd, dnscrypt_arg);
+					snprintf(dnscrypt_cmd,STR_SIZE, "%s/Library/dnscrypt-proxy", src);
+					// TO DO: check signature of executable
+					snprintf(dnscrypt_arg,STR_SIZE, "-config=%s/Resources/dnscrypt-proxy.toml", src);
+					printf("cmd=%s %s\n",dnscrypt_cmd, dnscrypt_arg);
+					// its important to take a lock here so that we
+					// avoid a race between starting a new dnscrypt instance
+					// here while an old instance is still closing down.
+					pthread_mutex_lock(&dns_mutex);
+					if (dnscrypt_proxy_stopped) {
+						dnscrypt_proxy_running = 1;
+						dnscrypt_proxy_stopped = 0;
+						pthread_mutex_unlock(&dns_mutex);
 						pthread_create(&dns_thread, NULL, dnscrypt, NULL);
 						pthread_detach(dns_thread); // so we don't need to join
-						dnscrypt_proxy_running=1;
 						printf("start dnscrypt-proxy completed.\n");
 					} else {
+						// there's a race here.  if existing dnscrypt instance is
+						// stopping (but not yet stopped) then dnscrypt_proxy_stopped=0
+						// so we fall though to here and do nothing.  but if we came
+						// back in a while the existing instance would be properly stopped.
+						// seems unavoidable though since existing instance is
+						// bound to port 53 (blocking it for new instance) until it stops.
+						// we fail safe to doing nothing in this case.
+						pthread_mutex_unlock(&dns_mutex);
 						printf("start dnscrypt-proxy: already running\n");
 					}
-					printf("Set DNS server to localhost\n");
-					// we try a few times as seems prone to timing out
-					while (((res=set_dns_server("127.0.0.1"))==0) && (tries<5)){tries++;}
-					if (res>0)
-						ok = 1; // success;
-					else
-						// since dnscrypt-proxy is running there's no need to rollback
-						ok = -1;
-					printf("set DNS server to 127.0.0.1 completed\n");
 					break;
 				case StopDNScmd:
 					printf("Received stop dnscrypt-proxy command\n");
-					printf("Set DNS server to default\n");
-					while (( (res=set_dns_server("empty"))==0) && (tries<5)){tries++;}
-					if (res>0)
-						ok = 1; // success;
-					else {
-						ok = -1;
-						// try to rollback (dnscrypt-proxy is still running) ...
-						set_dns_server("127.0.0.1");
-						break; // bail here, since interfaces still using dnscrypt-proxy
-					}
-					printf("set DNS server to default completed\n");
-					printf("Stopping dnscrypt-proxy ...\n");
-					if (dnscrypt_proxy_running) {
-						dnscrypt_proxy_running=0;
+					pthread_mutex_lock(&dns_mutex);
+					if (!dnscrypt_proxy_stopped) {
+						// there's a race here too.  existing dnscrypt instance
+						// might be stopping, but not yet stopped.  its harmless
+						// to now tell it again here to stop.
+						dnscrypt_proxy_running=0; // flag to thread that it should stop
+						pthread_mutex_unlock(&dns_mutex);
 						// interrupt getline() in dns_thread so it checks
 						// dnscrypt_proxy_running flag
 						pthread_kill(dns_thread, SIGUSR1);
-						//pthread_join(dns_thread,NULL); // could this join block ?
 						printf("stop dnscrypt-proxy signalled.\n");
 					} else {
+						pthread_mutex_unlock(&dns_mutex);
 						printf("stop dnscrypt-proxy: not running.\n");
 					}
+					break;
+				case GetDNSOutputcmd:
+					pthread_mutex_lock(&dns_mutex);
+					strlcpy(src,dnscrypt_lastline,STR_SIZE);
+					running = (int8_t)dnscrypt_proxy_running;
+					ok = (int8_t)dnscrypt_proxy_stopped;
+					pthread_mutex_unlock(&dns_mutex);
+					src_len = strnlen(src,STR_SIZE);
+					if (send(s2, &src_len, sizeof(size_t), 0)<=0) break;
+					if (src_len>0) {
+						if (send(s2,src, src_len, 0)<=0) break;
+					}
+					if (send(s2, &running, sizeof(int8_t), 0)<=0) break;
 					break;
 				default:
 					WARN("Unexpected command received: %d\n", cmd);
 					break; // close connection
 			}
 			// send response back
-			set_snd_timeout(s2, SND_TIMEOUT); // to be safe, will eventually timeout of send
 			if (send(s2, &ok, 1, 0)<=0) break;
 		}
 		// likely UI client has closed its end of the connection, in which

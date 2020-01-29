@@ -139,6 +139,43 @@ err:
 	return msg;
 }
 
+static char line[STR_SIZE];
+char* GetDNSOutput(int *dnscrypt_proxy_stopped, int *dnscrypt_proxy_running) {
+	printf("Asking helper for last DNS line of output.\n");
+	int c_sock=-1;
+	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
+		return NULL;
+	}
+	ssize_t res;
+	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
+	uint8_t cmd = GetDNSOutputcmd;
+	if ( (res=send(c_sock, &cmd, 1, 0) )<=0) goto err;
+	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
+	int8_t ok=0, running=0; size_t len;
+	if (read(c_sock, &len, sizeof(size_t))<=0) goto err; // wait here until helper is done
+	if (len>0) {
+		if (len>STR_SIZE-1) {WARN("GetDNSOutput length %zu too big\n",len); goto err; }
+		memset(line,0,STR_SIZE);
+		if (read(c_sock, line, len)<=0) goto err;
+	}
+	if (read(c_sock, &running, 1)<=0) goto err;
+	if (read(c_sock, &ok, 1)<=0) goto err;
+	close(c_sock);
+	*dnscrypt_proxy_stopped = ok;
+	*dnscrypt_proxy_running = running;
+	printf("DNS output dnscrypt_proxy_stopped/running=%d/%d\n", ok, running);
+	return line;
+
+err:
+	close(c_sock);
+	if (errno == EAGAIN) {
+		WARN("unblock_QUIC timeout\n");
+	} else {
+		WARN("unblock_QUIC: %s\n", strerror(errno));
+	}
+	return NULL;
+}
+
 
 char* block_QUIC() {
 	char* msg = NULL;

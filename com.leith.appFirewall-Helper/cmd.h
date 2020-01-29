@@ -26,7 +26,9 @@
 #define StartDNScmd 4
 #define StopDNScmd 5
 #define QUICStatuscmd 6
+#define GetDNSOutputcmd 7
 
 void start_cmd(void);
+int set_dns_server(char* dns);
 
 #endif /* cmd_h */

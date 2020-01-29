@@ -212,21 +212,71 @@ class Config: NSObject {
 				DispatchQueue.main.async { error_popup(msg:msg) }
 			}
 		}
-		// align our setting with actual status
-		// should we give user an error message here ?
-		usleep(250000) // wait 250ms for dnscrypt-proxy status to update
+		// align our setting with actual status ...
+		// wait up to 250ms for dnscrypt-proxy status to update.
 		// this check can be unreliable -- might be in the process of
 		// stopping but pgrep status hasn't changed to reflect this,
-		// usleep() above helps
-		let running = is_dnscrypt_running()
-		if  running && (!getDnscrypt_proxy()) {
-			print("WARNING: dnscrypt running when it should be stopped")
-			dnscrypt_proxy(value:true)
-		} else if !running && getDnscrypt_proxy() {
-			print("WARNING: dnscrypt is not running when it should be.")
-			dnscrypt_proxy(value:false)
+		// usleep() helps
+		var running = is_dnscrypt_running()
+		var stopping = running && (!getDnscrypt_proxy())
+		var starting = !running && getDnscrypt_proxy()
+		var count : Int = 0
+		while ((starting || stopping) && (count<5)) {
+			usleep(50000) // 50ms
+			running = is_dnscrypt_running()
+			stopping = running && (!getDnscrypt_proxy())
+			starting = !running && getDnscrypt_proxy()
+			count = count + 1
 		}
-		// TO DO: should also check whether interface DNS points to dnscrypt-proxy
+		// let's also ask helper what it thinks dns server status is
+		var dnscrypt_proxy_stopped: Int32 = 0
+		var dnscrypt_proxy_running: Int32 = 0
+		let line = String(cString:GetDNSOutput(&dnscrypt_proxy_stopped, &dnscrypt_proxy_running))
+		if (stopping) {
+			print("WARNING: dnscrypt running when it should be stopped")
+			if (dnscrypt_proxy_running == 0)  {
+				// helper thinks dns server should be stopped, good.
+				if (dnscrypt_proxy_stopped == 0)  {
+					// might still be in process of stopping though.
+				} else {
+					// helper thinks server is stopped and so do we, but pgrep says otherwise
+					//dnscrypt_proxy(value:true)
+					DispatchQueue.main.async {
+						error_popup(msg:"DNS-over-HTTS server hasn't stopped yet, although helper thinks it should have.")
+					}
+				}
+			} else {
+				// helper thinks dns server should be running, but we think it
+				// should be stopped.  likely an error.
+				// update our state to match that of helper ...
+				dnscrypt_proxy(value:true)
+				// and warn user of fishy behaviour
+				DispatchQueue.main.async {
+					error_popup(msg:"DNS-over-HTTS server hasn't stopped yet.")
+				}
+			}
+		} else if (starting) {
+			print("WARNING: dnscrypt is not running when it should be.")
+			if (dnscrypt_proxy_running == 1)  {
+				// helper thinks dns server should be started, good.
+				if (dnscrypt_proxy_stopped == 0)  {
+					// could just be slow to start.
+				} else {
+					// shouldn't happen.
+					print("ERROR: dnscrypt_proxy_running == 1 and dnscrypt_proxy_stopped == 1 in initDnscrypt_proxy()")
+				}
+			} else {
+				// pgrep says dns server not started, and flag within helper
+				// also says not active.  yet we think it should be, so
+				// something has gone wrong.
+				// update our state to match helpers ...
+				dnscrypt_proxy(value:false)
+				// and warn user
+				DispatchQueue.main.async {
+					error_popup(msg:"DNS-over-HTTS server stopped unexpectedly: "+line)
+				}
+			}
+		}
 	}
 	
 	static func initLoad() {

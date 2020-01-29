@@ -265,7 +265,7 @@ class appViewController: NSViewController {
 		}
 		var dns = ""
 		if ((Int(port) == 53) && (name != "dnscrypt-proxy")) {
-			dns = "You might consider enabling DNS-over-HTTPS in preferences tab to encrypt DNS traffic. "
+			dns = "Its a good idea to encrypt DNS traffic by enabling DNS-over-HTTPS in the appFirewall preferences."
 		}
 		if (blocked_log == 0) {
 			tip = "This connection to "+domain_+" ("+ip+":"+port+") was not blocked. "+dns
