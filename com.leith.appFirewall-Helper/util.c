@@ -207,14 +207,65 @@ inline int is_ipv6_localhost(struct in6_addr* addr){
 	return memcmp(&addr->s6_addr,&in6addr_loopback.s6_addr,16)==0;
 }
 
-int run_cmd(char* cmd) {
+FILE* run_cmd_pipe(char* cmd, char* arg, int *pid) {
+	// a version of popen that gives is the process pid, so we
+	// can interrupt execution by killing it
+	int pipefd[2]; pipe(pipefd); //create a pipe
+	*pid = fork(); //span a child process
+	if (*pid == 0) {
+	// child
+	 close(pipefd[0]);
+	 dup2(pipefd[1], STDOUT_FILENO);
+	 dup2(pipefd[1], STDERR_FILENO);
+	 execl(cmd, cmd, arg, (char*) NULL);
+	}
+	// parent
+	close(pipefd[1]);
+	return fdopen(pipefd[0], "r");
+}
+
+int readline_timed(char* buf, int len, FILE* fp, int t) {
+	int fd = fileno(fp);
+	fd_set input_set; FD_ZERO(&input_set); FD_SET(fd, &input_set);
+	struct timeval timeout;
+	timeout.tv_sec = t; timeout.tv_usec = 0;
+	memset(buf,0,len);
+	int res=0, posn=0;
+	while ( (posn<len) && ((res=select(fd+1, &input_set, NULL, NULL, &timeout))>0)){
+		if ((buf[posn]=(char)fgetc(fp))==EOF) break;
+		if (buf[posn]=='\n') break; //newline
+		posn++;
+		FD_ZERO(&input_set ); FD_SET(fd, &input_set);
+	}
+	//int eof = (buf[posn]==EOF);
+	buf[posn]=0; // terminate string
+	//printf("res=%d, posn=%d, eof=%d, buf=%s\n",res,posn,eof,buf);
+	if (posn == len) return 1; // out of buffer space, but otherwise ok
+	if (res == 0) {
+		// timeout
+		WARN("Timeout in readline_timed()\n");
+		return -2;
+	} else if (res < 0) {
+		// error
+		WARN("Problem in readline_timed(): %s\n", strerror(errno));
+		return -1;
+	} else
+		return posn; // will be 0 if pure EOF
+}
+
+int run_cmd(char* cmd, int t) {
 	FILE *out = popen(cmd,"r");
 	if (out == NULL) return -1;
-	char *resp=NULL; size_t llen = 0;
-	if (getline(&resp, &llen, out)>0) {
+	char resp[STR_SIZE];
+	int res = readline_timed(resp,STR_SIZE,out,t);
+	if (res>0) {
 		WARN("Output from %s: %s\n", cmd, resp);
-		free(resp); pclose(out);
+		pclose(out);
 		return 1;
+	} else if (res<0) {
+		// an error
+		pclose(out);
+		return -1;
 	}
 	pclose(out);
 	return 0;

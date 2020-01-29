@@ -17,6 +17,8 @@
 
 #define CMD_PORT 6
 
+#define CMD_TIMEOUT 1 // in secs
+#define LONG_CMD_TIMEOUT 5
 void start_cmd(void);
 
 #endif /* cmd_h */

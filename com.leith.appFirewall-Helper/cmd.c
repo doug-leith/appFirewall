@@ -11,10 +11,11 @@
 static int c_sock=-1;
 static pthread_t cmd_thread, dns_thread;
 static int dnscrypt_proxy_running=0;
-static char dnscrypt_cmd[STR_SIZE];
+static char dnscrypt_cmd[STR_SIZE], dnscrypt_arg[STR_SIZE];
 
 void* dnscrypt(void* ptr) {
-	FILE *out = popen(dnscrypt_cmd,"r");
+	int pid = 0;
+	FILE *out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&pid);
 	char *resp=NULL; size_t llen = 0;
 	ssize_t res=0;
 	int tries = 0;
@@ -32,19 +33,24 @@ void* dnscrypt(void* ptr) {
 			// since loss of dns server is pretty bad
 			if (tries>10) break; // bail
 			// restart and try again
-			pclose(out);
-			out = popen(dnscrypt_cmd,"r");
+			char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
+			if (run_cmd(cmd,CMD_TIMEOUT)!=0) { break; } // an error running cmd, bail
+			fclose(out);
+			out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&pid);
 			continue;
 		}
 		tries = 0; // reset counter
 		printf("dnscrypt-proxy: %s",resp);
 	}
+	// stop service
 	if (dnscrypt_proxy_running) {
 		ERR("dnscrypt_proxy stopped prematurely: %s\n",strerror(errno));
 	} else {
 		printf("Dnscrypt-proxy thread stopped.\n");
 	}
-	pclose(out); free(resp);
+	char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
+	run_cmd(cmd,CMD_TIMEOUT); // nothing much we can do if this fails
+	fclose(out); free(resp);
 	return NULL;
 }
 
@@ -56,19 +62,24 @@ int set_dns_server(char* dns) {
 		pclose(out);
 		return -1;
 	}
-	int count = 0;
-	char * service = NULL; size_t llen = 0; ssize_t nread;
-	char cmd_str[STR_SIZE];
-	while ((nread = getline(&service, &llen, out)) != -1) {
+	int count = 0, res = 0;
+	char service[STR_SIZE], cmd_str[STR_SIZE];
+	while ((res=readline_timed(service, STR_SIZE, out,CMD_TIMEOUT))>0) {
 		count++;
 		if (count==1) continue; // ignore first line of output
 		char *tmp = trimwhitespace(service);
+		// this command seems to hang intermittently, but run_cmd() times out
 		snprintf(cmd_str,STR_SIZE,"/usr/sbin/networksetup setdnsservers \"%s\" \"%s\"",tmp,dns);
 		printf("setting dns server for %s to %s\n",tmp,dns);
-		run_cmd(cmd_str);
+		if (run_cmd(cmd_str,CMD_TIMEOUT)==-2) {
+			// timedout, try again
+			run_cmd(cmd_str,CMD_TIMEOUT);
+		}
+		// if this cmd fails, just continue to next network service
 	}
-	pclose(out); free(service);
-	return 1;
+	printf("set_dns_server() finished\n");
+	pclose(out);
+	return res;
 }
 
 void* cmd_accept_loop(void* ptr) {
@@ -104,6 +115,7 @@ void* cmd_accept_loop(void* ptr) {
 			uint8_t cmd; int8_t ok=0;
 			char src[STR_SIZE], dst[STR_SIZE], cmd_str[STR_SIZE];
 			size_t src_len=0, dst_len=0;
+			int tries=0;
 			if ( (res=readn(s2, &cmd, 1) )<=0) break;
 			switch (cmd) {
 				case 1:
@@ -127,7 +139,7 @@ void* cmd_accept_loop(void* ptr) {
 					char *rm = "/bin/rm", *mv = "/bin/mv";
 					snprintf(cmd_str,STR_SIZE,"%s -rf %s.bak",rm,dst);
 					printf("install update do: %s\n",cmd_str);
-					if ((res=run_cmd(cmd_str))!=0) {
+					if ((res=run_cmd(cmd_str,LONG_CMD_TIMEOUT))!=0) {
 						WARN("Problem executing command %s: %s (res=%zd)", cmd_str, strerror(errno), res);
 						ok = -1;
 						break; // not really fatal, but failure might be a symptom of something serious
@@ -135,7 +147,7 @@ void* cmd_accept_loop(void* ptr) {
 					// keep copy of existing app
 					snprintf(cmd_str,STR_SIZE,"%s %s %s.bak",mv,dst,dst);
 					printf("install update do: %s\n",cmd_str);
-					if ((res=run_cmd(cmd_str))!=0) {
+					if ((res=run_cmd(cmd_str,LONG_CMD_TIMEOUT))!=0) {
 						WARN("Problem executing command %s: %s (res=%zd)", cmd_str, strerror(errno), res);
 						ok = -2;
 						break;
@@ -143,18 +155,18 @@ void* cmd_accept_loop(void* ptr) {
 					// install new app
 					snprintf(cmd_str,STR_SIZE,"%s '%s' %s",mv,src,dst);
 					printf("install update do: %s\n",cmd_str);
-					if ((res=run_cmd(cmd_str))!=0) {
+					if ((res=run_cmd(cmd_str,LONG_CMD_TIMEOUT))!=0) {
 						WARN("Problem installing update using %s: %s (res=%zd)", cmd_str, strerror(errno), res);
 						// try to restore old app
 						snprintf(cmd_str,STR_SIZE,"%s %s.bak %s",mv,dst,dst);
-						run_cmd(cmd_str); // if this fails there's not much we can do to recover !
+						run_cmd(cmd_str,LONG_CMD_TIMEOUT); // if this fails there's not much we can do to recover !
 						ok = -3;
 						break;
 					}
 					// successful install, tidy up
 					snprintf(cmd_str,STR_SIZE,"%s -rf %s.bak",rm, dst);
 					printf("install update do: %s\n",cmd_str);
-					if ((res=run_cmd(cmd_str))!=0) {
+					if ((res=run_cmd(cmd_str,LONG_CMD_TIMEOUT))!=0) {
 						WARN("Problem removing backup with command %s: %s (res=%zd)", cmd_str, strerror(errno), res);
 						// not fatal ?
 					}
@@ -166,7 +178,7 @@ void* cmd_accept_loop(void* ptr) {
 					printf("Received block QUIC command\n");
 					snprintf(cmd_str,STR_SIZE,"/bin/echo \"block drop quick proto udp from any to any port 443\" | /sbin/pfctl -a com.apple/appFirewall -f -");
 					printf("block QUIC do: %s\n",cmd_str);
-					if ((res=run_cmd(cmd_str)) != 0) {
+					if ((res=run_cmd(cmd_str,CMD_TIMEOUT)) != 0) {
 						WARN("Problem blocking QUIC, res=%zd\n",res);
 						break;
 					}
@@ -175,7 +187,7 @@ void* cmd_accept_loop(void* ptr) {
 					break;
 				case 3:
 					printf("Received unblock QUIC command\n");
-					if ((res=run_cmd("/sbin/pfctl -a com.apple/appFirewall -F rules")) != 0) {
+					if ((res=run_cmd("/sbin/pfctl -a com.apple/appFirewall -F rules", CMD_TIMEOUT)) != 0) {
 						WARN("Problem unblocking QUIC, res=%zd\n",res);
 						break;
 					}
@@ -190,10 +202,12 @@ void* cmd_accept_loop(void* ptr) {
 					if ( (res=readn(s2, src, src_len) )<=0) break;
 					if (!dnscrypt_proxy_running) {
 						// TO DO: check signature of executable
-						snprintf(dnscrypt_cmd,STR_SIZE,"%s/dnscrypt-proxy -config %s/dnscrypt-proxy.toml 2>&1",src,src);
-						printf("cmd=%s\n",dnscrypt_cmd);
+						snprintf(dnscrypt_cmd,STR_SIZE,"%s/dnscrypt-proxy",src);
+						snprintf(dnscrypt_arg,STR_SIZE,"-config=%s/dnscrypt-proxy.toml",src);
+						printf("cmd=%s %s\n",dnscrypt_cmd, dnscrypt_arg);
 						pthread_create(&dns_thread, NULL, dnscrypt, NULL);
 						dnscrypt_proxy_running=1;
+						printf("start dnscrypt-proxy completed.\n");
 					} else {
 						printf("start dnscrypt-proxy: already running\n");
 					}
@@ -214,14 +228,17 @@ void* cmd_accept_loop(void* ptr) {
 					break;
 				case 6:
 					printf("Received set DNS server to localhost command\n");
-					set_dns_server("127.0.0.1");
 					ok = 1;
+					// we try a few times as seems prone to timing out
+					while ((set_dns_server("127.0.0.1")<0) && (tries<5)){tries++;}
+					ok = tries<5;
 					printf("set DNS server to 127.0.0.1 completed\n");
 					break;
 				case 7:
 					printf("Received set DNS server to default command\n");
-					set_dns_server("empty");
 					ok = 1;
+					while ((set_dns_server("empty")<0) && (tries<5)){tries++;}
+					ok = tries<5;
 					printf("set DNS server to default completed\n");
 					break;
 				default:
@@ -230,7 +247,7 @@ void* cmd_accept_loop(void* ptr) {
 			}
 			// send response back
 			set_snd_timeout(s2, SND_TIMEOUT); // to be safe, will eventually timeout of send
-			if (send(s2, &ok, 1, 0)<0) break;
+			if (send(s2, &ok, 1, 0)<=0) break;
 		}
 		// likely UI client has closed its end of the connection, in which
 		// case res=0, otherwise something worse has happened to connection

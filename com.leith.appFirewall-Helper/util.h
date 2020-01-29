@@ -46,7 +46,9 @@ void set_recv_timeout(int sockfd, int timeout);
 void set_snd_timeout(int sockfd, int timeout);
 struct timespec timespec_add(struct timespec ts1, struct timespec ts2);
 char *trimwhitespace(char *str);
-int run_cmd(char* cmd);
+FILE* run_cmd_pipe(char* cmd, char* arg, int *pid);
+int run_cmd(char* cmd, int t);
+int readline_timed(char* buf, int len, FILE* fp, int t);
 
 int check_signature(int pid, int port);
 int get_sock_pid(int sock, int port);

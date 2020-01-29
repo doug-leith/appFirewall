@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
 	
 	// flush DNS
 	INFO("Flushing DNS (sending HUP to mDNSResponder) ...\n");
-	run_cmd("/usr/bin/pkill -HUP mDNSResponder");
+	run_cmd("/usr/bin/pkill -HUP mDNSResponder",1);
 	
 	INFO("Starting RST loop ...\n");
 			

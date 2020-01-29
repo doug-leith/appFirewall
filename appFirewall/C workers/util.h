@@ -42,6 +42,8 @@ extern int verbose;          // debugging level
 #define STR_SIZE 1024
 #define RECV_TIMEOUT 20 // socket read timeout, longer than time taken by escapee catcher
 #define SND_TIMEOUT 20 // socket send timeout, nice and long
+#define FAST_RECV_TIMEOUT 2 
+#define FAST_SND_TIMEOUT 2
 #define NOTFOUND "<not found>" // label for connections for which process not found
 #define ANYDOMAIN "<all connections>" // label for blocking all conns
 #define ANYAPP "<all apps>" // label for blocking all conns

@@ -172,28 +172,35 @@ class Config: NSObject {
 		} else {
 			if (start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents/Resources") < 0) {
 				print("Problem trying to start dnscrypt-proxy")
-				blockQUIC(value:false)
+				dnscrypt_proxy(value:false)
 			}
 		}
 	}
 	
 	static func initLoad() {
 		// called by app delegate at startup
-		load_hostlists()
-		initTimedCheckForUpdate()
-		initRunAtLogin()
-		initMenuBar()
-		initBlockQUIC()
-		initDnscrypt_proxy()
+		initMenuBar() // must be done on main thread
+		DispatchQueue.global(qos: .background).async {
+			load_hostlists()
+			initTimedCheckForUpdate()
+			initRunAtLogin()
+			initBlockQUIC()
+			initDnscrypt_proxy()
+		}
 	}
 	
-	static func refresh() {
+	enum options {
+		case menuBar, timedCheckForUpdate,runAtLogin,blockQUIC,dnscrypt_proxy
+	}
+	static func refresh(opts: Set<options>) {
 		// run after updating config
-		initTimedCheckForUpdate()
-		initRunAtLogin()
-		initMenuBar()
-		initBlockQUIC()
-		initDnscrypt_proxy()
+		if (opts.contains(.menuBar)) { initMenuBar() } // must be done on main thread
+		DispatchQueue.global(qos: .background).async {
+			if (opts.contains(.timedCheckForUpdate)) { initTimedCheckForUpdate() }
+			if (opts.contains(.runAtLogin)) { initRunAtLogin() }
+			if (opts.contains(.blockQUIC)) { initBlockQUIC() }
+			if (opts.contains(.dnscrypt_proxy)) { initDnscrypt_proxy() }
+		}
 	}
 	
 	static func autoCheckUpdates(value: Bool) {

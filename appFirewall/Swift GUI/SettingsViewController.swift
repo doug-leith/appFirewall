@@ -45,7 +45,7 @@ class SettingsViewController: NSViewController {
 	
 	@IBAction func autoCheckUpdatesClick(_ sender: NSButton!) {
 		Config.autoCheckUpdates(value: stateToBool(state:autoCheckUpdates.state))
-		Config.refresh()
+		Config.refresh(opts:[.timedCheckForUpdate])
 	}
 	
 	@IBAction func autoUpdateClick(_ sender: Any) {
@@ -54,18 +54,18 @@ class SettingsViewController: NSViewController {
 	
 	@IBAction func runAtLoginClick(_ sender: Any) {
 		Config.runAtLogin(value: stateToBool(state:runAtLogin.state))
-		Config.refresh()
+		Config.refresh(opts:[.runAtLogin])
 	}
 	
 	@IBAction func useMenuBarClick(_ sender: Any) {
 		Config.useMenuBar(value: stateToBool(state:useMenuBar.state))
-		Config.refresh()
+		Config.refresh(opts:[.menuBar])
 	}
 	
 	
 	@IBAction func blockQUICClick(_ sender: Any) {
 		Config.blockQUIC(value: stateToBool(state:blockQUIC.state))
-		Config.refresh()
+		Config.refresh(opts:[.blockQUIC])
 	}
 	
 	
@@ -75,11 +75,11 @@ class SettingsViewController: NSViewController {
 	
 	@IBAction func DoHClick(_ sender: Any) {
 		Config.dnscrypt_proxy(value: stateToBool(state:useDOH.state))
-		Config.refresh()
+		Config.refresh(opts:[.dnscrypt_proxy])
 	}
 	
 	
 	@IBAction func DoHHelpClick(_ sender: helpButton?) {
-		sender?.clickButton(msg:"Encrypt DNS queries using DNS-over-HTTPS. DNS is used to convert domain names, e.g www.google.com, to server IP addresses and so unencrypted DNS can reveal quite a lot about your network activity.  appFirewall has an embedded DNS-over-HTTPS server which can listen for DNS queries on 127.0.0.1 port 53 and resolve these using encrypted DNS-over-HTTPS.  Enabling this option redirects all DNS system queries to this DNS server.")
+		sender?.clickButton(msg:"Encrypt DNS queries using DNS-over-HTTPS. appFirewall has an embedded dnscrypt-proxy server.  Enabling this option redirects all DNS system queries to this DNS server (on 127.0.0.1 port 53).  Note: you will start to see HTTPS connections by dnscrypt-proxy.")
 	}
 }
