@@ -492,8 +492,9 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 			c.raw.dport = ntohs(sockinfo->insi_fport);
 			
 			// we only log UDP to port 443 just now (likely QUIC)
-			c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN)
-			&& (c.raw.dport == 443);
+			//c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN)
+			//&& (c.raw.dport == 443);
+			c.raw.udp = (socketInfo.psi.soi_kind == SOCKINFO_IN);
 			
 			DEBUG2("%s(%d): %s:%u -> %s:%u udp=%d\n", c.name, c.pid, c.src_addr_name, c.raw.sport, c.dst_addr_name, c.raw.dport, c.raw.udp);
 		}

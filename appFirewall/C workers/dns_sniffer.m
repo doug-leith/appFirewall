@@ -446,14 +446,14 @@ err:
  	return NULL;
 }
 
-void dns_sniffer(const u_char* udph, size_t pkt_len) {
+int dns_sniffer(const u_char* udph, size_t pkt_len) {
 	// we sniff DNS response packets and save the answers so we can do
 	// a rough sort of reverse lookup
 
 	struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)udph;
 	const u_char* dnsh = udph  + LIBNET_UDP_H;
 	struct dnshdr* dns = (struct dnshdr*)(dnsh);
-	if (dnsh + sizeof(struct dnshdr) >= udph+pkt_len) return; // pkt too short
+	if (dnsh + sizeof(struct dnshdr) >= udph+pkt_len) return -1; // pkt too short
 	int an = ntohs(dns->ancount);
 	int qd = ntohs(dns->qdcount);
 	int ns= ntohs(dns->nscount);
@@ -480,22 +480,22 @@ void dns_sniffer(const u_char* udph, size_t pkt_len) {
 	const u_char *end = udph + pkt_len;
 	if (end > payload+len) end=payload+len;
 	//printf("DNS flags=%d/%d qd=%d an=%d, len=%d, sport=%d\n", dns->flags, dns->flags&0x80, qd, an, len, sport);
-	if ((dns->flags&0x80)==0) return; // DNS query, we only want responses.
-	if (!an) return; // response is empty, probably responding with an error
+	if ((dns->flags&0x80)==0) return 0; // DNS query, we only want responses.
+	if (!an) return 1; // response is empty, probably responding with an error
 	
 	/* Parse the Question section */
 	u_char *tmp, *label=NULL, buf[BUFSIZE];
 	uint16_t qtype = 0;
 
 	tmp = (u_char *)payload+LIBNET_UDP_DNSV4_H; // step past the DNS header to get the question section
-	if (tmp>=end) return; // we've already checked for this, but no harm in checking again
+	if (tmp>=end) return -1; // we've already checked for this, but no harm in checking again
 	int i;
 	for (i=0;i<qd;i++) {
 		/* Get the first question's label and question type */
 		if (!qtype) {
 			label = dns_label_to_str(&tmp, buf, BUFSIZE, payload, end);
-			if (!label || (strnlen((char*)label,BUFSIZE)==0)) return;
-			tmp++; if (tmp+1>=end) return;
+			if (!label || (strnlen((char*)label,BUFSIZE)==0)) return -1;
+			tmp++; if (tmp+1>=end) return -1;
 			qtype = ntohs(*(uint16_t *)tmp);
 			//printf("%d %s\n", qtype,label);
 		} else {
@@ -503,19 +503,19 @@ void dns_sniffer(const u_char* udph, size_t pkt_len) {
 				tmp += 2;
 			else {
 				tmp = skip_dns_label(tmp, end);
-				if (!tmp || (tmp>=end)) return;
+				if (!tmp || (tmp>=end)) return -1;
 			}
 		}
 
 		/* Skip type and class */
-		tmp += 4; if (tmp >= end) return;
+		tmp += 4; if (tmp >= end) return -1;
 	}
 	
 	if (mDNS) {
 		qtype = 0; // no question for mDNS
 		label = NULL;
 	} else if (!qtype)
-		return; // not mDNS and no question
+		return -1; // not mDNS and no question
 	//printf("qtype %d, an %d\n", qtype, an);
 
 	// find any answering records, or for mDNS any IPv4 or IPv6 records
@@ -524,7 +524,7 @@ void dns_sniffer(const u_char* udph, size_t pkt_len) {
 		// now parse out info from record and append to dns cache
   	parse_RR(RR, label, payload, end);
   }
-	if (!mDNS) return;
+	if (!mDNS) return 1;
 	
 	// if its mDNS, then let's also look at the additional records section
 	// step past any authority section
@@ -536,4 +536,5 @@ void dns_sniffer(const u_char* udph, size_t pkt_len) {
 		// now parse out info from record and append to dns cache
   	parse_RR(RR, NULL, payload, end);
   }
+  return 1;
 }

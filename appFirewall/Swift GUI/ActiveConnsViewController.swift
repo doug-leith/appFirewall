@@ -87,7 +87,13 @@ class ActiveConnsViewController: appViewController {
 			cellIdentifier = "ConnCell"
 			content = domain
 			if (Int(item.raw.udp)==1) {
-				content = content + " (UDP/QUIC)"
+				if ((item.raw.dport == 443)||(item.raw.dport == 80)) {
+					content = content + " (UDP/QUIC)"
+				} else if (item.raw.dport == 53) {
+					content = content + " (UDP/DNS)"
+				} else {
+					content = content + " (UDP/Port "+String(item.raw.dport)+")"
+				}
 			}
 		} else if tableColumn == tableView.tableColumns[2] {
 			cellIdentifier = "ButtonCell"

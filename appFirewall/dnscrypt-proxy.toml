@@ -86,7 +86,8 @@ disabled_server_names = []
 ## (dnscrypt-proxy will always encrypt everything even using UDP), and can
 ## only increase latency.
 
-force_tcp = false
+# DL set true so firewall can filter conns
+force_tcp = true
 
 
 ## SOCKS proxy

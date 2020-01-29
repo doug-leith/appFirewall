@@ -371,26 +371,30 @@ void *listener(void *ptr) {
 			uint16_t dport=ntohs(udp->uh_dport);
 			//printf("UDP port %d/%d\n", sport,dport);
 			if (sport == 53 || dport == 53 || sport == 5353 || dport == 5353) {
-				// pass to DNS sniffer
+				// pass to DNS sniffer for parsing
 				double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
 				//INFO2("t (sniffed dns) %f\n", t);
-				dns_sniffer(nexth,pkt_proper_len);
+				int dirn = dns_sniffer(nexth,pkt_proper_len);
 				cm_add_sample_lock(&stats.cm_t_dns,t);
-				continue;
-			} else if ((sport == 443) || (dport == 443)) {
-				// likely to be quic.  can't block it yet, but can log the
-				// connection
+				if (dirn != 1) continue; // ignore outgoing DNS requests
+			} //else if ((sport == 443) || (dport == 443)) {
 				//printf("UDP %d/%d %d\n",sport, dport,udp_cache_size);
 				conn_raw_t cr;
 				cr.af=af; cr.udp=1;
-				if (sport == 443){
+				/*if (sport == 443){
 					// incoming pkt, flip things around since we always store conn details
 					// with reference to outgoing pkts
 					cr.src_addr=dst; cr.dst_addr=src; cr.sport=dport; cr.dport=sport;
 				} else { //outgoing pkt
 					//printf("UDP outgoing %d/%d %d\n",sport, dport,udp_cache_size);
 					cr.src_addr=src; cr.dst_addr=dst; cr.sport=sport; cr.dport=dport;
-				}
+				}*/
+				// only incoming UDP pkts are logged, flip things around since we always store
+				// conn details with reference to outgoing pkts
+				cr.src_addr=dst; cr.dst_addr=src; cr.sport=dport; cr.dport=sport;
+				// don't log localhost connections
+				if ((cr.af==AF_INET) && (is_ipv4_localhost(&cr.src_addr))) continue;
+				if ((cr.af==AF_INET6) && (is_ipv6_localhost(&cr.src_addr))) continue;
 				int i;
 				for (i=udp_cache_start; i<udp_cache_start+udp_cache_size; i++) {
 					if (udp_cache[i%MAXUDP].af != af) continue;
@@ -413,10 +417,11 @@ void *listener(void *ptr) {
 					udp_cache[end].dport=dport; udp_cache[end].dst=dst;
 					udp_cache_size++;
 					
+					int quic = ((sport == 443) || (dport == 443) || (sport == 80) || (dport == 80));
 					// carry out PID and DNS lookup
-					bl_item_t c = create_blockitem_from_addr(&cr,0,-1,NULL);
-					if (strcmp(c.name,NOTFOUND)==0) {
-						// we seem to often miss process for a UDP pkt, for now
+					bl_item_t c = create_blockitem_from_addr(&cr,0,pkt_pid,pkt_name);
+					if ((strcmp(c.name,NOTFOUND)==0) && quic) {
+						// we seem to often miss process for quic pkts, for now
 						// we guess its Chrome.
 						strlcpy(c.name,"Google Chrome H",MAXCOMLEN);
 						stats.num_guesses++;
@@ -427,9 +432,15 @@ void *listener(void *ptr) {
 						snprintf(dns,MAXDOMAINLEN, "%s (%s)", c.addr_name,c.domain);
 					}
 					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
-					inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
-					snprintf(str,LOGSTRSIZE, "%s → UDP/QUIC %s:%u", c.name, c.domain, dport);
-					snprintf(long_str,LOGSTRSIZE,"%s\tUDP/QUIC %s:%u -> %s:%u", c.name, sn, sport, dns, dport);
+					inet_ntop(af, &cr.src_addr, sn, INET6_ADDRSTRLEN);
+					char* service="";
+					if (quic) {
+						service = "/QUIC";
+					} else if ((sport==53) || (dport==53)) {
+						service = "/DNS";
+					}
+					snprintf(str,LOGSTRSIZE, "%s → UDP%s %s:%u", c.name, service, c.domain, cr.dport);
+					snprintf(long_str,LOGSTRSIZE,"%s\tUDP%s %s:%u -> %s:%u", c.name, service, sn, cr.sport, dns, cr.dport);
 					append_log(str, long_str, &c, &cr, 0, 1.0); // can't block QUIC yet ...
 					
 					double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
@@ -440,7 +451,7 @@ void *listener(void *ptr) {
 					INFO2(" (UDP not blocked) %f\n",t );
 					cm_add_sample_lock(&stats.cm_t_udp,t);
 				}
-			}
+			//}
 			continue;
 		}
 		

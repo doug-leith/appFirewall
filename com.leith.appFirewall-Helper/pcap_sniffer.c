@@ -576,14 +576,40 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 	size_t pkt_proper_len = pkthdr->caplen - args.sn->sn[args.i].offset;
 	
 	int version = (*pkt_proper)>>4; // get IP version
-	int proto;
+	int proto, dirn=-1;
 	u_char* nexth=NULL; // this will point to TCP/UDP header
 	if (version == 4) {
 		struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt_proper;
+		// try to figure out whether pkt is incoming or outgoing ...
+		int i;
+		for (i =0; i<args.sn->sn[args.i].intf.num_addr; i++) {
+			if (args.sn->sn[args.i].intf.addr[i].ss_family == AF_INET) {
+				struct sockaddr_in *sa = (struct sockaddr_in*)&args.sn->sn[args.i].intf.addr[i];
+				if (sa->sin_addr.s_addr == ip->ip_src.s_addr) {
+					dirn = 1; break; // outgoing pkt
+				}
+				if (sa->sin_addr.s_addr == ip->ip_dst.s_addr) {
+					dirn = 0; break; // incoming pkt
+				}
+			}
+		}
 		proto=ip->ip_p;
 		nexth=((u_char *)ip + (ip->ip_hl * 4));
 	} else {
 		struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt_proper;
+		// try to figure out whether pkt is incoming or outgoing ...
+		int i;
+		for (i =0; i<args.sn->sn[args.i].intf.num_addr; i++) {
+			if (args.sn->sn[args.i].intf.addr[i].ss_family == AF_INET6) {
+				struct sockaddr_in6 *sa = (struct sockaddr_in6*)&args.sn->sn[args.i].intf.addr[i];
+				if (memcmp(&sa->sin6_addr.s6_addr,&ip->ip_src,16)==0) {
+					dirn = 1; break; // outgoing pkt
+				}
+				if (memcmp(&sa->sin6_addr.s6_addr,&ip->ip_dst,16)==0) {
+					dirn = 0; break; // incoming pkt
+				}
+			}
+		}
 		proto=ip->ip_nh;
 		nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
 	}
@@ -612,8 +638,13 @@ void sniffer_callback(u_char* raw_args, const struct pcap_pkthdr *pkthdr, const 
 		// connection, plus outgoing udp pkts are sniffed by pktap even when
 		// blocked by firewall (seems like a bug) and so can be seen even if there is
 		// no actual connection
-		int filt = (sport==443) || (sport==53) || (dport==53) || (sport==5353) || (dport==5353);
+		int dns = (sport==443) || (sport==53) || (dport==53) || (sport==5353) || (dport==5353);
+		int filt = (dirn == 0) || dns;  // log incoming UDP pkts plus all DNS
+		// nb: if neither src nor dst adress match interface address then dirn=-1
+		// and we'll ignore pkt.  this means we ignore incoming broadcasts (and
+		// multicast?) -- but those are just LAN traffic, so ok to ignore
 		if (args.sn->use_pktap && !filt) return;
+		//printf("UDP pid %d sport %d/dport %d name %s\n",pkt_pid, sport,dport,name);
 	} else {
 		// not TCP or UDP
 		return;

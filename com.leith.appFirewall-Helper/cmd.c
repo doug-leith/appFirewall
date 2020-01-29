@@ -31,7 +31,7 @@ void* dnscrypt(void* ptr) {
 			tries++;
 			// we give it a few goes before stopping
 			// since loss of dns server is pretty bad
-			if (tries>10) break; // bail
+			if (tries>5) break; // bail
 			// restart and try again
 			char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
 			if (run_cmd(cmd,CMD_TIMEOUT)!=0) { break; } // an error running cmd, bail
@@ -228,6 +228,7 @@ void* cmd_accept_loop(void* ptr) {
 					if (res>0)
 						ok = 1; // success;
 					else
+						// since dnscrypt-proxy is running there's no need to rollback
 						ok = -1;
 					printf("set DNS server to 127.0.0.1 completed\n");
 					break;
@@ -239,7 +240,7 @@ void* cmd_accept_loop(void* ptr) {
 						ok = 1; // success;
 					else {
 						ok = -1;
-						// try to rollback ...
+						// try to rollback (dnscrypt-proxy is still running) ...
 						set_dns_server("127.0.0.1");
 						break; // bail here, since interfaces still using dnscrypt-proxy
 					}

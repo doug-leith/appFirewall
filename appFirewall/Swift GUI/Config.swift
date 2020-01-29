@@ -214,7 +214,7 @@ class Config: NSObject {
 		}
 		// align our setting with actual status
 		// should we give user an error message here ?
-		usleep(100000) // wait 100ms for dnscrypt-proxy status to update
+		usleep(250000) // wait 250ms for dnscrypt-proxy status to update
 		// this check can be unreliable -- might be in the process of
 		// stopping but pgrep status hasn't changed to reflect this,
 		// usleep() above helps
@@ -226,6 +226,7 @@ class Config: NSObject {
 			print("WARNING: dnscrypt is not running when it should be.")
 			dnscrypt_proxy(value:false)
 		}
+		// TO DO: should also check whether interface DNS points to dnscrypt-proxy
 	}
 	
 	static func initLoad() {
