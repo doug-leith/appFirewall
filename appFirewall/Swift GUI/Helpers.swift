@@ -508,3 +508,20 @@ func getIntstalledApps()->[String] {
 	}
 	return apps
 }
+
+func pgrep(Name: String)->Int {
+	// return whether any running processing match Name
+	let res = Int(find_proc(Name))
+	print("pgrep for ",Name,": ",res)
+	return res
+	
+	/*import AppKit
+	let res = NSWorkspace.shared.runningApplications
+	var count = 0
+	for r in res {
+		print(r.localizedName," ",r.processIdentifier)
+		if (r.localizedName == Name) { print("match"); count += 1 }
+	}
+	print(count)
+	return count*/
+}

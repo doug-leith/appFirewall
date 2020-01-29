@@ -66,6 +66,7 @@ char* start_dnscrypt_proxy(const char* path) {
 	char* msg = NULL;
 	static char msg_buf[STR_SIZE];
 
+	printf("Asking helper to start dnscrypt-proxy\n");
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
 		return "Couldn't connect to helper";
@@ -105,6 +106,7 @@ char* stop_dnscrypt_proxy() {
 	char* msg = NULL;
 	static char msg_buf[STR_SIZE];
 
+	printf("Asking helper to stop dnscrypt-proxy\n");
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
 		return "Couldn't connect to helper";
@@ -142,6 +144,7 @@ char* block_QUIC() {
 	char* msg = NULL;
 	static char msg_buf[STR_SIZE];
 
+	printf("Asking helper to block QUIC\n");
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
 		return "Couldn't connect to helper";
@@ -178,6 +181,7 @@ char* unblock_QUIC() {
 	char* msg = NULL;
 	static char msg_buf[STR_SIZE];
 
+	printf("Asking helper to unblock QUIC\n");
 	int c_sock=-1;
 	if ( (c_sock=connect_to_helper(CMD_PORT,0))<0 ){
 		return "Couldn't connect to helper";

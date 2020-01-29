@@ -60,12 +60,16 @@ class SettingsViewController: NSViewController {
 	@IBAction func useMenuBarClick(_ sender: Any) {
 		Config.useMenuBar(value: stateToBool(state:useMenuBar.state))
 		Config.refresh(opts:[.menuBar])
+		// update UI to show actual state after refresh
+		useMenuBar.state = boolToState(value: Config.getUseMenuBar())
 	}
 	
 	
 	@IBAction func blockQUICClick(_ sender: Any) {
 		Config.blockQUIC(value: stateToBool(state:blockQUIC.state))
 		Config.refresh(opts:[.blockQUIC])
+		// update UI to show actual state after refresh
+		blockQUIC.state = boolToState(value: Config.getBlockQUIC())
 	}
 	
 	
@@ -76,6 +80,8 @@ class SettingsViewController: NSViewController {
 	@IBAction func DoHClick(_ sender: Any) {
 		Config.dnscrypt_proxy(value: stateToBool(state:useDOH.state))
 		Config.refresh(opts:[.dnscrypt_proxy])
+		// update UI to show actual state after refresh
+		useDOH.state = boolToState(value: Config.getDnscrypt_proxy())
 	}
 	
 	

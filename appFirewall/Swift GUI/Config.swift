@@ -10,6 +10,20 @@ import Foundation
 import ServiceManagement
 import AppKit
 
+func is_dnscrypt_running()->Bool {
+	let pid_count = pgrep(Name : "dnscrypt-proxy")
+	if (pid_count < 0) {
+		print("WARNING: dnscrypt-proxy pgrep error.")
+		return false // ?
+	} else if (pid_count == 0) {
+		//print("dnscrypt-proxy is not running.")
+		return false
+	} else {
+		//print("dnscrypt-proxy is running.")
+		return true
+	}
+}
+
 class Config: NSObject {
 	// fixed settings ...
 	static let defaultLoggingLevel = 2 // more verbose, for testing
@@ -119,7 +133,7 @@ class Config: NSObject {
 	
 	static func initMenuBar() {
 		// setup menubar action
-		guard let delegate = NSApp.delegate as? AppDelegate else { print("Problem getting delegatre in Config.initMenuBar"); useMenuBar(value:false); return}
+		guard let delegate = NSApp.delegate as? AppDelegate else { print("WARNING: Problem getting delegatre in Config.initMenuBar"); useMenuBar(value:false); return}
 
 		if (getUseMenuBar() == false) {
 			delegate.statusItem.isVisible = false
@@ -131,11 +145,11 @@ class Config: NSObject {
 			if let button = delegate.statusItem.button {
 				button.image = NSImage(named:NSImage.Name("StatusBarButtonImage"))
 				if (button.image == nil) {
-					print("Menubar button image is nil, falling back to using builtin image")
+					print("WARNING: Menubar button image is nil, falling back to using builtin image")
 					// fall back to using a builtin icon, this should always work
 					button.image = NSImage(named:NSImage.Name(NSImage.quickLookTemplateName))
 					if (button.image == nil) {
-						print("Menubar button image is *still* nil, disabling button")
+						print("WARNING: Menubar button image is *still* nil, disabling button")
 						delegate.statusItem.isVisible = false
 						useMenuBar(value:false) // disable menubar
 						DispatchQueue.main.async { error_popup(msg:"Problem getting menubar button, disabling button") }
@@ -144,7 +158,7 @@ class Config: NSObject {
 				button.toolTip="appFirewall ("+String(get_num_conns_blocked())+" blocked)"
 				button.action = #selector(delegate.openapp(_:))
 			} else {
-				print("Problem getting menubar button, disabling button: ", delegate.statusItem, delegate.statusItem.button ?? "nil")
+				print("WARNING: Problem getting menubar button, disabling button: ", delegate.statusItem, delegate.statusItem.button ?? "nil")
 				delegate.statusItem.isVisible = false
 				useMenuBar(value:false) // disable menubar
 				DispatchQueue.main.async { error_popup(msg:"Problem getting menubar button, disabling button") }
@@ -155,7 +169,7 @@ class Config: NSObject {
 	static func initBlockQUIC() {
 		if (getBlockQUIC() == false) {
 			if let msg_ptr = unblock_QUIC() {
-				print("Problem trying to unblock QUIC")
+				print("WARNING: Problem trying to unblock QUIC")
 				let helper_msg = String(cString: msg_ptr);
 				let msg = "Problem trying to unblock QUIC ("+helper_msg+")"
 				DispatchQueue.main.async { error_popup(msg:msg) }
@@ -163,7 +177,7 @@ class Config: NSObject {
 			}
 		} else {
 			if let msg_ptr = block_QUIC()  {
-				print("Problem trying to block QUIC")
+				print("WARNING: Problem trying to block QUIC")
 				let helper_msg = String(cString: msg_ptr);
 				let msg = "Problem trying to block QUIC ("+helper_msg+")"
 				DispatchQueue.main.async { error_popup(msg:msg) }
@@ -171,25 +185,35 @@ class Config: NSObject {
 			}
 		}
 	}
-	
-	
+		
 	static func initDnscrypt_proxy() {		
 		if (getDnscrypt_proxy() == false) {
 			if let msg_ptr = stop_dnscrypt_proxy() {
-				print("Problem trying to stop dnscrypt-proxy")
+				print("WARNING: Problem trying to stop dnscrypt-proxy")
 				let helper_msg = String(cString: msg_ptr);
 				let msg = "Problem trying to stop DNS server ("+helper_msg+")"
 				DispatchQueue.main.async { error_popup(msg:msg) }
 			}
 		} else {
 			if let msg_ptr = start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents/Resources") {
-				print("Problem trying to start dnscrypt-proxy")
+				print("WARNING: Problem trying to start dnscrypt-proxy")
+				dnscrypt_proxy(value:false)
 				let helper_msg = String(cString: msg_ptr);
 				let msg = "Problem trying to start DNS server ("+helper_msg+")"
 				DispatchQueue.main.async { error_popup(msg:msg) }
-				dnscrypt_proxy(value:false)
 			}
 		}
+		// align our setting with actual status
+		// should we give user an error message here ?
+		if is_dnscrypt_running() && (!getDnscrypt_proxy()) {
+			print("WARNING: dnscrypt running when it should be stopped")
+			dnscrypt_proxy(value:true)
+		} else if !is_dnscrypt_running() && getDnscrypt_proxy() {
+			print("WARNING: dnscrypt is not running when it should be.")
+			dnscrypt_proxy(value:false)
+		}
+
+
 	}
 	
 	static func initLoad() {

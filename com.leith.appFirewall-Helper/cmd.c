@@ -220,7 +220,6 @@ void* cmd_accept_loop(void* ptr) {
 					}
 					printf("Set DNS server to localhost\n");
 					// we try a few times as seems prone to timing out
-					res=0;
 					while (((res=set_dns_server("127.0.0.1"))==0) && (tries<5)){tries++;}
 					if (res>0)
 						ok = 1; // success;

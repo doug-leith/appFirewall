@@ -41,7 +41,7 @@ int find_proc(const char* target) {
 	size_t num_pids = (size_t)bufsize / sizeof(pid_t);
 
 	if (bufsize == 0) {
-		WARN("find_proc() problem getting list if PIDS: %s\n",strerror(errno));
+		WARN("find_proc() problem getting list of PIDS: %s\n",strerror(errno));
 		if (errno == EPERM) {
 			// don't have permission to list PIDs
 		}

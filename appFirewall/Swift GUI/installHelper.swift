@@ -40,24 +40,6 @@ func isSIPEnabled()->Bool {
 	}
 }
 
-
-func pgrep(Name: String)->Int {
-	// return whether any running processing match Name
-	let res = Int(find_proc(Name))
-	print("pgrep for ",Name,": ",res)
-	return res
-	
-	/*import AppKit
-	let res = NSWorkspace.shared.runningApplications
-	var count = 0
-	for r in res {
-		print(r.localizedName," ",r.processIdentifier)
-		if (r.localizedName == Name) { print("match"); count += 1 }
-	}
-	print(count)
-	return count*/
-}
-
 func is_app_already_running()->Bool {
 	let pid_count = pgrep(Name : "appFirewall")
 	//print("is_app_already_running(): ", pid_count)
@@ -127,7 +109,7 @@ func start_helper(force: Bool) {
 		let version = get_helper_version(Name: kHelperToolName)
 		if (version >= Config.minHelperVersion) {
 			print(String(format:"helper "+kHelperToolName+", version %d already installed.", version))
-			//return // right version of helper already installed
+			return // right version of helper already installed
 		}
 	}
 	
