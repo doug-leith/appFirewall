@@ -203,7 +203,9 @@ fallback_resolver = '9.9.9.9:53'
 
 ## Always use the fallback resolver before the system DNS settings.
 
-ignore_system_dns = true
+# DL falling back to system DNS is better for captive portals and
+# corporate firewalls that block 9.9.9.9
+ignore_system_dns = false
 
 
 ## Maximum time (in seconds) to wait for network connectivity before

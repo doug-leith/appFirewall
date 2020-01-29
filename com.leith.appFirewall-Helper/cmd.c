@@ -33,8 +33,12 @@ void* dnscrypt(void* ptr) {
 			// since loss of dns server is pretty bad
 			if (tries>5) break; // bail
 			// restart and try again
-			char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
-			if (run_cmd(cmd,CMD_TIMEOUT)!=0) { break; } // an error running cmd, bail
+			//char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
+			//if (run_cmd(cmd,CMD_TIMEOUT)!=0) { break; } // an error running cmd, bail
+			if (kill(pid,SIGKILL)!=0) {
+				WARN("Problem killing dnscrypt-proxy on error: %s\n",strerror(errno));
+				break; // an error running kill, seems bad !  bail
+			}
 			fclose(out);
 			out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&pid);
 			continue;
@@ -48,8 +52,11 @@ void* dnscrypt(void* ptr) {
 	} else {
 		printf("Dnscrypt-proxy thread stopped.\n");
 	}
-	char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
-	run_cmd(cmd,CMD_TIMEOUT); // nothing much we can do if this fails
+	//char cmd[STR_SIZE]; snprintf(cmd,STR_SIZE,"/bin/kill -9 %d",pid);
+	//run_cmd(cmd,CMD_TIMEOUT); // nothing much we can do if this fails
+	if (kill(pid,SIGKILL)!=0) {
+		WARN("Problem killing dnscrypt-proxy on exit: %s\n",strerror(errno));
+	}
 	fclose(out); free(resp);
 	return NULL;
 }
@@ -144,6 +151,7 @@ void* cmd_accept_loop(void* ptr) {
 					strlcat(dst,"/appFirewall.app",STR_SIZE);
 					
 					char *rm = "/bin/rm", *mv = "/bin/mv";
+					// TO DO: change to use rename() syscall (avoiding call out to shell)
 					snprintf(cmd_str,STR_SIZE,"%s -rf %s.bak",rm,dst);
 					printf("install update do: %s\n",cmd_str);
 					if ((res=run_cmd(cmd_str,LONG_CMD_TIMEOUT))!=0) {

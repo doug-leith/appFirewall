@@ -263,14 +263,18 @@ class appViewController: NSViewController {
 			maybe = "marked as blocked"
 			vpn = "Zombie connection: interface has gone away, but app hasn't noticed yet.\n"
 		}
+		var dns = ""
+		if ((Int(port) == 53) && (name != "dnscrypt-proxy")) {
+			dns = "You might consider enabling DNS-over-HTTPS in preferences tab to encrypt DNS traffic. "
+		}
 		if (blocked_log == 0) {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was not blocked. "
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was not blocked. "+dns
 		} else if (blocked_log == 1) {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for application '"+name+"' by user black list. "+vpn
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for application '"+name+"' by user black list. "+dns+vpn
 		} else if (blocked_log == 2) {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for all applications by hosts file. "+vpn
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for all applications by hosts file. "+dns+vpn
 		} else {
-			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for application '"+name+"' by hosts file. "+vpn
+			tip = "This connection to "+domain_+" ("+ip+":"+port+") was "+maybe+" for application '"+name+"' by hosts file. "+dns+vpn
 		}
 		// add some info on whether IP is shared by multiple domains
 		tip += "Domains associated with this IP address: "+domains
