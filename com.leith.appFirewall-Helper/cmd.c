@@ -201,6 +201,9 @@ void* cmd_accept_loop(void* ptr) {
 					printf("Unblock QUIC command successful\n");
 					ok = 1;
 					break;
+				case QUICStatuscmd:
+					ok = (int8_t)run_cmd("/sbin/pfctl -a com.apple/appFirewall -s rules 2>&1 | grep block", CMD_TIMEOUT);
+					break;
 				case StartDNScmd:
 					printf("Received start dnscrypt-proxy command\n");
 					if ( (res=readn(s2, &src_len, sizeof(size_t)) )<=0) break;
@@ -213,6 +216,7 @@ void* cmd_accept_loop(void* ptr) {
 						snprintf(dnscrypt_arg,STR_SIZE,"-config=%s/dnscrypt-proxy.toml",src);
 						printf("cmd=%s %s\n",dnscrypt_cmd, dnscrypt_arg);
 						pthread_create(&dns_thread, NULL, dnscrypt, NULL);
+						pthread_detach(dns_thread); // so we don't need to join
 						dnscrypt_proxy_running=1;
 						printf("start dnscrypt-proxy completed.\n");
 					} else {
@@ -246,6 +250,7 @@ void* cmd_accept_loop(void* ptr) {
 						// interrupt getline() in dns_thread so it checks
 						// dnscrypt_proxy_running flag
 						pthread_kill(dns_thread, SIGUSR1);
+						//pthread_join(dns_thread,NULL); // could this join block ?
 						printf("stop dnscrypt-proxy signalled.\n");
 					} else {
 						printf("stop dnscrypt-proxy: not running.\n");

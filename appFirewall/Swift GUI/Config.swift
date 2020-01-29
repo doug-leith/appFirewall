@@ -184,6 +184,15 @@ class Config: NSObject {
 				blockQUIC(value:false)
 			}
 		}
+		// confirm actual firewall status matches our settings
+		let blocked = QUIC_status()
+		if  (blocked==1) && (!getBlockQUIC()) {
+			print("WARNING: QUIC blocked when it should be unblocked")
+			blockQUIC(value:true)
+		} else if (blocked==0) && getBlockQUIC() {
+			print("WARNING: QUIC not blocked when it should be.")
+			blockQUIC(value:false)
+		}
 	}
 		
 	static func initDnscrypt_proxy() {		
@@ -205,15 +214,18 @@ class Config: NSObject {
 		}
 		// align our setting with actual status
 		// should we give user an error message here ?
-		if is_dnscrypt_running() && (!getDnscrypt_proxy()) {
+		usleep(100000) // wait 100ms for dnscrypt-proxy status to update
+		// this check can be unreliable -- might be in the process of
+		// stopping but pgrep status hasn't changed to reflect this,
+		// usleep() above helps
+		let running = is_dnscrypt_running()
+		if  running && (!getDnscrypt_proxy()) {
 			print("WARNING: dnscrypt running when it should be stopped")
 			dnscrypt_proxy(value:true)
-		} else if !is_dnscrypt_running() && getDnscrypt_proxy() {
+		} else if !running && getDnscrypt_proxy() {
 			print("WARNING: dnscrypt is not running when it should be.")
 			dnscrypt_proxy(value:false)
 		}
-
-
 	}
 	
 	static func initLoad() {

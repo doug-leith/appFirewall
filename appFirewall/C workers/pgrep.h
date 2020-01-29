@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <libproc.h>
 #include <sys/proc_info.h>
+#include <sys/proc.h>
 #include "util.h"
 #include "pid_conn_info.h"
 

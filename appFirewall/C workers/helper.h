@@ -21,6 +21,7 @@
 #define UnblockQUICcmd 3
 #define StartDNScmd 4
 #define StopDNScmd 5
+#define QUICStatuscmd 6
 
 int connect_to_helper(int port,int quiet);
 void start_listener(void); // sniffer_blocker.h
@@ -32,6 +33,7 @@ void stop_helper_listeners(void);
 char* helper_cmd_install(const char* src_dir, const char* dst_dir, const char* file);
 char* unblock_QUIC(void);
 char* block_QUIC(void);
+int QUIC_status(void);
 char* start_dnscrypt_proxy(const char* path);
 char* stop_dnscrypt_proxy(void);
 

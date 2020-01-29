@@ -334,7 +334,7 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 //--------------------------------------------------------
 //private.
 
-int get_pid_name(int pid, char* name) {
+int get_pid_name(int pid, char* name, uint32_t *status) {
 	// use syscall to get process name associated with pid
 	struct proc_bsdshortinfo proc;
 	int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
@@ -347,6 +347,10 @@ int get_pid_name(int pid, char* name) {
 	strlcpy(n,proc.pbsi_comm,MAXCOMLEN);
 	char* clean_n = trimwhitespace(n);
 	strlcpy(name,clean_n,MAXCOMLEN);
+	if (status != NULL) {
+		// return status of process (zombie etc)
+		*status = proc.pbsi_status;
+	}
 	return 0;
 }
 
@@ -569,7 +573,7 @@ int refresh_active_conns(int full_refresh) {
 		// get app name associated with process
 		// this call consumes around 10% of executiin time of refresh_active_conns()
 		char name[MAXCOMLEN];
-		if (get_pid_name(pid, name)<0) {
+		if (get_pid_name(pid, name, NULL)<0) {
 			// problem getting name for PID, probably process has stopped
 			// between call to proc_listpids() above and our call to get_pid_name()
 			continue;

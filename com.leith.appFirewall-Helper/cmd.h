@@ -25,6 +25,7 @@
 #define UnblockQUICcmd 3
 #define StartDNScmd 4
 #define StopDNScmd 5
+#define QUICStatuscmd 6
 
 void start_cmd(void);
 

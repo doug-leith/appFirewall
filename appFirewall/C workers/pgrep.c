@@ -31,7 +31,7 @@ int find_proc(const char* target) {
 	// search current processes for one matching target name
 	int count = 0;
 	char target_[MAXCOMLEN];
-	// we only copy dfirst 16 characters of name, since that's all that
+	// we only copy first 16 characters of name, since that's all that
 	// get_pid_name gives us.
 	strlcpy(target_,target,MAXCOMLEN);
 	
@@ -54,15 +54,17 @@ int find_proc(const char* target) {
 		int pid = pids[j];
 		
 		// get app name associated with process
-		// this call consumes around 10% of executiin time of refresh_active_conns()
-		char name[MAXCOMLEN];
-		if (get_pid_name(pid, name)<0) {
+		char name[MAXCOMLEN]; uint32_t status;
+		if (get_pid_name(pid, name, &status)<0) {
 			// problem getting name for PID, probably process has stopped
 			// between call to proc_listpids() above and our call to get_pid_name()
 			continue;
 		}
 		//printf("%s %d (%s)\n",name, pid,target_);
-		if( strcmp(name,target_)==0) count++;
+		if( (strcmp(name,target_)==0) && (status != SZOMB) ) {
+			//printf("pgrep status %d (SSTOP %d)\n", status, SSTOP);
+			count++;
+		}
 	}
 	return count;
 }

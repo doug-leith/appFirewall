@@ -36,7 +36,7 @@
 #define MAX_ESCAPEE_ATTEMPTS 3 // max number of times we call catcher for same connection
 #define CATCHER_PORT 5 // port helper listens on for catching escapees
 
-int get_pid_name(int pid, char* name);
+int get_pid_name(int pid, char* name, uint32_t *status);
 int find_pid(conn_raw_t *c, char*name, int syn);
 void cache_pid(int pid, char* name);
 
