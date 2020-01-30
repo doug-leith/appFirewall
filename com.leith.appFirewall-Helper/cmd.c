@@ -11,7 +11,7 @@
 static int c_sock=-1;
 static pthread_t cmd_thread, dns_thread;
 static pthread_mutex_t dns_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
-static int dnscrypt_proxy_running=0, dnscrypt_proxy_stopped=0;
+static int dnscrypt_proxy_running=0, dnscrypt_proxy_stopped=1;
 static char dnscrypt_cmd[STR_SIZE], dnscrypt_arg[STR_SIZE];
 static char dnscrypt_lastline[STR_SIZE]; // last line of output
 
@@ -278,6 +278,7 @@ void* cmd_accept_loop(void* ptr) {
 						pthread_mutex_unlock(&dns_mutex);
 						printf("start dnscrypt-proxy: already running\n");
 					}
+					ok=1;
 					break;
 				case StopDNScmd:
 					printf("Received stop dnscrypt-proxy command\n");
@@ -296,6 +297,7 @@ void* cmd_accept_loop(void* ptr) {
 						pthread_mutex_unlock(&dns_mutex);
 						printf("stop dnscrypt-proxy: not running.\n");
 					}
+					ok=1;
 					break;
 				case GetDNSOutputcmd:
 					pthread_mutex_lock(&dns_mutex);

@@ -259,7 +259,7 @@ int run_cmd(char* cmd, int t) {
 	char resp[STR_SIZE];
 	int res = readline_timed(resp,STR_SIZE,out,t);
 	if (res>0) {
-		WARN("Output from %s: %s\n", cmd, resp);
+		printf("Output from %s: %s\n", cmd, resp);
 		pclose(out);
 		return 1;
 	} else if (res<0) {

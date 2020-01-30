@@ -70,7 +70,8 @@ class Config: NSObject {
 	static let appDelegateRefreshTime : Double = 10 // check state every 10s
 	static let appDelegateFileRefreshTime : Double = 300 // save log every 5min
 	static let appDelegateStatsRefreshTime : Double = 600 // print stats every 10min
-	static let viewRefreshTime : Double = 1 // check for window uodate every 1s
+	static let viewRefreshTime : Double = 1 // check for window update every 1s
+	static let settingsRefreshTime : Double = 5 // check settings
 
 	//------------------------------------------------
 	// settings that can be changed by user ...
@@ -166,6 +167,18 @@ class Config: NSObject {
 		}
 	}
 	
+	static func checkBlockQUIC_status() {
+		// confirm actual firewall status matches our settings
+		let blocked = QUIC_status()
+		if  (blocked==1) && (!getBlockQUIC()) {
+			print("WARNING: QUIC blocked when it should be unblocked")
+			blockQUIC(value:true)
+		} else if (blocked==0) && getBlockQUIC() {
+			print("WARNING: QUIC not blocked when it should be.")
+			blockQUIC(value:false)
+		}
+	}
+	
 	static func initBlockQUIC() {
 		if (getBlockQUIC() == false) {
 			if let msg_ptr = unblock_QUIC() {
@@ -184,40 +197,16 @@ class Config: NSObject {
 				blockQUIC(value:false)
 			}
 		}
-		// confirm actual firewall status matches our settings
-		let blocked = QUIC_status()
-		if  (blocked==1) && (!getBlockQUIC()) {
-			print("WARNING: QUIC blocked when it should be unblocked")
-			blockQUIC(value:true)
-		} else if (blocked==0) && getBlockQUIC() {
-			print("WARNING: QUIC not blocked when it should be.")
-			blockQUIC(value:false)
-		}
+		checkBlockQUIC_status()
 	}
-		
-	static func initDnscrypt_proxy() {		
-		if (getDnscrypt_proxy() == false) {
-			if let msg_ptr = stop_dnscrypt_proxy() {
-				print("WARNING: Problem trying to stop dnscrypt-proxy")
-				let helper_msg = String(cString: msg_ptr);
-				let msg = "Problem trying to stop DNS server ("+helper_msg+")"
-				DispatchQueue.main.async { error_popup(msg:msg) }
-			}
-		} else {
-			if let msg_ptr = start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents") {
-				print("WARNING: Problem trying to start dnscrypt-proxy")
-				dnscrypt_proxy(value:false)
-				let helper_msg = String(cString: msg_ptr);
-				let msg = "Problem trying to start DNS server ("+helper_msg+")"
-				DispatchQueue.main.async { error_popup(msg:msg) }
-			}
-		}
+	
+	static func checkDnscrypt_proxy_status() {
 		// align our setting with actual status ...
 		// wait up to 250ms for dnscrypt-proxy status to update.
 		// this check can be unreliable -- might be in the process of
 		// stopping but pgrep status hasn't changed to reflect this,
 		// usleep() helps
-		var running = is_dnscrypt_running()
+		/*var running = is_dnscrypt_running()
 		var stopping = running && (!getDnscrypt_proxy())
 		var starting = !running && getDnscrypt_proxy()
 		var count : Int = 0
@@ -227,11 +216,22 @@ class Config: NSObject {
 			stopping = running && (!getDnscrypt_proxy())
 			starting = !running && getDnscrypt_proxy()
 			count = count + 1
-		}
+		}*/
+		
 		// let's also ask helper what it thinks dns server status is
 		var dnscrypt_proxy_stopped: Int32 = 0
 		var dnscrypt_proxy_running: Int32 = 0
-		let line = String(cString:GetDNSOutput(&dnscrypt_proxy_stopped, &dnscrypt_proxy_running))
+		var line = String(cString:GetDNSOutput(&dnscrypt_proxy_stopped, &dnscrypt_proxy_running))
+		var stopping = (dnscrypt_proxy_stopped==0) && (!getDnscrypt_proxy())
+		var starting = (dnscrypt_proxy_stopped==1) && getDnscrypt_proxy()
+		var count : Int = 0
+		while ((starting || stopping) && (count<5)) {
+			usleep(50000) // 50ms
+			line = String(cString:GetDNSOutput(&dnscrypt_proxy_stopped, &dnscrypt_proxy_running))
+			stopping = (dnscrypt_proxy_stopped==0) && (!getDnscrypt_proxy())
+			starting = (dnscrypt_proxy_stopped==1) && getDnscrypt_proxy()
+			count = count + 1
+		}
 		if (stopping) {
 			print("WARNING: dnscrypt running when it should be stopped")
 			if (dnscrypt_proxy_running == 0)  {
@@ -249,8 +249,8 @@ class Config: NSObject {
 				// helper thinks dns server should be running, but we think it
 				// should be stopped.  likely an error.
 				// update our state to match that of helper ...
-				dnscrypt_proxy(value:true)
 				// and warn user of fishy behaviour
+				dnscrypt_proxy(value:true)
 				DispatchQueue.main.async {
 					error_popup(msg:"DNS-over-HTTS server hasn't stopped yet.")
 				}
@@ -270,13 +270,33 @@ class Config: NSObject {
 				// also says not active.  yet we think it should be, so
 				// something has gone wrong.
 				// update our state to match helpers ...
-				dnscrypt_proxy(value:false)
 				// and warn user
+				dnscrypt_proxy(value:false)
 				DispatchQueue.main.async {
 					error_popup(msg:"DNS-over-HTTS server stopped unexpectedly: "+line)
 				}
 			}
 		}
+	}
+	
+	static func initDnscrypt_proxy() {		
+		if (getDnscrypt_proxy() == false) {
+			if let msg_ptr = stop_dnscrypt_proxy() {
+				print("WARNING: Problem trying to stop dnscrypt-proxy")
+				let helper_msg = String(cString: msg_ptr);
+				let msg = "Problem trying to stop DNS server ("+helper_msg+")"
+				DispatchQueue.main.async { error_popup(msg:msg) }
+			}
+		} else {
+			if let msg_ptr = start_dnscrypt_proxy(Bundle.main.bundlePath+"/Contents") {
+				print("WARNING: Problem trying to start dnscrypt-proxy")
+				dnscrypt_proxy(value:false)
+				let helper_msg = String(cString: msg_ptr);
+				let msg = "Problem trying to start DNS server ("+helper_msg+")"
+				DispatchQueue.main.async { error_popup(msg:msg) }
+			}
+		}
+		checkDnscrypt_proxy_status()
 	}
 	
 	static func initLoad() {
@@ -296,13 +316,11 @@ class Config: NSObject {
 	}
 	static func refresh(opts: Set<options>) {
 		// run after updating config
-		if (opts.contains(.menuBar)) { initMenuBar() } // must be done on main thread
-		DispatchQueue.global(qos: .background).async {
-			if (opts.contains(.timedCheckForUpdate)) { initTimedCheckForUpdate() }
-			if (opts.contains(.runAtLogin)) { initRunAtLogin() }
-			if (opts.contains(.blockQUIC)) { initBlockQUIC() }
-			if (opts.contains(.dnscrypt_proxy)) { initDnscrypt_proxy() }
-		}
+		if (opts.contains(.menuBar)) { initMenuBar() }
+		if (opts.contains(.timedCheckForUpdate)) { initTimedCheckForUpdate() }
+		if (opts.contains(.runAtLogin)) { initRunAtLogin() }
+		if (opts.contains(.blockQUIC)) { initBlockQUIC() }
+		if (opts.contains(.dnscrypt_proxy)) { initDnscrypt_proxy() }
 	}
 	
 	static func autoCheckUpdates(value: Bool) {

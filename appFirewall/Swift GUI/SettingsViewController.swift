@@ -16,6 +16,7 @@ class SettingsViewController: NSViewController {
 	@IBOutlet weak var useMenuBar: NSButton!
 	@IBOutlet weak var blockQUIC: NSButton!	
 	@IBOutlet weak var useDOH: NSButton!
+	var timer : Timer = Timer()
 	
 	func boolToState(value: Bool) -> NSControl.StateValue {
 		if (value) {
@@ -41,6 +42,9 @@ class SettingsViewController: NSViewController {
 		useMenuBar.state = boolToState(value: Config.getUseMenuBar())
 		blockQUIC.state = boolToState(value: Config.getBlockQUIC())
 		useDOH.state = boolToState(value: Config.getDnscrypt_proxy())
+		
+		timer = Timer.scheduledTimer(timeInterval: Config.settingsRefreshTime, target: self, selector: #selector(refresh), userInfo: nil, repeats: true)
+		timer.tolerance = 1 // we don't mind if it runs quite late
 	}
 	
 	@IBAction func autoCheckUpdatesClick(_ sender: NSButton!) {
@@ -64,14 +68,12 @@ class SettingsViewController: NSViewController {
 		useMenuBar.state = boolToState(value: Config.getUseMenuBar())
 	}
 	
-	
 	@IBAction func blockQUICClick(_ sender: Any) {
 		Config.blockQUIC(value: stateToBool(state:blockQUIC.state))
 		Config.refresh(opts:[.blockQUIC])
 		// update UI to show actual state after refresh
 		blockQUIC.state = boolToState(value: Config.getBlockQUIC())
 	}
-	
 	
 	@IBAction func blockQUICHelpClick(_ sender: helpButton?) {
 		sender?.clickButton(msg:"This blocks traffic using Google's QUIC/UDP protocol, forcing Chrome etc to fallback to using TCP.  Unlike TCP traffic, just now appFirewall can't selectively block QUIC traffic.  Enabling this option is a workaround that allows Chrome traffic to be fully controlled. Its safe to enable, just not very elegant.")
@@ -84,8 +86,16 @@ class SettingsViewController: NSViewController {
 		useDOH.state = boolToState(value: Config.getDnscrypt_proxy())
 	}
 	
-	
 	@IBAction func DoHHelpClick(_ sender: helpButton?) {
 		sender?.clickButton(msg:"Encrypt DNS queries using DNS-over-HTTPS. appFirewall has an embedded dnscrypt-proxy server.  Enabling this option redirects all DNS system queries to this DNS server (on 127.0.0.1 port 53).  Note: you will start to see HTTPS connections by dnscrypt-proxy.")
+	}
+	
+	@objc func refresh(timer:Timer?) {
+		// confirm that our settings match up with the facts on the ground,
+		// and if not generate error messages and update as appropriate
+		Config.checkDnscrypt_proxy_status()
+		useDOH.state = boolToState(value: Config.getDnscrypt_proxy())
+		Config.checkBlockQUIC_status()
+		blockQUIC.state = boolToState(value: Config.getBlockQUIC())
 	}
 }
