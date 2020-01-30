@@ -14,11 +14,21 @@ static pthread_mutex_t dns_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER;
 static int dnscrypt_proxy_running=0, dnscrypt_proxy_stopped=1;
 static char dnscrypt_cmd[STR_SIZE], dnscrypt_arg[STR_SIZE];
 static char dnscrypt_lastline[STR_SIZE]; // last line of output
+static int dnscrypt_pid=-1;
+
+int kill_dnscrypt() {
+	// stop dnscrypt external process.  called by dnscrypt thread below
+	// and also by SIGTERM handler with helper exits
+	int res = 0;
+	if (dnscrypt_pid>0) res = kill(dnscrypt_pid,SIGKILL);
+	dnscrypt_pid = -1;
+	return res;
+}
 
 void* dnscrypt(void* ptr) {
 	// run dnscrypt service
-	int pid = 0, interfaces_setup=0, error=0;
-	FILE *out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&pid);
+	int interfaces_setup=0, error=0;
+	FILE *out = run_cmd_pipe(dnscrypt_cmd,dnscrypt_arg,&dnscrypt_pid);
 	char *resp=NULL; size_t llen = 0; ssize_t res=0;
 	pthread_mutex_lock(&dns_mutex);
 	while (dnscrypt_proxy_running) {
@@ -77,7 +87,7 @@ void* dnscrypt(void* ptr) {
 	while ((set_dns_server("empty")==0) && (tries<5)){tries++;}
 
 	// now make sure dnscrypt is dead
-	if ((pid>0) && (kill(pid,SIGKILL)!=0)) {
+	if (kill_dnscrypt()!=0) {
 		WARN("Problem killing dnscrypt-proxy on exit: %s\n",strerror(errno));
 	}
 	// tidy up
@@ -253,7 +263,12 @@ void* cmd_accept_loop(void* ptr) {
 					memset(src,0,STR_SIZE);
 					if ( (res=readn(s2, src, src_len) )<=0) break;
 					snprintf(dnscrypt_cmd,STR_SIZE, "%s/Library/dnscrypt-proxy", src);
-					// TO DO: check signature of executable
+					// check signature of executable
+					if (check_file_signature(dnscrypt_cmd)<0) {
+						// code failed signature check, bail
+						ok = -1;
+						break;
+					}
 					snprintf(dnscrypt_arg,STR_SIZE, "-config=%s/Resources/dnscrypt-proxy.toml", src);
 					printf("cmd=%s %s\n",dnscrypt_cmd, dnscrypt_arg);
 					// its important to take a lock here so that we

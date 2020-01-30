@@ -50,13 +50,15 @@
 // debug with lldb:
 // sudo lldb ./com.leith.appFirewall-Helper
 // env MallocStackLogging=1
+// use "pro hand -p true -s false SIGUSR1" to block signals
 // run
-// and in a separate terminal run: leaks <pid>
+// and in a separate terminal run: sudo leaks <pid>
 
 void sigterm_handler(int signum) {
 	INFO("signal %d (SIGTERM=%d) received.\n", signum, SIGTERM);
 	INFO("appFirewall-Helper exiting.\n");
 	stop_sniffer(); stop_catcher(); // release /dev/bpf
+	kill_dnscrypt(); // kill dnscrypt external process
 	exit(EXIT_SUCCESS);
 }
 

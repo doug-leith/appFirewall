@@ -52,4 +52,5 @@ int readline_timed(char* buf, int len, FILE* fp, int t);
 
 int check_signature(int pid, int port);
 int get_sock_pid(int sock, int port);
+int check_file_signature(char* path);
 #endif /* util_h */

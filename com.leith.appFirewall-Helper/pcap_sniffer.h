@@ -97,6 +97,7 @@ typedef struct sniffer_t {
 typedef struct sniffers_t {
 	int num_pds;
 	sniffer_t sn[MAX_INTS];
+	int closed[MAX_INTS]; // for debugging
 	int use_pktap; // using apple PKTAP header with pcap
 } sniffers_t;
 

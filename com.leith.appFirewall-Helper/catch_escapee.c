@@ -229,21 +229,23 @@ void sigusr1_handler(int signum) {
 void stop_catcher() {
 	pthread_kill(catcher_thread,SIGUSR1);
 	pthread_join(catcher_thread,NULL);
-	for (int i=0; i<sn_esc.num_pds; i++) {
-		if (sn_esc.sn[i].pd) pcap_close(sn_esc.sn[i].pd);
-		sn_esc.sn[i].pd = NULL;
+	if (sn_esc.num_pds>0) {
+		// catcher thread should have cleaned up already
+		WARN("In stop_catcher() num_pds=%d is not zero\n",sn_esc.num_pds);
+		int i;
+		for (i=0; i<sn_esc.num_pds; i++) {
+			if (sn_esc.sn[i].pd) pcap_close(sn_esc.sn[i].pd);
+			sn_esc.sn[i].pd = NULL;
+			sn_esc.closed[i] = 2; // log that closed here
+		}
+		sn_esc.num_pds = 0;
 	}
 }
 
 void *catcher(void *ptr) {
 	char* filter = ptr;
 	// fire up sniffers on each interface
-	if (get_interfaces(NULL, 0) == 0) {
-		// shouldn't happen since we've already checked for this, so just being careful
-		WARN("No valid interfaces for catcher to sniff\n");
-	} else {
-		sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter, &sn_esc, 0);
-	}
+	sniffer_loop(catcher_callback, &catcher_sniffing, "catcher", filter, &sn_esc, 0);
 	return NULL;
 }
 
@@ -261,6 +263,7 @@ void *catcher_listener(void *ptr) {
 	conn_raw_t estimated_c; // our estimate of seq number to ACK when sending RSTs
 	char filter[STR_SIZE];
 	int prev_pid = -1;
+	memset(&sn_esc,0,sizeof(sniffers_t));
 	
 	// setup signal handler for stopping catcher thread
 	struct sigaction action;
@@ -371,7 +374,25 @@ void *catcher_listener(void *ptr) {
 		// loop below are the ones most likely to generate a response (if the seq/ack we
 		// use has been sniffed from a syn-ack the seq/ack numbers likely haven't changed
 		// by all that much)
+		/*
+		// for debugging
+		printf("catcher, initial sn_esc: ");
+		int ii, count=0;
+		for (ii=0; ii<sn_esc.num_pds; ii++) {
+			if (sn_esc.sn[ii].pd) count++;
+		}
+		printf("%d/%d non-null\n", count, sn_esc.num_pds);
+		*/
 		refresh_sniffers_list(&sn_esc, filter, 0);
+		/*
+		// for debugging
+		printf("catcher, after refresh sn_esc: ");
+		count=0;
+		for (ii=0; ii<sn_esc.num_pds; ii++) {
+			if (sn_esc.sn[ii].pd) count++;
+		}
+		printf("%d/%d non-null\n", count, sn_esc.num_pds);
+		*/
 		pthread_create(&catcher_thread, NULL, catcher, filter);
 		// as an extra measure, let's wait 1ms for thread to start before we
 		// start sending RSTs.  is this even needed ?

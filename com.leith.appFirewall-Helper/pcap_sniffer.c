@@ -443,6 +443,7 @@ int setup_pd(interface_t* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 	if ((res=pcap_activate(*pd))!=0) {
 		if (res<0) {
 			ERR("Couldn't activate pcap sniffer: %s\n",pcap_geterr(*pd));
+			pcap_close(*pd); *pd = NULL;
 			return -1;
 		} else {
 			// activate was successful but had warnings
@@ -460,12 +461,14 @@ int setup_pd(interface_t* intf, pcap_t **pd, char* filter_exp, int use_pktap) {
 	} else {
 		struct bpf_program fp;
 		if (pcap_compile(*pd, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
-		ERR("Couldn't parse pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
+			ERR("Couldn't parse pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
+			pcap_close(*pd); *pd = NULL;
 			return -1;
 		}
 		if (pcap_setfilter(*pd, &fp) == PCAP_ERROR) {
 			ERR("Couldn't install pcap filter %s: %s\n", filter_exp, pcap_geterr(*pd));
-		return -1;
+			pcap_close(*pd); *pd = NULL;
+			return -1;
 		}
 		pcap_freecode(&fp); // release memory
 	}
@@ -483,6 +486,13 @@ int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet) {
 	memset(sn,0,sizeof(sniffers_t));
 	sn->use_pktap = old_sn.use_pktap;
 	if ( (n=get_interfaces(temp_intf, sn->use_pktap))<=0) {
+		// likely wifi has gone away and have no active interfaces,
+		// tidy up open (and now dead) pcap devices
+		for (int i = 0; i<old_sn.num_pds; i++) {
+			if (old_sn.sn[i].pd!=NULL) pcap_close(old_sn.sn[i].pd);
+			old_sn.sn[i].pd = NULL;
+		}
+		printf("refresh_sniffers_list no interfaces, tidying up %d pds.\n", old_sn.num_pds);
 		return 0;
 	}
 	int i;
@@ -516,6 +526,7 @@ int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet) {
 		if (sn->sn[sn->num_pds].offset<0) {
 			WARN("Problem getting datalink offset for interface %s\n",sn->sn[sn->num_pds].intf.name);
 			pcap_close(sn->sn[sn->num_pds].pd);
+			sn->sn[sn->num_pds].pd=NULL;
 			continue;
 		}
 		sn->sn[sn->num_pds].datalink = pcap_datalink(sn->sn[sn->num_pds].pd);
@@ -527,9 +538,16 @@ int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet) {
 		sn->num_pds++;
 	}
 	if (extra && !quiet) printf("\n");
-	for (int i = 0; i<old_sn.num_pds; i++) {
-		if (old_sn.sn[i].pd!=NULL) pcap_close(old_sn.sn[i].pd); // tidy up dead sniffers
+	int j, count=0;
+	for (j = 0; j<old_sn.num_pds; j++) {
+		if (old_sn.sn[j].pd!=NULL) {
+			pcap_close(old_sn.sn[j].pd); // tidy up dead sniffers
+			old_sn.sn[j].pd = NULL;
+			count++;
+		}
 	}
+	//printf("refresh_sniffers_list tidying up %d/%d old pds.\n", count,old_sn.num_pds);
+	old_sn.num_pds = 0;
 	/*struct timeval end; gettimeofday(&end, NULL);
 	printf("refresh_sniffers_list() t=%f",(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0);*/
 	return sn->num_pds;
@@ -695,9 +713,8 @@ stop:
 
 void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn, int use_pktap)  {
 	// pcap sniffer loop,this will exit when network connection fails/is broken.
-	sniffers_t sn_local;
+	sniffers_t sn_local; memset(&sn_local,0,sizeof(sniffers_t));
 	if (sn == NULL) sn=&sn_local;
-	memset(sn,0,sizeof(sniffers_t));
 	sn->use_pktap = use_pktap;
 	sniffer_callback_args_t args[MAX_INTS];
 	for (int i = 0; i<MAX_INTS; i++) {args[i].sn = sn; args[i].i=i; }
@@ -745,25 +762,35 @@ void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_e
 	}
 	INFO2("Exited %s sniffer loop.\n", tag);
 	//tidy up
-	for (int i=0; i<sn->num_pds; i++) {
-		if (sn->sn[i].pd) pcap_close(sn->sn[i].pd);
+	int i, count=0;;
+	for (i=0; i<sn->num_pds; i++) {
+		if (sn->sn[i].pd) {pcap_close(sn->sn[i].pd);count++;}
 		sn->sn[i].pd = NULL;
+		sn->closed[i] = 1; // log that closed here
 	}
-
+	//printf("sniffer loop cleaning up %d/%d pds\n",count,sn->num_pds);
+	sn->num_pds = 0;
 }
 
 void stop_sniffer() {
+	// called by SIGTERM handler,
+	// hard stop on pcap devices might cause segfault later, but
+	// that's ok as (i) stopping anyway, (ii) won't return from this
+	// signal handler. leaving open pcap devices is really bad as we'll
+	// run out of them over time (a sort of mem leak)
 	are_sniffing = 0;
 	for (int i=0; i<sn_pktap.num_pds; i++) {
 		if (sn_pktap.sn[i].pd) pcap_close(sn_pktap.sn[i].pd);
 		sn_pktap.sn[i].pd = NULL;
 	}
+	sn_pktap.num_pds = 0;
 }
 
 void *listener(void *ptr) {
 	// wait in accept() loop to handle connections from GUI to receive pcap info
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
+	memset(&sn_pktap,0,sizeof(sniffers_t));
 	for(;;) {
 		INFO("Waiting to accept connection on localhost port %d (pcap) ...\n", PCAP_PORT);
 		if ((p_sock2 = accept(p_sock, (struct sockaddr *)&remote, &len)) <= 0) {
@@ -797,6 +824,9 @@ void *listener(void *ptr) {
 		}
 		are_sniffing = 1;
 		sniffer_loop(sniffer_callback, &are_sniffing, "pcap", filter_exp, &sn_pktap, USE_PKTAP);
+		// we'll still hold open pcap device in sn_pktap here, which will
+		// be reused/refreshed by next accept connection.  could close pcap
+		// device here ?
 		close(p_sock2);
 	}
 	return NULL;
