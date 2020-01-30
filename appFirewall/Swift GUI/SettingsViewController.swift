@@ -48,6 +48,13 @@ class SettingsViewController: NSViewController {
 	}
 	
 	override func viewWillDisappear() {
+		// stop checking alignment of our settings with those on helper
+		// when window closes - presumably any issues will mostly arise when
+		// settings are changed (which means window is open), and this way
+		// we avoid burden of continually contacting helper.
+		// TO DO: or would it be better to leave checking active in case
+		// the situation changes under our feet e.g. user changes firewall
+		// settingd and breaks QUIC blocking ??
 		timer.invalidate()
 		super.viewWillDisappear()
 	}
