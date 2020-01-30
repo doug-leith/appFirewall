@@ -59,7 +59,9 @@ ipv4_servers = true
 ipv6_servers = false
 
 # Use servers implementing the DNSCrypt protocol
-dnscrypt_servers = true
+# DL disable DNSCrypt, just use DOH
+#dnscrypt_servers = true
+dnscrypt_servers = false
 
 # Use servers implementing the DNS-over-HTTPS protocol
 doh_servers = true

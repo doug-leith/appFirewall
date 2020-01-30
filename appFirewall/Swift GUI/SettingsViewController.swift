@@ -47,6 +47,11 @@ class SettingsViewController: NSViewController {
 		timer.tolerance = 1 // we don't mind if it runs quite late
 	}
 	
+	override func viewWillDisappear() {
+		timer.invalidate()
+		super.viewWillDisappear()
+	}
+	
 	@IBAction func autoCheckUpdatesClick(_ sender: NSButton!) {
 		Config.autoCheckUpdates(value: stateToBool(state:autoCheckUpdates.state))
 		Config.refresh(opts:[.timedCheckForUpdate])
