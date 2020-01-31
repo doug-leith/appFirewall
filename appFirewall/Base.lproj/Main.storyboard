@@ -1164,8 +1164,11 @@
                         <rect key="frame" x="0.0" y="0.0" width="468" height="221"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <button verticalHuggingPriority="750" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OLS-fS-w2i">
+                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="OLS-fS-w2i">
                                 <rect key="frame" x="105" y="22" width="72" height="32"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="60" id="amh-ym-ydB"/>
+                                </constraints>
                                 <buttonCell key="cell" type="push" title="Ok" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="17G-Ek-1xs">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1174,7 +1177,7 @@
                                     <action selector="okButton:" target="KGo-sw-4NO" id="bUp-cT-4sX"/>
                                 </connections>
                             </button>
-                            <button verticalHuggingPriority="750" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="00L-In-fco">
+                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="00L-In-fco">
                                 <rect key="frame" x="276" y="21" width="76" height="32"/>
                                 <buttonCell key="cell" type="push" title="Install" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="dM2-Oj-I7P">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1222,6 +1225,7 @@
                         <constraints>
                             <constraint firstAttribute="bottom" secondItem="OLS-fS-w2i" secondAttribute="bottom" constant="29" id="25z-ck-AcR"/>
                             <constraint firstAttribute="trailing" secondItem="Qez-Tz-yjy" secondAttribute="trailing" constant="44" id="6Vy-dZ-nBA"/>
+                            <constraint firstItem="OLS-fS-w2i" firstAttribute="leading" secondItem="OoR-Cv-h6z" secondAttribute="leading" id="8z5-T9-gMY"/>
                             <constraint firstItem="OoR-Cv-h6z" firstAttribute="top" secondItem="vC2-lP-1fE" secondAttribute="bottom" constant="14" id="9oR-rs-xyP"/>
                             <constraint firstItem="OLS-fS-w2i" firstAttribute="leading" secondItem="4TM-Ez-GLE" secondAttribute="leading" constant="111" id="D7Z-5g-PHy"/>
                             <constraint firstItem="Qez-Tz-yjy" firstAttribute="top" secondItem="OoR-Cv-h6z" secondAttribute="bottom" constant="14" id="H7J-ny-fNa"/>
@@ -1230,10 +1234,8 @@
                             <constraint firstItem="6us-g2-uJa" firstAttribute="leading" secondItem="4TM-Ez-GLE" secondAttribute="leading" constant="16" id="PpW-wB-fQd"/>
                             <constraint firstItem="vC2-lP-1fE" firstAttribute="top" secondItem="4TM-Ez-GLE" secondAttribute="top" constant="27" id="SUe-bz-jN4"/>
                             <constraint firstItem="vC2-lP-1fE" firstAttribute="leading" secondItem="6us-g2-uJa" secondAttribute="trailing" constant="8" symbolic="YES" id="WQG-Ye-d1g"/>
-                            <constraint firstItem="Qez-Tz-yjy" firstAttribute="leading" secondItem="OoR-Cv-h6z" secondAttribute="leading" id="Y4a-JL-z6g"/>
                             <constraint firstAttribute="trailing" secondItem="00L-In-fco" secondAttribute="trailing" constant="122" id="ZHK-yM-cw3"/>
                             <constraint firstItem="Qez-Tz-yjy" firstAttribute="leading" secondItem="OLS-fS-w2i" secondAttribute="leading" id="ZMG-dB-G7J"/>
-                            <constraint firstItem="6us-g2-uJa" firstAttribute="centerY" secondItem="OoR-Cv-h6z" secondAttribute="centerY" id="j9C-6L-1jH"/>
                             <constraint firstAttribute="bottom" secondItem="00L-In-fco" secondAttribute="bottom" constant="28" id="paI-lx-Gak"/>
                             <constraint firstItem="Qez-Tz-yjy" firstAttribute="leading" secondItem="6us-g2-uJa" secondAttribute="trailing" constant="20" id="xy1-8U-Di4"/>
                         </constraints>
