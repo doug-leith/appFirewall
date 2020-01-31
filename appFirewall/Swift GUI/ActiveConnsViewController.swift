@@ -44,7 +44,7 @@ class ActiveConnsViewController: appViewController {
 	}
 	
 	@IBAction func helpButton(_ sender: helpButton?) {
-			sender?.clickButton(msg:"This window logs the network connections currently being made by the apps running on your computer.  Note that connections can sometimes take a few seconds to die, during which time they may remain visible here.")
+			sender?.clickButton(msg:"This window logs the network connections currently being made by the apps running on your computer.  Right-click on a connection for more details. Note that connections appearing here may be idle, i.e. not be currently sending data but still maintaining an open connection.  Also note that blocked connections can sometimes take a few seconds to die, especially idle connections, during which time they may remain visible here. ")
 		}
 	
 	@IBAction func Click(_ sender: blButton?) {

@@ -308,6 +308,9 @@ func sampleLogData(fname: String) {
 		//print("Sample from app connection log:")
 		//print(str)
 		
+		// TO DO: gzip the upload to save bandwidth.  Files are usually quite
+		// small though (10-100K) so sending uncompressed doesn't seem like a big
+		// deal plus using gzip from Swift seems a bit nasty.
 		// zip data to save upload bandwidth
 		/*let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: str.count)
 		var sourceBuffer = Array(str.utf8)

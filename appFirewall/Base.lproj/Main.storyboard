@@ -298,7 +298,7 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </tableHeaderView>
                             </scrollView>
-                            <button verticalHuggingPriority="750" id="Vta-hi-uTv">
+                            <button toolTip="Enable list" verticalHuggingPriority="750" id="Vta-hi-uTv">
                                 <rect key="frame" x="13" y="46" width="37" height="19"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="NSAddTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" transparent="YES" imageScaling="proportionallyDown" inset="2" id="S1I-d3-nl0">
@@ -309,7 +309,7 @@
                                     <action selector="AddButton:" target="i0n-uy-Uid" id="tnb-Ha-jug"/>
                                 </connections>
                             </button>
-                            <button verticalHuggingPriority="750" id="4yn-bu-OI6">
+                            <button toolTip="Disable list" verticalHuggingPriority="750" id="4yn-bu-OI6">
                                 <rect key="frame" x="316" y="45" width="32" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="NSRemoveTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" imageScaling="proportionallyDown" inset="2" id="b2N-HX-lAp">
@@ -328,7 +328,7 @@
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZBs-Y7-rQ5">
+                            <button toolTip="Check for updates to lists" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZBs-Y7-rQ5">
                                 <rect key="frame" x="7" y="1" width="119" height="32"/>
                                 <buttonCell key="cell" type="push" title="Refresh Lists" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="b5l-n8-MRc">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -709,7 +709,7 @@
                                     <action selector="clickHelpButton:" target="6Jh-u5-5HC" id="ZQl-FA-GxJ"/>
                                 </connections>
                             </button>
-                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZdV-lV-vQv">
+                            <button toolTip="Manually enter blocking rule" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZdV-lV-vQv">
                                 <rect key="frame" x="9" y="2" width="17" height="20"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="NSAddTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="iOK-vg-Qbi">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -953,13 +953,13 @@
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="63s-Ia-Ut1">
-                                <rect key="frame" x="0.0" y="24" width="535" height="62"/>
+                                <rect key="frame" x="0.0" y="24" width="535" height="35"/>
                                 <clipView key="contentView" drawsBackground="NO" id="PS2-DX-hlX">
-                                    <rect key="frame" x="1" y="0.0" width="533" height="61"/>
+                                    <rect key="frame" x="1" y="0.0" width="533" height="34"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="7mh-qi-Azh" viewBased="YES" id="1an-dp-RUd">
-                                            <rect key="frame" x="0.0" y="0.0" width="533" height="36"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="533" height="34"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <size key="intercellSpacing" width="3" height="2"/>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1079,7 +1079,7 @@
                                     <rect key="frame" x="1" y="275" width="533" height="16"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
-                                <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="6PN-Nw-pAe">
+                                <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="6PN-Nw-pAe">
                                     <rect key="frame" x="224" y="17" width="15" height="102"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
@@ -1098,7 +1098,7 @@
                                     <action selector="helpButton:" target="fad-UK-l15" id="axG-D7-rnm"/>
                                 </connections>
                             </button>
-                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LT5-GM-8i1">
+                            <button toolTip="Manually enter whitelist rule" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LT5-GM-8i1">
                                 <rect key="frame" x="9" y="2" width="17" height="20"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="NSAddTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Rga-29-bfa">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1134,11 +1134,11 @@
             <objects>
                 <viewController title="Help" storyboardIdentifier="HelpViewController" id="2wT-ct-lHi" customClass="helpViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" id="Nmr-wU-ADG">
-                        <rect key="frame" x="0.0" y="0.0" width="302" height="200"/>
+                        <rect key="frame" x="0.0" y="0.0" width="353" height="222"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ptL-vh-ye8">
-                                <rect key="frame" x="12" y="20" width="220" height="160"/>
+                                <rect key="frame" x="12" y="13" width="330" height="197"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <textFieldCell key="cell" selectable="YES" title="Multiline Label" id="y5e-6L-42k">
                                     <font key="font" usesAppearanceFont="YES"/>
@@ -1154,7 +1154,7 @@
                 </viewController>
                 <customObject id="LaE-Wm-bxX" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-361" y="-576"/>
+            <point key="canvasLocation" x="-386.5" y="-565"/>
         </scene>
         <!--appFirewall Update-->
         <scene sceneID="HP6-l9-7hW">

@@ -8,4 +8,3 @@ longer term:
 3. add option to log and filter local mDNS broadcast traffic
 5. add socks interface that is filtered.  can be interposed between ssh tunnel etc.
 6. use of network extensions, only for catalina onwards though
-7. compress log samples uploaded to server?

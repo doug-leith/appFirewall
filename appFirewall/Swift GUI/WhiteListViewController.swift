@@ -34,7 +34,7 @@ class WhiteListViewController: appViewController {
 	}
 	
 	@IBAction func helpButton(_ sender: helpButton?) {
-		sender?.clickButton(msg:"Domains/apps added here will never be blocked.  Use this list when, for example, a connection is mistakenly blocked.")
+		sender?.clickButton(msg:"Domains/apps added here will never be blocked, even if also on the blacklist i.e. the whitelist rules override any clashing blacklist rules.  Use this list when, for example, a connection is mistakenly blocked.  Applications can be dragged or pasted onto this window from Finder to whitelist them.")
 	}
 	
 	@IBAction func click(_ sender: NSButton?) {
