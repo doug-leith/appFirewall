@@ -155,7 +155,7 @@
                 <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
                 <customObject id="Ady-hI-5gd" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-366" y="-177"/>
+            <point key="canvasLocation" x="-367" y="-122"/>
         </scene>
         <!--Blacklist Preferences-->
         <scene sceneID="wcm-cC-fAF">
@@ -574,13 +574,13 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
                             <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mr3-Cp-Z7m">
-                                <rect key="frame" x="0.0" y="0.0" width="535" height="288"/>
+                                <rect key="frame" x="0.0" y="24" width="535" height="264"/>
                                 <clipView key="contentView" id="Q8x-xc-q42">
-                                    <rect key="frame" x="1" y="0.0" width="533" height="287"/>
+                                    <rect key="frame" x="1" y="0.0" width="533" height="263"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="LnC-3L-9gW" viewBased="YES" id="oze-Oc-Kfa">
-                                            <rect key="frame" x="0.0" y="0.0" width="533" height="262"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="533" height="238"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <size key="intercellSpacing" width="3" height="2"/>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -704,13 +704,27 @@
                                     <action selector="clickHelpButton:" target="6Jh-u5-5HC" id="ZQl-FA-GxJ"/>
                                 </connections>
                             </button>
+                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZdV-lV-vQv">
+                                <rect key="frame" x="9" y="2" width="17" height="20"/>
+                                <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="NSAddTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="iOK-vg-Qbi">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="openSheetClick:" target="6Jh-u5-5HC" id="8Mu-fJ-EVY"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <constraints>
                             <constraint firstItem="mr3-Cp-Z7m" firstAttribute="top" secondItem="Y7Z-SU-5OV" secondAttribute="top" id="4pc-j9-gWo"/>
                             <constraint firstItem="mr3-Cp-Z7m" firstAttribute="leading" secondItem="Y7Z-SU-5OV" secondAttribute="leading" id="4rZ-PK-ivq"/>
-                            <constraint firstAttribute="bottom" secondItem="mr3-Cp-Z7m" secondAttribute="bottom" id="8df-4a-iKv"/>
+                            <constraint firstAttribute="bottom" secondItem="mr3-Cp-Z7m" secondAttribute="bottom" constant="24" id="8df-4a-iKv"/>
+                            <constraint firstAttribute="bottom" secondItem="ZdV-lV-vQv" secondAttribute="bottom" constant="2" id="P3i-RC-vmY"/>
+                            <constraint firstItem="ZdV-lV-vQv" firstAttribute="top" secondItem="mr3-Cp-Z7m" secondAttribute="bottom" constant="2" id="UGt-HK-7IA"/>
+                            <constraint firstAttribute="bottom" secondItem="ZdV-lV-vQv" secondAttribute="bottom" constant="2" id="XZ8-0h-mTk"/>
                             <constraint firstAttribute="trailing" secondItem="mr3-Cp-Z7m" secondAttribute="trailing" id="dbJ-jM-M1w"/>
                             <constraint firstItem="LZ7-65-bcG" firstAttribute="top" secondItem="Y7Z-SU-5OV" secondAttribute="top" constant="2" id="h6g-qf-4yN"/>
+                            <constraint firstItem="ZdV-lV-vQv" firstAttribute="leading" secondItem="Y7Z-SU-5OV" secondAttribute="leading" constant="9" id="tee-LY-wVZ"/>
                             <constraint firstAttribute="trailing" secondItem="LZ7-65-bcG" secondAttribute="trailing" constant="40" id="zoZ-ke-7fr"/>
                         </constraints>
                     </customView>
@@ -731,13 +745,13 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
                             <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zql-6r-CwW">
-                                <rect key="frame" x="0.0" y="0.0" width="587" height="138"/>
+                                <rect key="frame" x="0.0" y="0.0" width="587" height="88"/>
                                 <clipView key="contentView" id="2D7-H0-xKw">
-                                    <rect key="frame" x="1" y="0.0" width="585" height="137"/>
+                                    <rect key="frame" x="1" y="0.0" width="585" height="87"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="VF7-ky-Vo1" viewBased="YES" id="yku-Jn-JpS">
-                                            <rect key="frame" x="0.0" y="0.0" width="585" height="112"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="585" height="62"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <size key="intercellSpacing" width="3" height="2"/>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -867,7 +881,7 @@
                                 </tableHeaderView>
                             </scrollView>
                             <button horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="7A1-Hy-mPv" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
-                                <rect key="frame" x="524" y="111" width="25" height="25"/>
+                                <rect key="frame" x="524" y="61" width="25" height="25"/>
                                 <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Yp7-dI-FyF">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -877,7 +891,7 @@
                                 </connections>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Lnk-5Q-xmV">
-                                <rect key="frame" x="382" y="116" width="96" height="18"/>
+                                <rect key="frame" x="382" y="66" width="96" height="18"/>
                                 <buttonCell key="cell" type="check" title="Show Blocked" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="IQa-4s-LLy">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="smallSystem"/>
@@ -887,7 +901,7 @@
                                 </connections>
                             </button>
                             <searchField wantsLayer="YES" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8qx-1F-b8z">
-                                <rect key="frame" x="249" y="115" width="125" height="22"/>
+                                <rect key="frame" x="249" y="65" width="125" height="22"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="125" id="EeH-wu-1FT"/>
                                 </constraints>
@@ -1422,6 +1436,86 @@ Gw
                 <customObject id="Ixk-FC-OP3" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-293.5" y="-927.5"/>
+        </scene>
+        <!--Add Rule View Controller-->
+        <scene sceneID="iWO-1K-SZ1">
+            <objects>
+                <viewController storyboardIdentifier="addRuleViewController" id="Qdr-ER-tn2" customClass="addRuleViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" id="cuh-mz-ftL">
+                        <rect key="frame" x="0.0" y="0.0" width="450" height="215"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <subviews>
+                            <comboBox verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7gt-ci-BCm">
+                                <rect key="frame" x="27" y="126" width="249" height="25"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="Choose Application" drawsBackground="YES" completes="NO" numberOfVisibleItems="5" id="Upr-Ez-903">
+                                    <font key="font" metaFont="system" size="11"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </comboBoxCell>
+                                <connections>
+                                    <action selector="appNameClick:" target="Qdr-ER-tn2" id="CPM-7X-E4o"/>
+                                </connections>
+                            </comboBox>
+                            <comboBox verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="JGB-7d-Nu1">
+                                <rect key="frame" x="27" y="83" width="249" height="24"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="Enter Domain To Block" drawsBackground="YES" completes="NO" numberOfVisibleItems="5" id="hMT-qB-P1j">
+                                    <font key="font" size="12" name=".AppleSystemUIFont"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    <objectValues>
+                                        <string>&lt;all connections&gt;</string>
+                                    </objectValues>
+                                </comboBoxCell>
+                                <connections>
+                                    <action selector="domainNameClick:" target="Qdr-ER-tn2" id="ObA-T7-q2M"/>
+                                </connections>
+                            </comboBox>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xWa-6G-1q5">
+                                <rect key="frame" x="101" y="22" width="82" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="msa-ea-Orr">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                    <string key="keyEquivalent" base64-UTF8="YES">
+Gw
+</string>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="cancelClick:" target="Qdr-ER-tn2" id="uLN-ip-OOT"/>
+                                </connections>
+                            </button>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="obG-bT-Lbu">
+                                <rect key="frame" x="282" y="22" width="57" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Ok" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="pQP-UK-Uzp">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="okClick:" target="Qdr-ER-tn2" id="hb7-IY-u0i"/>
+                                </connections>
+                            </button>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qTS-LQ-oda">
+                                <rect key="frame" x="27" y="179" width="59" height="16"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Add Rule" id="IcN-e4-cYL">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                        </subviews>
+                    </view>
+                    <connections>
+                        <outlet property="appName" destination="7gt-ci-BCm" id="hsN-bc-K5o"/>
+                        <outlet property="domainName" destination="JGB-7d-Nu1" id="vRY-fb-f8b"/>
+                    </connections>
+                </viewController>
+                <customObject id="EzI-gc-qok" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="788" y="1310.5"/>
         </scene>
     </scenes>
     <resources>

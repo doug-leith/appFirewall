@@ -152,6 +152,14 @@ void add_blockdomainitem(bl_item_t *item) {
 	sort_block_list(0, -1); // takes it own lock
 }
 
+void add_blockitem2(const char* name, const char* domain) {
+	bl_item_t item;
+	memset(&item,0,sizeof(bl_item_t));
+	strlcpy(item.name,name,MAXCOMLEN);
+	strlcpy(item.domain,domain,MAXDOMAINLEN);
+	add_blockitem(&item);
+}
+
 void add_blockitem(bl_item_t *item) {
 	// called by GUI
 	if (strcmp(item->name,NOTFOUND)==0) {

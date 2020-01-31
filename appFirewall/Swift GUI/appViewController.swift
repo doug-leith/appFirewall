@@ -43,7 +43,9 @@ class appViewController: NSViewController {
 		appTableView = tableView
 		appTableView?.menu = menu
 		appTableView!.dataSource = self
-		appTableView!.delegate = self		
+		appTableView!.delegate = self
+		// allow drag and drop of URLs
+		appTableView!.registerForDraggedTypes([.URL, .fileURL])
 	}
 
 	func appViewWillAppear() {
@@ -169,6 +171,8 @@ class appViewController: NSViewController {
 		pasteBoard.clearContents()
 		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
 	}	
+	
+	func handleDrag(info: NSDraggingInfo, row: Int) {}
 		
 	@objc func getInfo(sender: AnyObject?){
 		guard let row = appTableView?.selectedRow else {print("WARNING: problem in getInfo getting selected row"); return}
@@ -308,7 +312,7 @@ class appViewController: NSViewController {
 	}
 	
 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {return nil}
-	
+
 }
 
 extension appViewController: NSPopoverDelegate {
@@ -343,5 +347,15 @@ extension appViewController: NSTableViewDelegate {
 
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		return getTableCell(tableView: tableView, tableColumn: tableColumn, row:row)
+	}
+	
+	// drag and drop handlers
+	func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo, proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
+		return NSDragOperation.copy
+	}
+	
+	func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo, row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
+		handleDrag(info: info, row: row)
+		return true
 	}
 }

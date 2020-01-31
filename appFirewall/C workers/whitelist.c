@@ -104,6 +104,14 @@ void add_allowdomainitem(bl_item_t *item) {
 	sort_white_list(0, -1); // takes it own lock
 }
 
+void add_whiteitem2(const char* name, const char* domain) {
+	bl_item_t item;
+	memset(&item,0,sizeof(bl_item_t));
+	strlcpy(item.name,name,MAXCOMLEN);
+	strlcpy(item.domain,domain,MAXDOMAINLEN);
+	add_whiteitem(&item);
+}
+
 void add_whiteitem(bl_item_t *item) {
 	if (strcmp(item->name,NOTFOUND)==0) {
 		WARN("add_whiteitem() item has process name %s.\n", NOTFOUND);

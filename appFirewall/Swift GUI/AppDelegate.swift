@@ -414,6 +414,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension AppDelegate: NSWindowDelegate {
+
 	func windowWillClose(_ notification: Notification) {
 		// hide the dock icon and main menu
 		disableMenu()

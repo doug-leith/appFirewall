@@ -99,4 +99,27 @@ class BlockListViewController: appViewController {
 		}
 		return cell
 	}
+	
+	// display addRule sheet (allows user to manually add a new rule)
+	@IBAction func openSheetClick(_ sender: NSButton) {
+		let controller = self.storyboard!.instantiateController(withIdentifier: "addRuleViewController") as! addRuleViewController
+		self.presentAsSheet(controller)
+	}
+	
+	// allow users to block an app by dragging and dropping
+	override func handleDrag(info: NSDraggingInfo, row: Int) {
+		guard let items = info.draggingPasteboard.pasteboardItems else {return}
+		for item in items {
+			if let str = item.string(forType:.fileURL) {
+				if let url = URL(string:str) { // string parses to a URL
+					if let app = Bundle(url: url)?.executableURL?.lastPathComponent {
+						// url points to a bundle with an executable, great !
+						print("adding ",app," to blocklist using drag and drop")
+						add_blockitem2(app, "<all connections>")
+					}
+				}
+			}
+		}
+		refresh(timer:nil)
+	}
 }

@@ -22,6 +22,7 @@
 #define BLOCKLIST_FILE_VERSION 1
 
 void add_blockitem(bl_item_t *item);
+void add_blockitem2(const char* name, const char* domain);
 void add_blockallitem(bl_item_t *item);
 void add_blockdomainitem(bl_item_t *item);
 bl_item_t* in_blocklist_htab(const bl_item_t *item,int debug); // looks up hash table, faster
