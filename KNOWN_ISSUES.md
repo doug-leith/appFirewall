@@ -24,7 +24,9 @@ You can see information on the domains sharing an IP address by hovering your mo
 
 ### Enabling DNS over HTTPS in Firefox/Chrome prevents resolution of IP addresses
 
-When DNS over HTTPS is enabled internally within Firefox (and Chrome) they perform encrypted lookups from within the application itself and so they are hidden from the firewall, at least for the moment.   A good workaround is to enable the embedded DNS-over-HTTPS server in the appFirewall preferences (this uses [dnscrypt-proxy](https://github.com/DNSCrypt/dnscrypt-proxy)) and disable the internal use of DNS over HTTPS within Firefox/Chrome (in Firefox navigate to about:config and set "network.trr.mode" to 0, in Chrome navigate to chrome://flags/ and set "Secure DNS lookups" to Disabled).   This also has the advantage of encrypting DNS for all apps (not just browsers).
+When DNS over HTTPS is enabled internally within Firefox (and Chrome) they perform encrypted lookups from within the application itself and so they are hidden from the firewall, at least for the moment.   That means the firewall can't convert the IP addresses they use to more readable domain names e.g. 2a00:1450:400b:c01::71 to www.google-analytics.com.
+
+A good workaround is to enable the embedded DNS-over-HTTPS server in the appFirewall preferences (this uses [dnscrypt-proxy](https://github.com/DNSCrypt/dnscrypt-proxy)) and disable the internal use of DNS over HTTPS within Firefox/Chrome (in Firefox navigate to about:config and set "network.trr.mode" to 0, in Chrome navigate to chrome://flags/ and set "Secure DNS lookups" to Disabled).   This also has the advantage of encrypting DNS for all apps (not just browsers).
 
 ### Filtering of VPN traffic is unreliable/experimental
 
@@ -33,3 +35,7 @@ Traffic sent via a VPN tunnel interface is logged but blocking of connections is
 ### Google QUIC connections are not selectively blocked (yet)
 
 The firewall blocks TCP connections.  Google Chrome often uses an alternative UDP-based protocol called QUIC to connect to google services (other services don't support it yet).  This protocol is currently being standardised, and in the future so other browsers/apps and other services may well start using QUIC too.  Extending the firewall to allow blocking of QUIC connections is another "to do" list item.  For now a workaround is to enable blocking of QUIC connections in the appFirewall preferences, which will force fall back to use of TCP (this is a safe, but not v elegant, solution).   
+
+### Filtering of IPv6 connections can be slow
+
+If an IPv6 connection is already ongoing when the firewall starts then it can sometimes take the firewall a while to force the connection to stop.   This is because of some frustrating historical decisions re implementing IPv6 raw sockets in MacOS (and also other BSD-based OS's), so unfortunately there's no easy workaround (Network Extensions in Catalina or other similar kernel extensions don't resolve this).

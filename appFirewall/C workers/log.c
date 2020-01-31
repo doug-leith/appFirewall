@@ -286,6 +286,37 @@ char* get_filter_log_addr_name(int_sw row) {
 	return _name;
 }
 
+#define NUM_SUGGESTIONS 10
+static char suggestions[NUM_SUGGESTIONS][MAXDOMAINLEN] = {0};
+static int suggestion_count = 0;
+int search_log_domains(const char* str) {
+	// returns domains in log that start with str (used by addRulw GUI)
+	memset(suggestions,0,MAXDOMAINLEN*NUM_SUGGESTIONS);
+	suggestion_count = 0;
+	for (size_t i=0; i< get_log_size(); i++) {
+		log_line_t* l = get_log_row(i);
+		char * domain = l->bl_item.domain;
+		if ((str==NULL) || (strnlen(str,STR_SIZE)==0) || (strcasestr(domain, str) != NULL)){
+			// duplicate ?
+			int j;
+			for (j=0; j<suggestion_count; j++) {
+				if (strcmp(domain,suggestions[j])==0) break;
+			}
+			if (j==suggestion_count) {
+				strlcpy(suggestions[suggestion_count],domain,MAXDOMAINLEN);
+				suggestion_count++;
+			}
+		}
+		if (suggestion_count == NUM_SUGGESTIONS) break;
+	}
+	return suggestion_count;
+}
+
+char* get_suggestion(int index) {
+	if ((index<0) || (index > suggestion_count)) return NULL;
+	return suggestions[index];
+}
+
 void save_log(const char* logName) {
 	reopen_logtxt();  // reopen rather than flush, then we recover if file deleted
 	

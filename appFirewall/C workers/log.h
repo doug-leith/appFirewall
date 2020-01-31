@@ -54,5 +54,7 @@ void close_logtxt(void);
 void reopen_logtxt(void);
 int_sw has_log_changed(void);
 void clear_log_changed(void);
+int search_log_domains(const char* str);
+char* get_suggestion(int index);
 
 #endif /* log_h */

@@ -103,23 +103,37 @@ class BlockListViewController: appViewController {
 	// display addRule sheet (allows user to manually add a new rule)
 	@IBAction func openSheetClick(_ sender: NSButton) {
 		let controller = self.storyboard!.instantiateController(withIdentifier: "addRuleViewController") as! addRuleViewController
+		controller.mode = "blacklist"
+		controller.parentController = self
 		self.presentAsSheet(controller)
 	}
 	
 	// allow users to block an app by dragging and dropping
-	override func handleDrag(info: NSDraggingInfo, row: Int) {
-		guard let items = info.draggingPasteboard.pasteboardItems else {return}
+	func add(apps:[NSPasteboardItem]?) {
+		guard let items = apps else { return }
 		for item in items {
 			if let str = item.string(forType:.fileURL) {
 				if let url = URL(string:str) { // string parses to a URL
 					if let app = Bundle(url: url)?.executableURL?.lastPathComponent {
 						// url points to a bundle with an executable, great !
-						print("adding ",app," to blocklist using drag and drop")
-						add_blockitem2(app, "<all connections>")
+						// we don't use this executable name though, but rather one
+						// derived fromn url E.g. for Anaconda the executable is run.sh
+						let appName = (url.deletingPathExtension()).lastPathComponent
+						print("adding ",appName,"(",app,") to blocklist using drag and drop")
+						add_blockitem2(appName, "<all connections>")
 					}
 				}
 			}
 		}
 		refresh(timer:nil)
+	}
+	
+	override func handleDrag(info: NSDraggingInfo, row: Int) {
+		add(apps: info.draggingPasteboard.pasteboardItems)
+	}
+	
+	// also allow to paste an app into table
+	@objc override func pasteLine(sender: AnyObject?){
+		add(apps: NSPasteboard.general.pasteboardItems)
 	}
 }

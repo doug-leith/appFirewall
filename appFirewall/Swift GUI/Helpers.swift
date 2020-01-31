@@ -503,8 +503,9 @@ func getIntstalledApps()->[String] {
 		//if let b = Bundle(path: item) {
 			//print(b.infoDictionary?["CFBundleName"], " ", p.lastPathComponent)
 		//}
-		let p = URL(fileURLWithPath:item).deletingPathExtension()
-		apps.append(p.lastPathComponent)
+		if let p = Bundle(path: item)?.executableURL?.lastPathComponent {
+			apps.append(p)
+		}
 	}
 	return apps
 }

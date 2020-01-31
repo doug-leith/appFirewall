@@ -70,7 +70,6 @@
 		91C0DFA023B0B05600E5215B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9E23B0B05600E5215B /* Main.storyboard */; };
 		91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 91D96AD2239648D400AAA73B /* dns_conn_cache.c */; };
 		91EF664B23E36B4B008A2FE7 /* addRuleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */; };
-		91EF664D23E3859D008A2FE7 /* DragView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EF664C23E3859D008A2FE7 /* DragView.swift */; };
 		91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FDE82623D856130097BBCA /* ConsentViewController.swift */; };
 		91FDE83023D8901B0097BBCA /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
 		91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; };
@@ -277,7 +276,6 @@
 		91D96AD2239648D400AAA73B /* dns_conn_cache.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns_conn_cache.c; sourceTree = "<group>"; };
 		91D96AD5239718CF00AAA73B /* latest release */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "latest release"; sourceTree = "<group>"; };
 		91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = addRuleViewController.swift; sourceTree = "<group>"; };
-		91EF664C23E3859D008A2FE7 /* DragView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragView.swift; sourceTree = "<group>"; };
 		91FDE82623D856130097BBCA /* ConsentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentViewController.swift; sourceTree = "<group>"; };
 		91FDE82A23D85D760097BBCA /* consent.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = consent.rtf; path = "/Users/doug/Desktop/stuff/appFirewall/appFirewall/Swift GUI/../../../../appFirewall/appFirewall/Swift GUI/consent.rtf"; sourceTree = "<absolute>"; };
 		91FDE82C23D869D30097BBCA /* INFORMATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = INFORMATION.md; path = /Users/doug/Desktop/appFirewall/INFORMATION.md; sourceTree = "<absolute>"; };
@@ -441,7 +439,6 @@
 				91607BC7236AB7CA002E50A8 /* LogViewController.swift */,
 				91607BC5236AB7C1002E50A8 /* BlockListViewController.swift */,
 				9139F686237FDE8E00600D37 /* WhiteListViewController.swift */,
-				91EF664C23E3859D008A2FE7 /* DragView.swift */,
 				91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
 				916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */,
@@ -716,7 +713,6 @@
 				91ABB28C2376F01F007F8FFE /* PreferenceViewController.swift in Sources */,
 				91607C312374080C002E50A8 /* util.c in Sources */,
 				9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */,
-				91EF664D23E3859D008A2FE7 /* DragView.swift in Sources */,
 				9139F67C237BC41300600D37 /* dtrace.c in Sources */,
 				91607BC6236AB7C1002E50A8 /* BlockListViewController.swift in Sources */,
 				919074182397BA7900DE49DE /* Config.swift in Sources */,

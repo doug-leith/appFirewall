@@ -172,6 +172,10 @@ class appViewController: NSViewController {
 		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
 	}	
 	
+	@objc func pasteLine(sender: AnyObject?){
+		// do nothing
+	}
+
 	func handleDrag(info: NSDraggingInfo, row: Int) {}
 		
 	@objc func getInfo(sender: AnyObject?){

@@ -1,6 +1,6 @@
 # AppFirewall
 
-A free, fully open-source application firewall for macOS 10.13 High Sierra and later.  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists (Energized Blu etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.  
+A free, fully open-source application firewall for macOS 10.13 High Sierra and later.  Allows real-time monitoring of network connections being made by applications, and blocking/allowing of these per app by user.  Supports use of hostname lists ([Energized Blu](https://energized.pro/) etc) to block known tracker and advertising domains for all apps.  Also allows blocking of all network connections for specified apps, blocking of all connections except for specified whitelisted connections, use of pre-configured lists of connections per app to allow/block etc.   Allows blocking of [Google QUIC](https://en.wikipedia.org/wiki/QUIC) traffic.  Can encrypt your DNS traffic using [DNS-over-HTTPS](https://en.wikipedia.org/wiki/DNS_over_HTTPS).  
 
 ![Screenshot](https://github.com/doug-leith/appFirewall/raw/master/Screenshot.png)
 
@@ -57,7 +57,7 @@ By default the app checks github monthly for updates, and automatically download
 
 ## App store
 
-The app isn't on the app store because the sandbox that app store apps must use blocks access to the [proc_listpids() and proc_pidfdinfo()](https://opensource.apple.com/source/xnu/xnu-3248.60.10/bsd/kern/proc_info.c.auto.html) syscalls used to monitor running processes.   I've put in a request to Apple to enable this access, we'll see how they respond.  The app sandbox also blocks sniffing of network packets and sending of TCP RST packets, although app [Network Extensions](https://developer.apple.com/documentation/networkextension) may provide a workaround to this in Catalina and later.
+The firewall isn't on the app store because the sandbox that app store apps must use blocks access to the [proc_listpids() and proc_pidfdinfo()](https://opensource.apple.com/source/xnu/xnu-3248.60.10/bsd/kern/proc_info.c.auto.html) syscalls used to monitor running processes.   I've put in a request to Apple to enable this access, we'll see how they respond.  The app sandbox also blocks sniffing of network packets and sending of TCP RST packets, although app [Network Extensions](https://developer.apple.com/documentation/networkextension) may provide a workaround to this in Catalina and later.
 
 ## Source code
 
@@ -65,7 +65,7 @@ See [github](https://github.com/doug-leith/appFirewall/)
 
 ## Contributing
 
-New ideas and help with development always welcome !   The way to do propose code changes is to fork your own branch from the repository here, then send me an email with proposed changes and a link to the branch. 
+New ideas and help with development always welcome !   The way to do propose code changes is to fork your own branch from the repository here, then send me an email with proposed changes and a link to the branch.   To report bugs or make feature requests please use the github issue tracking system (see tabs at top of this page).
 
 ## Authors
 

@@ -45,22 +45,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		clear_log()
 	}
 	
+	func currentAppViewController()->appViewController? {
+		guard let tc : NSTabViewController = NSApp.mainWindow?.contentViewController as? NSTabViewController else { print("ERROR on copy: problem getting tab view controller"); return nil}
+		let i = tc.selectedTabViewItemIndex
+		let v = tc.tabViewItems[i] // the currently active TabViewItem
+		guard let c = v.viewController as? appViewController else {print("ERROR on copy: problem getting view controller"); return nil}
+		return c
+	}
+	
 	@IBAction func copy(_ sender: Any) {
 			// handle Copy menu item by passing on to relevant view
 			// (automated handling doesn't work for some reason)
-			//print("copy AppDelegate")
-			let app = NSApplication.shared
-			//print(app.mainWindow, app.isHidden)
-			if (app.mainWindow == nil){ return }
-			guard let tc : NSTabViewController = app.mainWindow?.contentViewController as? NSTabViewController else { print("ERROR on copy: problem getting tab view controller"); return }
-			let i = tc.selectedTabViewItemIndex
-			let v = tc.tabViewItems[i] // the currently active TabViewItem
-			//print(tc.tabViewItems)
-			//print(v.label)
-			guard let c = v.viewController as? appViewController else {print("ERROR on copy: problem getting view controller"); return}
-			c.copyLine(sender: nil)
+			if (NSApp.mainWindow == nil){ return }
+			if let focus = NSApp.keyWindow?.fieldEditor(false, for: self) {
+				// there's a text field being edited, call its copy function
+				focus.copy(self)
+			} else {
+				// no active text field, we're copying from table
+				currentAppViewController()?.copyLine(sender: nil)
+			}
 		}
-	
+
+
+	@IBAction func paste(_ sender: Any) {
+		// handle Paste menu item
+		if (NSApp.mainWindow == nil){ return }
+		if let focus = NSApp.keyWindow?.fieldEditor(false, for: self) {
+			// there's a text field being edited, call its paste function
+			focus.paste(self)
+		} else {
+			currentAppViewController()?.pasteLine(sender: nil)
+		}
+	}
 	
 	@IBAction func getInfo(_ sender: Any) {
 		let app = NSApplication.shared

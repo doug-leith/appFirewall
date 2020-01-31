@@ -92,6 +92,11 @@
                                                 <action selector="copy:" target="Voe-Tx-rLC" id="UuR-FC-24f"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="Paste" keyEquivalent="v" id="kDA-dd-wSJ">
+                                            <connections>
+                                                <action selector="paste:" target="Voe-Tx-rLC" id="gGf-pd-l94"/>
+                                            </connections>
+                                        </menuItem>
                                         <menuItem isSeparatorItem="YES" id="Hc9-Zj-A1E"/>
                                         <menuItem title="Get Info" keyEquivalent="i" id="URX-xO-Qrh">
                                             <connections>
@@ -944,17 +949,17 @@
             <objects>
                 <viewController title="White List" id="fad-UK-l15" customClass="WhiteListViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
                     <customView key="view" misplaced="YES" id="NcH-1o-CL0">
-                        <rect key="frame" x="0.0" y="0.0" width="535" height="263"/>
+                        <rect key="frame" x="0.0" y="0.0" width="535" height="136"/>
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <scrollView misplaced="YES" autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="63s-Ia-Ut1">
-                                <rect key="frame" x="0.0" y="0.0" width="535" height="263"/>
+                            <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="63s-Ia-Ut1">
+                                <rect key="frame" x="0.0" y="24" width="535" height="62"/>
                                 <clipView key="contentView" drawsBackground="NO" id="PS2-DX-hlX">
-                                    <rect key="frame" x="1" y="0.0" width="533" height="262"/>
+                                    <rect key="frame" x="1" y="0.0" width="533" height="61"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="7mh-qi-Azh" viewBased="YES" id="1an-dp-RUd">
-                                            <rect key="frame" x="0.0" y="0.0" width="533" height="237"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="533" height="36"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <size key="intercellSpacing" width="3" height="2"/>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1084,7 +1089,7 @@
                                 </tableHeaderView>
                             </scrollView>
                             <button horizontalHuggingPriority="750" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="38f-aE-8uT" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
-                                <rect key="frame" x="472" y="237" width="25" height="25"/>
+                                <rect key="frame" x="472" y="110" width="25" height="25"/>
                                 <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="9MH-iv-2A0">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1093,14 +1098,27 @@
                                     <action selector="helpButton:" target="fad-UK-l15" id="axG-D7-rnm"/>
                                 </connections>
                             </button>
+                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LT5-GM-8i1">
+                                <rect key="frame" x="9" y="2" width="17" height="20"/>
+                                <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="NSAddTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Rga-29-bfa">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="openSheetClick2:" target="fad-UK-l15" id="xhd-FN-Wov"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <constraints>
                             <constraint firstItem="63s-Ia-Ut1" firstAttribute="leading" secondItem="NcH-1o-CL0" secondAttribute="leading" id="BWK-AJ-sRS"/>
                             <constraint firstItem="38f-aE-8uT" firstAttribute="top" secondItem="NcH-1o-CL0" secondAttribute="top" constant="2" id="Dk0-ky-DU7"/>
                             <constraint firstItem="63s-Ia-Ut1" firstAttribute="top" secondItem="NcH-1o-CL0" secondAttribute="top" id="FE2-ld-KJC"/>
-                            <constraint firstAttribute="bottom" secondItem="63s-Ia-Ut1" secondAttribute="bottom" id="aeY-uy-Hps"/>
+                            <constraint firstAttribute="bottom" secondItem="63s-Ia-Ut1" secondAttribute="bottom" constant="24" id="aeY-uy-Hps"/>
                             <constraint firstAttribute="trailing" secondItem="38f-aE-8uT" secondAttribute="trailing" constant="40" id="f9L-2v-kyI"/>
+                            <constraint firstItem="LT5-GM-8i1" firstAttribute="top" secondItem="63s-Ia-Ut1" secondAttribute="bottom" constant="2" id="ihz-3u-Hms"/>
                             <constraint firstAttribute="trailing" secondItem="63s-Ia-Ut1" secondAttribute="trailing" id="pE9-ia-aKE"/>
+                            <constraint firstItem="LT5-GM-8i1" firstAttribute="leading" secondItem="NcH-1o-CL0" secondAttribute="leading" constant="9" id="pXE-bc-WWf"/>
+                            <constraint firstAttribute="bottom" secondItem="LT5-GM-8i1" secondAttribute="bottom" constant="2" id="zim-uw-yzC"/>
                         </constraints>
                     </customView>
                     <connections>
@@ -1445,33 +1463,6 @@ Gw
                         <rect key="frame" x="0.0" y="0.0" width="450" height="215"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <comboBox verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7gt-ci-BCm">
-                                <rect key="frame" x="27" y="126" width="249" height="25"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="Choose Application" drawsBackground="YES" completes="NO" numberOfVisibleItems="5" id="Upr-Ez-903">
-                                    <font key="font" metaFont="system" size="11"/>
-                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </comboBoxCell>
-                                <connections>
-                                    <action selector="appNameClick:" target="Qdr-ER-tn2" id="CPM-7X-E4o"/>
-                                </connections>
-                            </comboBox>
-                            <comboBox verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="JGB-7d-Nu1">
-                                <rect key="frame" x="27" y="83" width="249" height="24"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="Enter Domain To Block" drawsBackground="YES" completes="NO" numberOfVisibleItems="5" id="hMT-qB-P1j">
-                                    <font key="font" size="12" name=".AppleSystemUIFont"/>
-                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                    <objectValues>
-                                        <string>&lt;all connections&gt;</string>
-                                    </objectValues>
-                                </comboBoxCell>
-                                <connections>
-                                    <action selector="domainNameClick:" target="Qdr-ER-tn2" id="ObA-T7-q2M"/>
-                                </connections>
-                            </comboBox>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xWa-6G-1q5">
                                 <rect key="frame" x="101" y="22" width="82" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -1506,11 +1497,35 @@ Gw
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
+                            <searchField identifier="domainName" wantsLayer="YES" verticalHuggingPriority="750" fixedFrame="YES" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wCN-1D-KlA">
+                                <rect key="frame" x="27" y="82" width="246" height="20"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="&lt;all connections&gt;" usesSingleLineMode="YES" bezelStyle="round" id="lNO-VS-hG1">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </searchFieldCell>
+                                <connections>
+                                    <action selector="domainNameClick:" target="Qdr-ER-tn2" id="SeP-Bg-0E4"/>
+                                </connections>
+                            </searchField>
+                            <searchField wantsLayer="YES" verticalHuggingPriority="750" fixedFrame="YES" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="N8T-YG-Hek">
+                                <rect key="frame" x="27" y="128" width="246" height="22"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" identifier="appName" placeholderString="Application" usesSingleLineMode="YES" bezelStyle="round" id="2c5-xT-34n">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </searchFieldCell>
+                                <connections>
+                                    <action selector="appNameClick:" target="Qdr-ER-tn2" id="Hec-OY-XXm"/>
+                                </connections>
+                            </searchField>
                         </subviews>
                     </view>
                     <connections>
-                        <outlet property="appName" destination="7gt-ci-BCm" id="hsN-bc-K5o"/>
-                        <outlet property="domainName" destination="JGB-7d-Nu1" id="vRY-fb-f8b"/>
+                        <outlet property="appName" destination="N8T-YG-Hek" id="fJr-L5-X1B"/>
+                        <outlet property="domainName" destination="wCN-1D-KlA" id="YEc-n2-MP0"/>
                     </connections>
                 </viewController>
                 <customObject id="EzI-gc-qok" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
