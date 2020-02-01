@@ -184,7 +184,6 @@ func restart_app() {
   DispatchQueue.main.async{
   	NSApp.terminate(nil) // tidy shutdown, calls applicationWillTerminate()
 	}
-	//exit(0) // hard shutdown
 }
 
 func error_popup(msg: String) {
@@ -357,7 +356,7 @@ func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
  let task = session.dataTask(with: Config.updateCheckURL)
 		{ data, response, error in
 		if let error = error {
-			quiet_error_popup(msg: "WARNING: error when checking for updates: \(error)", quiet: quiet)
+			quiet_error_popup(msg: "WARNING: error when checking for updates: " + error.localizedDescription, quiet: quiet)
 			return
 		}
 		if let resp = response as? HTTPURLResponse {
