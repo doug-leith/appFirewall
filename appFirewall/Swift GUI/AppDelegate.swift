@@ -250,7 +250,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		
 		UserDefaults.standard.register(defaults: ["first_run": true])
 		let first = UserDefaults.standard.bool(forKey: "first_run")
-		if (first) {
+		if (first || Config.testFirst) {
 			// things to do on first run of app
 			if (Config.enableConsentForm > 0) {
 				// get consent or exit, we check for this early of course

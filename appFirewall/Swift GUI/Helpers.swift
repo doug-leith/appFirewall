@@ -379,7 +379,7 @@ func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
 			 var result = "Up to date (current version "+version+" matches latest version "+latest_version+")"
 			 var extra = ""
 			 var new = false
-			 if (version != latest_version) {
+			 if ((version != latest_version) || Config.testUpdates) {
 				 result = "An update to version "+latest_version+" of appFirewall is available."
 				 extra = "Download at <a href=\""+Config.updateURL+"\">"+Config.updateURL+"</a>"
 				 new = true
@@ -388,7 +388,6 @@ func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
 			 if (msg != "<none>") {
 				 result = result + "\n" + msg
 			 }
-			 //new = true // for testing
 			 if (!new) {
 			 	if (quiet) { return } // up to date and don't want notification
 			 	// show popup telling user no update needed

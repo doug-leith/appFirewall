@@ -70,8 +70,8 @@
 		91C0DFA023B0B05600E5215B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 91C0DF9E23B0B05600E5215B /* Main.storyboard */; };
 		91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 91D96AD2239648D400AAA73B /* dns_conn_cache.c */; };
 		91EF664B23E36B4B008A2FE7 /* addRuleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */; };
+		91EF665123E517D5008A2FE7 /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
 		91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FDE82623D856130097BBCA /* ConsentViewController.swift */; };
-		91FDE83023D8901B0097BBCA /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
 		91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; };
 		91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		91FDE83D23DBFF0F0097BBCA /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */; };
@@ -659,7 +659,7 @@
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
 				916ECB0323AF8EF900023AEA /* version in Resources */,
-				91FDE83023D8901B0097BBCA /* consent.rtf in Resources */,
+				91EF665123E517D5008A2FE7 /* consent.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -243,7 +243,7 @@ class UpdateInstallerViewController: NSViewController {
 		if (Config.enableUpdates == 1) {
 			DispatchQueue.main.async { self.showPopupMsg(msg: "Updated, restarting.") }
 			msg = "Updated, restarting."
-			//sleep(2) // so user can see restart message
+			sleep(2) // so user can see restart message
 			restart_app()
 		} else {
 			window?.close()
