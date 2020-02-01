@@ -146,7 +146,7 @@ func load_state() {
 // -------------------------------------
 // UI Helpers
 
-func exit_popup(msg: String, force:Int)-> Never { // doesn't return
+func exit_popup(msg: String, force:Int) { // doesn't return
 	print(msg)
 	let alert = NSAlert()
 	alert.messageText = "Error"
@@ -165,18 +165,26 @@ func exit_popup(msg: String, force:Int)-> Never { // doesn't return
 		restart_app()
 	} else {
 		print("Exiting app.")
-		exit(1)
+		exit(1) // hard shutdown
 	}
 }
 
-func restart_app()-> Never { // doesn't return
+func restart_app() {
+	// flag to app that its been restarted
+	UserDefaults.standard.set(true, forKey: "restart")
+	// relaunch app
 	let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
 	let path = url.deletingLastPathComponent().deletingLastPathComponent().absoluteString
+	//NSWorkspace.shared.launchApplication("appFirewall")
 	let task = Process()
 	task.launchPath = "/usr/bin/open"
 	task.arguments = [path]
 	task.launch()
-	exit(0)
+	// and stop our copy of app
+  DispatchQueue.main.async{
+  	NSApp.terminate(nil) // tidy shutdown, calls applicationWillTerminate()
+	}
+	//exit(0) // hard shutdown
 }
 
 func error_popup(msg: String) {
@@ -380,6 +388,7 @@ func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {
 			 if (msg != "<none>") {
 				 result = result + "\n" + msg
 			 }
+			 //new = true // for testing
 			 if (!new) {
 			 	if (quiet) { return } // up to date and don't want notification
 			 	// show popup telling user no update needed

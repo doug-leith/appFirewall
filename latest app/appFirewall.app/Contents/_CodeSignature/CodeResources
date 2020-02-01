@@ -10,71 +10,87 @@
 		</data>
 		<key>Resources/Assets.car</key>
 		<data>
-		MMYSDQyb1r1v/uKtDEQ9uC8MJdc=
+		d9CSha85fM9p3K91VyFFoSpsYCg=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/0NI-P3-O8z-view-n8h-bI-efk.nib</key>
 		<data>
-		R4EGjX1yIWnILNRKs3cvgc4gyqs=
+		VVPWS8lfW/pXjX8aKn+zSwcqWCM=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/2wT-ct-lHi-view-Nmr-wU-ADG.nib</key>
 		<data>
-		HTfKNr7AdOwNExHsEInn+oCfGTo=
+		uIGLfx0KgCV2FYl47vZFxGzJXtw=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/6Jh-u5-5HC-view-Y7Z-SU-5OV.nib</key>
 		<data>
-		c/Itvnl6cZr7+6AmeTBH9CoDBDA=
+		lLKEhjX+BZXeyyRSlwORXBn6a1U=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/ActiveConnsViewController.nib</key>
 		<data>
-		qCloDlZgSaJ+/KuCPW5vugO1sXk=
+		iFcMkzf4/atCrziYqoumbhgIbWw=
+		</data>
+		<key>Resources/Base.lproj/Main.storyboardc/ConsentViewController.nib</key>
+		<data>
+		70Aj5e3PAnNrZulzQv+EimOrdoA=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/HelpViewController.nib</key>
 		<data>
-		/NaHuLRajUDWeBCfBHnS5XFGheY=
+		S7j6n8fz9wZ7DCOx2cfPZ2sLM2g=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/Info.plist</key>
 		<data>
-		agTdSPcRIOrAuO14wh6HcDqH9Sc=
+		ChLjnc+7IhMiLF/Fy1NcUpM7AMg=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/KGo-sw-4NO-view-4TM-Ez-GLE.nib</key>
 		<data>
-		dWC0SYhv97WMmJCQtfnFVKPlXXo=
+		UiXjKuuCon3puVIdAfB70evmvNs=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<data>
-		z03SvuffrSMJTxWfxNgA618eScc=
+		jEZN3XhKsQ9BZnREWvqUSlMU1S0=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/PreferenceViewController.nib</key>
 		<data>
-		jvUzeS8uBUAm3NRjDO+5Jh2YI+M=
+		JAeg3YKyhTrvlrPQEDkd3jJZmZM=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/PreferencesTabs.nib</key>
 		<data>
-		Oy103TRJkYJnSZUjiZTDxgoHpkU=
+		7pS/KJVAJ0K0GZu0VchI4wG9P6A=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/QNC-a1-IlF-view-UY8-WK-rJw.nib</key>
 		<data>
-		TufdAD2nZ0XSY8mY7VmHFlZ/y8Q=
+		9ODlnSckc3iPZ3CJWURTDbqVuFE=
+		</data>
+		<key>Resources/Base.lproj/Main.storyboardc/Qdr-ER-tn2-view-cuh-mz-ftL.nib</key>
+		<data>
+		6ybqVyMVAYK7cO6+S1cEHn2zMeQ=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/TabViewController.nib</key>
 		<data>
-		wnEc6zbX1sDCjAEpvAp7ScYTihQ=
+		R4Yz5GZrc3/UQHDa7yJm7liPiRI=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/UpdateInstallerViewController.nib</key>
 		<data>
-		j0KuEubFAS1k/uKNo7SHGI70MZU=
+		8q3ldmv9OYOr0uqulf93lkrPTyM=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/XPy-PT-yGD-view-t7c-TO-bAv.nib</key>
 		<data>
-		oJPi5IX0GU1mBvo9mwFGTM8MpLA=
+		u8+cKiqu6cazz1Dfv4yVafQBBf0=
+		</data>
+		<key>Resources/Base.lproj/Main.storyboardc/addRuleViewController.nib</key>
+		<data>
+		/s+e9Pz6gyFgnUoO4aFCff90WbA=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/fad-UK-l15-view-NcH-1o-CL0.nib</key>
 		<data>
-		BUwVISO/V1ScnuOw1dhTgkruo68=
+		+u8PwASdARG6erOZcmHPI2JUL88=
+		</data>
+		<key>Resources/Base.lproj/Main.storyboardc/hk0-6L-xHF-view-Y4S-ll-ZSM.nib</key>
+		<data>
+		oxHnxRRF+7TBF9Vm2RD0bOgCyfw=
 		</data>
 		<key>Resources/Base.lproj/Main.storyboardc/i0n-uy-Uid-view-yoq-CS-TZg.nib</key>
 		<data>
-		JOFi4RSrz5c7+ZsnBuk563lK70o=
+		EXxLSOqxtmqe6fe0jd7n5WCW96A=
 		</data>
 		<key>Resources/BlackLists/GoodbyeAds.txt</key>
 		<data>
@@ -110,11 +126,19 @@
 		</data>
 		<key>Resources/Credits.html</key>
 		<data>
-		A9CTWCqV5x+6KO4dwsMeU1Jq30I=
+		RVzXnTkbrJHC020J3q2ieW+I4vE=
+		</data>
+		<key>Resources/consent.rtf</key>
+		<data>
+		/Dz80dUQZKSgSZfMenMBKSKwiRU=
 		</data>
 		<key>Resources/dns_connlist.dat</key>
 		<data>
 		WeZSVt548qnDEL9klrZZ98gH2VA=
+		</data>
+		<key>Resources/dnscrypt-proxy.toml</key>
+		<data>
+		yjgEby69fULsZyqSU2iedC3vKa4=
 		</data>
 		<key>Resources/icons/icon.afdesign</key>
 		<data>
@@ -264,17 +288,24 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			Za+EvcpQJ9G04SzAyrJ4+FDBA3B9cnn8olyiv9HpsBQ=
+			OwQ/90gnUcTTtNntciniyhOj5j3EVGUdMinvRI09CEk=
 			</data>
 		</dict>
 		<key>Library/LoginItems/appFirewall-loginLaunch.app</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			Y9lSg3KTlnqG6hdhkBIJm8DGnpY=
+			6Sk1Q3hKoxj8+MMmnFRTF/65s0g=
 			</data>
 			<key>requirement</key>
 			<string>anchor apple generic and identifier "com.leith.appFirewall-loginLaunch" and (certificate leaf[field.1.2.840.113635.100.6.1.9] /* exists */ or certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = Z4G8Q5Z5LN)</string>
+		</dict>
+		<key>Library/dnscrypt-proxy</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			7uIunkR5IswXvbx9NsdMF6RBM08452dXQid7w/R0vLQ=
+			</data>
 		</dict>
 		<key>Resources/AppIcon.icns</key>
 		<dict>
@@ -287,119 +318,147 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			YZsttyz6exRNHx5Lg60nvXKrqbr8ysLcK6K31llxXRs=
+			1i7XPONqlrlJkJ9rb7e4VXq9TNi9WdA3JAj+pSA0pgU=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/0NI-P3-O8z-view-n8h-bI-efk.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			oBwzm6hl1aZEGgHcSCu04oSubs27PWAn+gMkOj6n3vw=
+			FtCPRTWmbrqOH9Z0vVDhy1/ekrBNqFiY9zw+qY8O7Wk=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/2wT-ct-lHi-view-Nmr-wU-ADG.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DiNlzCtRLiqf/t7mxlQjjkIJsnRc6sMBVFu7D1WWdZc=
+			DgO15cLlEIekarSfnnwEWg4JvBL8ORxUIuGp6UUWUhE=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/6Jh-u5-5HC-view-Y7Z-SU-5OV.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qs1r2ukatdr9tHnpMkcKy7evOjRp2ALEWKQTh9+t1Qc=
+			xIvalUpN7D2MZPmM5lUmwwjBNZ1zI3cT3Ok5prLgWZs=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/ActiveConnsViewController.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uz39mAEHn/CaTZ6Pd/t7IqaAyGSuFJMrZlsF/amtASA=
+			hrhsjS/N9QuUDLA2jCw2JzbfFyl6jI52H7hCgPtd2Dg=
+			</data>
+		</dict>
+		<key>Resources/Base.lproj/Main.storyboardc/ConsentViewController.nib</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			Ckh+f/YPX+u+sADBMbeelQBLzQ3ArWQMYuRKHqNMz2A=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/HelpViewController.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			aPAWD4IcSlbooKyYMpiqfz4U0Si1J1Td8JNWRIoBiNQ=
+			U9+QXRnqcSpP8BIEcWike6DdVOTLRRK9w1iW0pgQdq4=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uI3cihdAdCC0Cd6l1U/4PUVKhb7DHjM1BcDpMUHOX6M=
+			a4/8xwihozTTJO9giLdNTdEQrHADQ/DHynVHIjabn0I=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/KGo-sw-4NO-view-4TM-Ez-GLE.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			txE14cZgcBejXIWirDpETyLfaCti8YpFpAR2izmK/5U=
+			Fkf+Tho6TTJXSHYSwwEOHVN20rTLpVIsF+SSMTqalhs=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/MainMenu.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZoAxOsEk8ErMuvQCuZ/sHVZs4LJy9u42ro4o2QO9HjA=
+			J+n0e8l7Ns8sMVV4UY0ZnSRfWmiva6HOoLFOs32OGm4=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/PreferenceViewController.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			xAqfelMULytcCtI6cEgwmo/GCp1x12EHFyWxm+6DXVo=
+			I7z9AMAqlJ5e8SCLsKPecqcs837Nwe6QnXsVgzaW6g4=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/PreferencesTabs.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			tAPGyQw80HR9jm3PGz0dx5Hg/aZwpSYktJ2WAjFujiE=
+			pdOi/LGQA7SVIJtm++D8bdW6u3VjqLQy2OPmMdfYNO8=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/QNC-a1-IlF-view-UY8-WK-rJw.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4vvuSPe0BJ14xFV4wr+W2Wxf1gbB+L+2kXKhV8NztfM=
+			BJ4dSuOKdl8OaJP2/UGPZCNHH3EshLFpOWM2tpxzo/E=
+			</data>
+		</dict>
+		<key>Resources/Base.lproj/Main.storyboardc/Qdr-ER-tn2-view-cuh-mz-ftL.nib</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			yq91MG/LEhUfKI97hA//6VCFj6B6eHuyRYJ/2Pi/J7A=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/TabViewController.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Ofki54loONrr9mq2wbSFJ2OYbtq12C+qNNVlG91+e0o=
+			v5bjRZrboSv3qmm9ZANnJN4yFcno0mScPw6NMT6sykQ=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/UpdateInstallerViewController.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			+JBsHyjMtGoFfLCfBqEsMp1Jj91/jOj1Ox96cnLigNU=
+			LD84SxZ+Tn51c3gWoiKziUaTmaML52x84xvJdwmcJYY=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/XPy-PT-yGD-view-t7c-TO-bAv.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Sb+XedU02mx5DZMmTb6ECuc5RNK6+O4+NUzJtsThSeQ=
+			hnhy2dIJd/T7DVlA5+i6ayeTsAzNC5TCMIFKIdVvLnk=
+			</data>
+		</dict>
+		<key>Resources/Base.lproj/Main.storyboardc/addRuleViewController.nib</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			nkUdO55lubr0PkynAXV5g1qzcUAFDgNstgDXntxTXG0=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/fad-UK-l15-view-NcH-1o-CL0.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			/4ZpPbACG61kQiDvd/LR67FlSVWqOe59F2/bmtJMyLQ=
+			xOpQ1+VG/K/W4FXnwNGXP5zI9N0ICYdbmPGD6yjiHSI=
+			</data>
+		</dict>
+		<key>Resources/Base.lproj/Main.storyboardc/hk0-6L-xHF-view-Y4S-ll-ZSM.nib</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			DwDIJkzNKYPI25W2d85YvlyIJyj4PfCeys+i4LtV0Ls=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/Main.storyboardc/i0n-uy-Uid-view-yoq-CS-TZg.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ChkXfzu3TZE52i25yu6+KGIc27LoZj9OoD8xNb9kLMY=
+			dD/wXUiA0omjxkq1/jne3LQn5qCQ1esksqV7Lhhx2XA=
 			</data>
 		</dict>
 		<key>Resources/BlackLists/GoodbyeAds.txt</key>
@@ -462,7 +521,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			dppG8cwcsqH7AAEnUAq3dZsf4Rdg4RGK2Gqf93Ebrc8=
+			JA6G9T2qBXEN4EwxpcgaXlyYZRAF+mM3TJX2WfA8uRo=
+			</data>
+		</dict>
+		<key>Resources/consent.rtf</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			UdK9O8XKekMv6rKy5F3G0OX73AA0MvVkL/SDigbTy8Y=
 			</data>
 		</dict>
 		<key>Resources/dns_connlist.dat</key>
@@ -470,6 +536,13 @@
 			<key>hash2</key>
 			<data>
 			5J5nK78TnP7norEUkSuNAWfsxgEp3eFu518HowetaBg=
+			</data>
+		</dict>
+		<key>Resources/dnscrypt-proxy.toml</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			b1qQSNPrgwtNsJJ+3ZxxN6f0kh8NnG50D4yKkERf66U=
 			</data>
 		</dict>
 		<key>Resources/icons/icon.afdesign</key>

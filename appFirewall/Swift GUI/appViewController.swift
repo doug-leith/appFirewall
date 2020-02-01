@@ -39,6 +39,7 @@ class appViewController: NSViewController {
 		guard tableView != nil else {
 			print("ERROR: appViewDidLoad() tableView is nil!");
 			exit_popup(msg: "Internal Error: appViewDidLoad() tableView is nil!", force:0) // this won't return
+			return // to avoid compiler warning
 		}
 		appTableView = tableView
 		appTableView?.menu = menu

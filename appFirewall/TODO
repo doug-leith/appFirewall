@@ -1,6 +1,7 @@
 TO DO
 
 short term:
+- exit vs terminate.  zombie processes. restarted process seeing old one
 
 longer term:
 1. use of network extensions, only for catalina onwards though.  this should allow fine-grained blocking of QUIC traffic and filtering of local mDNS and uPNP broadcast traffic.

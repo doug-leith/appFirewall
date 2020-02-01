@@ -275,7 +275,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		let log_level = UserDefaults.standard.integer(forKey: "logging_level")
 		set_logging_level(Int32(log_level))
 		init_stats(); // must be done before any C threads are fired up
-				
+		
+		let restart = UserDefaults.standard.bool(forKey: "restart")
+		if (restart) {
+			print("Restarting ...")
+			UserDefaults.standard.set(false, forKey: "restart")
+			var count = 0
+			while is_app_already_running() {
+				sleep(1) // allow time for previous instance to stop
+				count = count+1
+				if (count>5) { break }
+			}
+			print("count = ", count)
+		}
 		if (is_app_already_running()) {
 			exit_popup(msg:"appFirewall is already running!", force: 0)
 		}

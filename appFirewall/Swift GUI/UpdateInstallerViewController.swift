@@ -203,6 +203,7 @@ class UpdateInstallerViewController: NSViewController {
 			msg = "Problem, couldn't copy DMG contents to temp folder: "+error.localizedDescription
 			return
 		}
+		//unmount(mountPoint:mountPoint) // now handled by defer
 		let p = URL(fileURLWithPath:appPath).path
 		print("appPath: ",p)
 		// for debugging
@@ -240,8 +241,9 @@ class UpdateInstallerViewController: NSViewController {
 				
 		// and now relaunch app
 		if (Config.enableUpdates == 1) {
+			DispatchQueue.main.async { self.showPopupMsg(msg: "Updated, restarting.") }
 			msg = "Updated, restarting."
-			sleep(5) // so user can see restart message
+			//sleep(2) // so user can see restart message
 			restart_app()
 		} else {
 			window?.close()
