@@ -7,23 +7,12 @@
 // maintains list of active processes and their network connections
 
 // proc_info interface documentation: https://opensource.apple.com/source/xnu/xnu-3789.1.32/bsd/sys/proc_info.h.auto.html
+//https://opensource.apple.com/source/xnu/xnu-3248.60.10/bsd/kern/proc_info.c.auto.html
 
 #include "pid_conn_info.h"
 
 //globals
-static list_t pid_list=LIST_INITIALISER; // list of active pid's and network conns
-static list_t gui_pid_list=LIST_INITIALISER; // filtered list for GUI
-static int changed = 1; // flag to GUI if pid list has changed
-
-static list_t escapee_list=LIST_INITIALISER; // list of blocked yet active connections
-static int escapee_thread_count=0;
-
-// cache of recent PIDs and their names
-static list_t last_pid_list=LIST_INITIALISER;
-typedef struct last_pid_item_t {
-	int pid;
-	char name[MAXCOMLEN];;
-} last_pid_item_t;
+static pid_info_t pid_info = PID_INFO_INITIALSER;
 
 // thread globals
 static pthread_cond_t pid_cond = PTHREAD_COND_INITIALIZER;
@@ -167,22 +156,22 @@ void update_gui_pid_list() {
 	// called by swift GUI
 	
 	TAKE_LOCK(&gui_pid_mutex,"update_gui_pid_list");
-	free_list(&gui_pid_list);
-	init_list(&gui_pid_list, gui_pid_hash,NULL,0,-1,"gui_pid_list");
+	free_list(&pid_info.gui_pid_list);
+	init_list(&pid_info.gui_pid_list, gui_pid_hash,NULL,0,-1,"gui_pid_list");
 	pthread_mutex_unlock(&gui_pid_mutex);
 
 	// we take lock for full loop so that we don't show
 	// partial updates in GUI.
 	TAKE_LOCK(&pid_mutex,"get_conn");
-	for (size_t j=0; j< get_list_size(&pid_list); j++) {
-		conn_t *c = get_list_item(&pid_list, j);
+	for (size_t j=0; j< get_list_size(&pid_info.pid_list); j++) {
+		conn_t *c = get_list_item(&pid_info.pid_list, j);
 		// ignore child processes, and also if several parallel
 		// connections to same domain (differing only in src port) then hash
 		// for gui_pid_list treats these as same so we just log first one in GUI
 		// pid list (to keep GUI clean)
 		TAKE_LOCK(&gui_pid_mutex,"update_gui_pid_list");
-		if (!in_list(&gui_pid_list, c, 0)) {
-			add_item(&gui_pid_list,c,sizeof(conn_t));
+		if (!in_list(&pid_info.gui_pid_list, c, 0)) {
+			add_item(&pid_info.gui_pid_list,c,sizeof(conn_t));
 		}
 		pthread_mutex_unlock(&gui_pid_mutex);
 	}
@@ -193,10 +182,10 @@ conn_t get_gui_conn(int_sw row) {
 	// for use by swift GUI
 	conn_t c;
 	memset(&c,0,sizeof(conn_t));
-	if (row > get_list_size(&gui_pid_list)) {
+	if (row > get_list_size(&pid_info.gui_pid_list)) {
 		return c;
 	}
-	memcpy(&c,get_list_item(&gui_pid_list,(size_t)row),sizeof(conn_t));
+	memcpy(&c,get_list_item(&pid_info.gui_pid_list,(size_t)row),sizeof(conn_t));
 
 	return c;
 }
@@ -208,7 +197,7 @@ void free_conn(conn_t* c) {
 
 int_sw get_num_gui_conns() {
 	// for use by swift GUI
-	int_sw res = (int_sw)get_list_size(&gui_pid_list);
+	int_sw res = (int_sw)get_list_size(&pid_info.gui_pid_list);
 	//dump_connlist(&gui_pid_list);
 	return res;
 }
@@ -216,7 +205,7 @@ int_sw get_num_gui_conns() {
 int_sw get_pid_changed() {
 	// for use by swift GUI
 	TAKE_LOCK(&pid_mutex,"get_pid_changed");
-	int res=changed;
+	int res=pid_info.changed;
 	pthread_mutex_unlock(&pid_mutex);
 	return res;
 }
@@ -224,16 +213,16 @@ int_sw get_pid_changed() {
 void clear_pid_changed() {
 	// for use by swift GUI
 	TAKE_LOCK(&pid_mutex,"clear_pid_changed");
-	changed=0;
+	pid_info.changed=0;
 	pthread_mutex_unlock(&pid_mutex);
 }
 
 void print_escapees() {
 	// called by swift GUI
 	TAKE_LOCK(&escapee_mutex,"print_escapees");
-	if (get_list_size(&escapee_list)>0) {
+	if (get_list_size(&pid_info.escapee_list)>0) {
 		INFO2("Escapees:\n");
-		dump_connlist(&escapee_list);
+		dump_connlist(&pid_info.escapee_list);
 	}
 	pthread_mutex_unlock(&escapee_mutex);
 }
@@ -245,8 +234,8 @@ void cache_pid(int pid, char* name) {
 
 	TAKE_LOCK(&pid_mutex,"cache_pid");
 	// only add new pid if not already in list
-	if (!in_list(&last_pid_list,&it,0)) {
-		add_item(&last_pid_list,&it,sizeof(last_pid_item_t));
+	if (!in_list(&pid_info.last_pid_list,&it,0)) {
+		add_item(&pid_info.last_pid_list,&it,sizeof(last_pid_item_t));
 	}
 	pthread_mutex_unlock(&pid_mutex);
 }
@@ -262,7 +251,7 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 	TAKE_LOCK(&pid_mutex,"find_pid");
 	// lookup existing pid info list to see if connection is on it.
 	// lookup only uses raw part of conn_t
-	conn_t *res = in_list(&pid_list,&c,0); // list lookup only uses raw
+	conn_t *res = in_list(&pid_info.pid_list,&c,0); // list lookup only uses raw
 	if (res) { // found it !
 		strlcpy(name,res->name,MAXCOMLEN);
 		pthread_mutex_unlock(&pid_mutex);
@@ -288,11 +277,11 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 	// in case it contains multiple new connections.
 	
 	struct timeval start; gettimeofday(&start, NULL);
-	list_t *l = &pid_list;
+	list_t *l = &pid_info.pid_list;
 	
 	// we hold pid_mutex lock here
-	for (size_t i = 0; i< get_list_size(&last_pid_list); i++) {
-		last_pid_item_t *it = get_list_item(&last_pid_list,i);
+	for (size_t i = 0; i< get_list_size(&pid_info.last_pid_list); i++) {
+		last_pid_item_t *it = get_list_item(&pid_info.last_pid_list,i);
 		if (it->pid<=0) continue; // shouldn't happen
 		
 		// call here to find_fds() consumes >90% of execution time of find_pid()
@@ -334,10 +323,14 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 //--------------------------------------------------------
 //private.
 
+pid_info_t* get_pid_info() {
+	return &pid_info;
+}
+
 int get_pid_name(int pid, char* name, uint32_t *status) {
 	// use syscall to get process name associated with pid
 	struct proc_bsdshortinfo proc;
-	int st = proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
+	int st = (pid_info.proc_pidinfo)(pid, PROC_PIDT_SHORTBSDINFO, 1, &proc, PROC_PIDT_SHORTBSDINFO_SIZE);
 	if (st != PROC_PIDT_SHORTBSDINFO_SIZE) {
 		//INFO("Cannot get process info for PID %d, likely has died.\n",pid);
 		return -1;
@@ -369,17 +362,17 @@ char* pid_fdtab_hash(const int fd, const int pid) {
 
 void init_pid_lists() {
 	// should hold lock when call this
-	init_list(&pid_list,conn_hash,NULL,0,-1,"pid_list");
-	init_list(&gui_pid_list,gui_pid_hash,NULL,0,-1,"pid_list");
-	init_list(&last_pid_list,pid_hash,NULL,1,PID_CACHE_SIZE,"last_pid_list");
-	init_list(&escapee_list,conn_hash,NULL,1,-1,"escapee_list");
+	init_list(&pid_info.pid_list,conn_hash,NULL,0,-1,"pid_list");
+	init_list(&pid_info.gui_pid_list,gui_pid_hash,NULL,0,-1,"pid_list");
+	init_list(&pid_info.last_pid_list,pid_hash,NULL,1,PID_CACHE_SIZE,"last_pid_list");
+	init_list(&pid_info.escapee_list,conn_hash,NULL,1,-1,"escapee_list");
 }
 
 conn_t * find_conn(int pid, int fd) {
 	// given PID and fd try to find connection in pid_list
 	// -- replace this with a table lookup to speed things up ?
-	for (size_t j = 0; j<get_list_size(&pid_list); j++) {
-		conn_t *it = get_list_item(&pid_list,j);
+	for (size_t j = 0; j<get_list_size(&pid_info.pid_list); j++) {
+		conn_t *it = get_list_item(&pid_info.pid_list,j);
 		if (it->pid != pid) continue;
 		if (it->fd !=fd) continue;
 		return it;
@@ -393,7 +386,7 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 	
 	// Figure out the size of the buffer needed to hold the list of open FDs
 	// this call costs about 10% of execution time of find_fds
-	int bufferSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
+	int bufferSize = (pid_info.proc_pidinfo)(pid, PROC_PIDLISTFDS, 0, 0, 0);
 	if (bufferSize == -1) {
 		// probably process has stopped
 		WARN("Unable to get open file handles for PID %d\n", pid);
@@ -407,13 +400,12 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 	}
 	
 	// this is second most time-consuming part of find_fds (the first is proc_fdinfo), takes around 10% of execution time
-	if (proc_pidinfo(pid, PROC_PIDLISTFDS, 0, procFDInfo, bufferSize) < 0){
+	if ((pid_info.proc_pidinfo)(pid, PROC_PIDLISTFDS, 0, procFDInfo, bufferSize) < 0){
 		// probably process has stopped
 		WARN("Unable to get open file handles for PID %d\n", pid);
 		return 0;
 	}
 	size_t numberOfProcFDs = (size_t)bufferSize / PROC_PIDLISTFD_SIZE;
-	
 	for(int i = 0; i < numberOfProcFDs; i++) {
 		conn_t c; // the new connection
 		memset(&c,0,sizeof(c));
@@ -440,10 +432,11 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 			// in find_fds(), rest of routine is much faster
 			struct socket_fdinfo socketInfo;
 			memset(&socketInfo,0,sizeof(socketInfo));
-			int res = proc_pidfdinfo(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
+			int res = (pid_info.proc_pidfdinfo)(pid, procFDInfo[i].proc_fd, PROC_PIDFDSOCKETINFO, 	&socketInfo, PROC_PIDFDSOCKETINFO_SIZE);
 			if (res != sizeof(struct socket_fdinfo)) continue;
 			
 			int state = socketInfo.psi.soi_proto.pri_tcp.tcpsi_state;
+
 			if ((socketInfo.psi.soi_kind != SOCKINFO_TCP)
 					&& (socketInfo.psi.soi_kind != SOCKINFO_IN)) continue; // unix sock or the like
 			if ((socketInfo.psi.soi_kind == SOCKINFO_TCP) && (state != TSI_S_ESTABLISHED))
@@ -532,8 +525,8 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 		if (!in_list(new_pid_list, &c, 0)) {
 			add_item(new_pid_list,&c,sizeof(conn_t));
 			TAKE_LOCK(&gui_pid_mutex,"find_fds() gui_pid_mutex");
-			if (!in_list(&gui_pid_list, &c, 0)) {
-				changed = 1;
+			if (!in_list(&pid_info.gui_pid_list, &c, 0)) {
+				pid_info.changed = 1;
 			}
 			pthread_mutex_unlock(&gui_pid_mutex);
 		}
@@ -559,18 +552,16 @@ int refresh_active_conns(int full_refresh) {
 	list_t new_pid_list; init_list(&new_pid_list,conn_hash,NULL,0,-1,"pid_list");
 	
 	// get list of current processes
-	int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
+	int bufsize = (pid_info.proc_listpids)(PROC_ALL_PIDS, 0, NULL, 0);
 
 	pid_t pids[2 * bufsize / sizeof(pid_t)];
-	bufsize =  proc_listpids(PROC_ALL_PIDS, 0, pids, (int) sizeof(pids));
+	bufsize =  (pid_info.proc_listpids)(PROC_ALL_PIDS, 0, pids, (int) sizeof(pids));
 	size_t num_pids = (size_t)bufsize / sizeof(pid_t);
-
 	// now walk through them
 	//num_conns = 0;
 	int j;
 	for (j=0; j< num_pids; j++) {
 		int pid = pids[j];
-		
 		// get app name associated with process
 		// this call consumes around 10% of executiin time of refresh_active_conns()
 		char name[MAXCOMLEN];
@@ -592,23 +583,23 @@ int refresh_active_conns(int full_refresh) {
 	}
 	// now copy new list over to pid_list
 	TAKE_LOCK(&pid_mutex,"find_fds pid_mutex #2");
-	if (get_list_size(&new_pid_list) != get_list_size(&pid_list)) {
+	if (get_list_size(&new_pid_list) != get_list_size(&pid_info.pid_list)) {
 		// could be that we have only removed some processes from pid list,
 		// in which case changed=0 when get here
-		changed = 1;
+		pid_info.changed = 1;
 	}
-	free_list(&pid_list); pid_list = new_pid_list;
+	free_list(&pid_info.pid_list); pid_info.pid_list = new_pid_list;
 	pthread_mutex_unlock(&pid_mutex);
 		
-	return changed;
+	return pid_info.changed;
 }
 
 void find_escapees() {
 	// this is called after refresh of pid_list, so pid list is up to date
 	TAKE_LOCK(&pid_mutex,"find_escapees");
-	for (size_t j=0; j< get_list_size(&pid_list); j++) {
+	for (size_t j=0; j< get_list_size(&pid_info.pid_list); j++) {
 		conn_t c;
-		memcpy(&c,get_list_item(&pid_list, j),sizeof(conn_t));
+		memcpy(&c,get_list_item(&pid_info.pid_list, j),sizeof(conn_t));
 		pthread_mutex_unlock(&pid_mutex);
 		
 		// is this a connection which ought to have been blocked (an "escapee") ?
@@ -621,13 +612,13 @@ void find_escapees() {
 		if ( (((l!=NULL)&&(l->blocked!=0)) || (is_blocked(&b)!=0)) && (c.raw.udp==0)) {
 			// its an active connection that is supposed to have been blocked
 			TAKE_LOCK(&escapee_mutex,"find_fds escapee_mutex");
-			int is_new_escapee = (!in_list(&escapee_list,&c,0));
+			int is_new_escapee = (!in_list(&pid_info.escapee_list,&c,0));
 			pthread_mutex_unlock(&escapee_mutex);
 			// we don't try to catch VPN conns, openvpn (at least) blocks RSTs-to-self
 			int vpn = is_ppp(c.raw.af, &c.raw.src_addr, &c.raw.dst_addr);
 			//vpn=1; //disable catching
 			int admissible = (l==NULL) || ((l!=NULL) && (l->escapee_count < MAX_ESCAPEE_ATTEMPTS));
-			if (is_new_escapee && !vpn && admissible && (escapee_thread_count<ESCAPEEMAX)) {
+			if (is_new_escapee && !vpn && admissible && (pid_info.escapee_thread_count<ESCAPEEMAX)) {
 				conn_t *e = malloc(sizeof(conn_t));
 				memcpy(e,&c,sizeof(conn_t));
 				// get the initial seq number of conn from log, if possible.
@@ -664,14 +655,14 @@ void find_escapees() {
 				}
 				// add new escapee to the active list ...
 				TAKE_LOCK(&escapee_mutex,"find_fds escapee_mutex");
-				add_item(&escapee_list,&c,sizeof(conn_t));
+				add_item(&pid_info.escapee_list,&c,sizeof(conn_t));
 				pthread_mutex_unlock(&escapee_mutex);
 				INFO("escapee added %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d,vpn=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp, l==NULL,vpn);
 				
 				// and ask helper to catch this "escapee" connection
 				pthread_t escapee_thread;
 				pthread_create(&escapee_thread,NULL,catch_escapee,e);
-				cm_add_sample_lock(&stats.cm_escapee_thread_count,escapee_thread_count);
+				cm_add_sample_lock(&stats.cm_escapee_thread_count,pid_info.escapee_thread_count);
 				// escapee_thread will now remove from escapee_list and free(e)
 			}
 		}
@@ -684,7 +675,7 @@ void find_escapees() {
 #include "helper.h"
 void *catch_escapee(void *ptr) {
 	TAKE_LOCK(&escapee_mutex,"catch_escapee");
-	escapee_thread_count++;
+	pid_info.escapee_thread_count++;
 	pthread_mutex_unlock(&escapee_mutex);
 
 	conn_t *e = (conn_t*)ptr;
@@ -699,7 +690,7 @@ void *catch_escapee(void *ptr) {
 		// if former, fatal error ?  just now we just muddle through, will
 		// mean that don't catch escapees
 		TAKE_LOCK(&escapee_mutex,"catch_escapee #2");
-		escapee_thread_count--;
+		pid_info.escapee_thread_count--;
 		pthread_mutex_unlock(&escapee_mutex);
 		return NULL;
 	}
@@ -773,8 +764,8 @@ err:
 stop:
 	close(c_sock);
 	TAKE_LOCK(&escapee_mutex,"catch_escapee #3");
-	del_item(&escapee_list,e);
-	escapee_thread_count--;
+	del_item(&pid_info.escapee_list,e);
+	pid_info.escapee_thread_count--;
 	pthread_mutex_unlock(&escapee_mutex);
 	free(e);
 	// refresh pid list and check for more escapees.

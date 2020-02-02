@@ -36,9 +36,29 @@
 #define MAX_ESCAPEE_ATTEMPTS 3 // max number of times we call catcher for same connection
 #define CATCHER_PORT 5 // port helper listens on for catching escapees
 
+typedef struct last_pid_item_t {
+	int pid;
+	char name[MAXCOMLEN];;
+} last_pid_item_t;
+typedef struct pid_info_t {
+	list_t pid_list; // list of active pid's and network conns
+  list_t gui_pid_list; // filtered list for GUI
+  list_t last_pid_list; // cache of recent PIDs and their names
+	int changed; // flag to GUI if pid list has changed
+	list_t escapee_list; // list of blocked yet active connections
+	int escapee_thread_count;
+	// pointers to pid_info syscalls, so can be replaced by stubs for testing
+	int (*proc_pidinfo)(int pid, int flavor, uint64_t arg, void *buffer, int buffersize);
+	int (*proc_pidfdinfo)(int pid, int fd, int flavor, void * buffer, int buffersize);
+	int (*proc_listpids)(uint32_t type, uint32_t typeinfo, void *buffer, int buffersize);
+} pid_info_t;
+#define PID_INFO_INITIALSER {LIST_INITIALISER,LIST_INITIALISER,LIST_INITIALISER,1,LIST_INITIALISER,0,&proc_pidinfo,&proc_pidfdinfo,&proc_listpids}
+
+pid_info_t* get_pid_info(void);
 int get_pid_name(int pid, char* name, uint32_t *status);
 int find_pid(conn_raw_t *c, char*name, int syn);
 void cache_pid(int pid, char* name);
+conn_t * find_conn(int pid, int fd);
 
 void init_pid_lists(void);
 int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh);

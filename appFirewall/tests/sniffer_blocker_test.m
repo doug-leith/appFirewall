@@ -31,6 +31,9 @@
 	set_num_conns_blocked(2);
 	XCTAssertEqual(get_num_conns_blocked(),2);
 	
+	// flush dns cache
+	load_dns_cache("empty"); // will clear cache
+
 	// basic type conversion
 	conn_raw_t c; memset(&c,1,sizeof(c));
 	c.af = AF_INET;
@@ -101,7 +104,7 @@
 	XCTAssertEqual(get_log_size(),1);
 	l= get_log_row(0);
 	XCTAssertNotEqual(l,NULL);
-	printf("#3 %s %s\n",l->log_line,l->bl_item.name);
+	//printf("#3 %s %s\n",l->log_line,l->bl_item.name);
 	XCTAssertEqual(strcmp(l->log_line,"Google Chrome H → UDP/QUIC testdomain:443"),0);
 	XCTAssertEqual(strcmp(l->bl_item.name,"Google Chrome H"),0);
 	XCTAssertEqual(l->raw.sport,c.sport);
@@ -162,6 +165,8 @@
 	// TCP syn-ack with unknown process name
 	set_path("/tmp/");
 	load_log("empty", "txt_log");
+	clear_waiting_list();
+	load_dns_cache("empty"); // will clear cache
 	handle_tcp_conn(&c, pkt_pid, NOTFOUND, 0, 1);
 	XCTAssertEqual(get_log_size(),0);
 	XCTAssertEqual(get_waiting_list_size(),1);
