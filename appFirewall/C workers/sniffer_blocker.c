@@ -268,6 +268,199 @@ void process_conn_waiting_list(void) {
 
 }
 
+u_char* payload(u_char* pkt) {
+	// step past IP header
+	int version = (*pkt)>>4; // get IP version
+	u_char* nexth=NULL; // this will point to TCP/UDP header
+	if (version == 4) {
+		struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt;
+		nexth=((u_char *)ip + (ip->ip_hl * 4));
+	} else {
+		struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt;
+		nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
+	}
+	return nexth;
+}
+
+conn_raw_t get_conn_from_pkt(u_char* pkt, int* syn, int* synack) {
+	// extract connection details from received packet
+	conn_raw_t cr; memset(&cr,0,sizeof(cr));
+	
+	int version = (*pkt)>>4; // get IP version
+	int proto, af;
+	struct in6_addr src, dst;
+	memset(&src,0,sizeof(src)); memset(&dst,0,sizeof(dst));
+	u_char* nexth=NULL; // this will point to TCP/UDP header
+	if (version == 4) {
+		struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt;
+		proto=ip->ip_p;
+		af=AF_INET;
+		memcpy(&src,&ip->ip_src,sizeof(struct in_addr));
+		memcpy(&dst,&ip->ip_dst,sizeof(struct in_addr));
+		nexth=((u_char *)ip + (ip->ip_hl * 4));
+	} else {
+		struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt;
+		proto=ip->ip_nh;
+		af=AF_INET6;
+		memcpy(&src,&ip->ip_src,sizeof(struct in6_addr));
+		memcpy(&dst,&ip->ip_dst,sizeof(struct in6_addr));
+		nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
+	}
+	if (proto == IPPROTO_UDP) {
+		struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
+		uint16_t sport=ntohs(udp->uh_sport);
+		uint16_t dport=ntohs(udp->uh_dport);
+		cr.af=af; cr.udp=1;
+		// only incoming UDP pkts are logged, flip things around since we always store
+		// conn details with reference to outgoing pkts
+		cr.src_addr=dst; cr.dst_addr=src; cr.sport=dport; cr.dport=sport;
+		*syn = 0; *synack = 0;
+	} else if (proto == IPPROTO_TCP) {
+		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
+		char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
+		inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
+		inet_ntop(af, &src, dn, INET6_ADDRSTRLEN);
+		*syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
+		*synack = (tcp->th_flags & (TH_SYN)) && (tcp->th_flags & (TH_ACK));
+		cr.af=af; cr.udp=0;
+		if (*syn) {
+			// when SYN the src is local and dst is remote
+			cr.src_addr=src; cr.dst_addr=dst;
+			cr.sport=ntohs(tcp->th_sport); cr.dport=ntohs(tcp->th_dport);
+			cr.seq=ntohl(tcp->th_seq); cr.ack=ntohl(tcp->th_ack);
+		} else { // SYN-ACK
+			// blocklist assumes outgoing connections,
+			// when SYN-ACK the src is remote and dst is local so need to flip them
+			cr.src_addr=dst; cr.dst_addr=src;
+			cr.sport=ntohs(tcp->th_dport); cr.dport=ntohs(tcp->th_sport);
+			cr.seq=ntohl(tcp->th_ack); cr.ack=ntohl(tcp->th_seq);
+			// our info is from a syn-ack and local host will have sent an ack in
+			// response and so we need to account for this.
+			cr.ack++;
+		}
+	} else {// neither UDP nor TCP
+		cr.udp = -1;
+	}
+	return cr;
+}
+
+int in_udp_cache(conn_raw_t *cr) {
+	int i;
+	for (i=udp_cache_start; i<udp_cache_start+udp_cache_size; i++) {
+		if (udp_cache[i%MAXUDP].af != cr->af) continue;
+		if (udp_cache[i%MAXUDP].sport != cr->sport) continue;
+		if (udp_cache[i%MAXUDP].dport != cr->dport) continue;
+		if (are_addr_same(cr->af,&udp_cache[i%MAXUDP].dst,&cr->dst_addr)) {
+			//printf("match\n");
+			return 1; // found match
+		}
+	}
+	return 0; // no match
+}
+
+void add_to_udp_cache(conn_raw_t *cr) {
+	if (udp_cache_size==MAXUDP) {
+		udp_cache_start++; udp_cache_size--;
+	}
+	int end = (udp_cache_start+udp_cache_size)%MAXUDP;
+	udp_cache[end].af=cr->af; udp_cache[end].sport=cr->sport;
+	udp_cache[end].dport=cr->dport; udp_cache[end].dst=cr->dst_addr;
+	udp_cache_size++;
+
+}
+
+void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
+	// don't log localhost connections
+	if ((cr->af==AF_INET) && (is_ipv4_localhost(&cr->src_addr))) return;
+	if ((cr->af==AF_INET6) && (is_ipv6_localhost(&cr->src_addr))) return;
+	// don't log existing UDP connections
+	if (in_udp_cache(cr)) return;
+	
+	// new connection
+	add_to_udp_cache(cr); // add connection to cache
+	
+	// carry out PID and DNS lookup
+	bl_item_t c = create_blockitem_from_addr(cr,0,pkt_pid,pkt_name);
+	// if can't link connection to a PID then for UDP we just guess (for TCP
+	// we add connection to waiting list and try again - maybe we should
+	// do same for UDP to ?)
+	int quic = ((cr->sport == 443) || (cr->dport == 443) || (cr->sport == 80) || (cr->dport == 80));
+	if ((strcmp(c.name,NOTFOUND)==0) && quic) {
+		// we seem to often miss process for quic pkts, for now
+		// we guess its Chrome.
+		strlcpy(c.name,"Google Chrome H",MAXCOMLEN);
+		stats.num_guesses++;
+	}
+	
+	// log connection
+	char dns[MAXDOMAINLEN]={0};
+	if (strnlen(c.domain,MAXDOMAINLEN)) {
+		snprintf(dns,MAXDOMAINLEN, "%s (%s)", c.addr_name,c.domain);
+	}
+	char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
+	inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
+	char* service="";
+	if (quic) {
+		service = "/QUIC";
+	} else if ((cr->sport==53) || (cr->dport==53)) {
+		service = "/DNS";
+	}
+	snprintf(str,LOGSTRSIZE, "%s → UDP%s %s:%u", c.name, service, c.domain, cr->dport);
+	snprintf(long_str,LOGSTRSIZE,"%s\tUDP%s %s:%u -> %s:%u", c.name, service, sn, cr->sport, dns, cr->dport);
+	append_log(str, long_str, &c, cr, 0, 1.0); // can't block QUIC yet ...
+	
+	// and log some performance stats
+	double t =(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;
+	INFO2("t (sniffed) %f ", t);
+	cm_add_sample_lock(&stats.cm_t_sniff,t);
+	struct timeval endu; gettimeofday(&endu, NULL);
+	t =(endu.tv_sec - cr->ts.tv_sec) +(endu.tv_usec - cr->ts.tv_usec)/1000000.0;
+	INFO2(" (UDP not blocked) %f\n",t );
+	cm_add_sample_lock(&stats.cm_t_udp,t);
+}
+
+void handle_tcp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name, int syn, int synack) {
+	if ( (!syn) && (!synack)) {
+		// not SYN or SYN-ACK, ignore.  shouldn't happen
+		WARN("sniffed tcp pkt is not syn/syn-ack\n");
+		return;
+	}
+	// try to get PID name and domain for this connection ...
+	bl_item_t c = create_blockitem_from_addr(cr, syn, pkt_pid, pkt_name);
+	
+	if (syn) {
+		// when not using dtrace or pktap we use
+		// syn's to prime the procinfo cache.  if connection is not in
+		// cache we trigger a refresh here.  the hope is that by the time the
+		// synack arrives the connection will be in the cache and we'll avoid
+		// waiting.
+		if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher(0,0);
+		return; // nothing more to do for a syn.
+	}
+	
+	if (strcmp(c.name,NOTFOUND)==0) {
+		// failed to look up PID name
+		// put into waiting list to try again
+		TAKE_LOCK(&wait_list_mutex,"listener()");
+		add_item(&waiting_list,cr,sizeof(conn_raw_t));
+		pthread_mutex_unlock(&wait_list_mutex);
+	} else {
+		// got PID name, proceed with processing ...
+		// if on block list, send rst.  otherwise just log conn and move on
+		process_conn(cr, &c, 1.0, &r_sock, 1);
+	}
+	// refresh pid info (may take a while, so we don't wait here).  serves a
+	// dual purpose:
+	// 1. if have just added conn to waiting list because can't find the conn in
+	// the current pidinfo list of processes and conns then this will cause the
+	// list to be updated, so that hopefully can now find the conn and take it
+	// off waiting list
+	// 2. for a conn which we've just processed refresh of pidinfo will cause a
+	// check that conn has really died, and if not will call helper to catch the
+	// "escapee".
+	signal_pid_watcher(0,0);
+}
+
 void *listener(void *ptr) {
 	struct pcap_pkthdr pkthdr;
 	u_char pkt[SNAPLEN];
@@ -326,199 +519,47 @@ void *listener(void *ptr) {
 		// nb: link layer header has already been removed by helper.
 		struct timeval ts = pkthdr.ts;
 		struct timeval start; gettimeofday(&start, NULL);
-		// stale SYN packets are dropped, likely due to wakeup after sleep.  
+		// stale packets are dropped, likely due to wakeup after sleep.
 		if (start.tv_sec - ts.tv_sec > SYN_TIMEOUT) {
-			INFO("received stale syn-ack, %f old. discard\n",(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
+			INFO("received stale pkt, %f old. discard\n",(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0);
 			continue;
 		}
 
-		int version = (*pkt)>>4; // get IP version
-		int proto, af;
-		struct in6_addr src, dst;
-		memset(&src,0,sizeof(src)); memset(&dst,0,sizeof(dst));
-		u_char* nexth=NULL; // this will point to TCP/UDP header
-		if (version == 4) {
-			struct libnet_ipv4_hdr *ip = (struct libnet_ipv4_hdr *)pkt;
-			proto=ip->ip_p;
-			af=AF_INET;
-			memcpy(&src,&ip->ip_src,sizeof(struct in_addr));
-			memcpy(&dst,&ip->ip_dst,sizeof(struct in_addr));
-			nexth=((u_char *)ip + (ip->ip_hl * 4));
-		} else {
-			struct libnet_ipv6_hdr *ip = (struct libnet_ipv6_hdr *)pkt;
-			proto=ip->ip_nh;
-			af=AF_INET6;
-			memcpy(&src,&ip->ip_src,sizeof(struct in6_addr));
-			memcpy(&dst,&ip->ip_dst,sizeof(struct in6_addr));
-			nexth = ((u_char *)ip + sizeof(struct libnet_ipv6_hdr));
-		}
-		//printf("version %d proto %d (udp=%d, tcp=%d) %s\n",version,proto,IPPROTO_UDP,IPPROTO_TCP,pkt_name);
-		
-		if (proto == IPPROTO_UDP) {
-			struct libnet_udp_hdr *udp = (struct libnet_udp_hdr *)nexth;
-			uint16_t sport=ntohs(udp->uh_sport);
-			uint16_t dport=ntohs(udp->uh_dport);
-			//printf("UDP port %d/%d\n", sport,dport);
-			if (sport == 53 || dport == 53 || sport == 5353 || dport == 5353) {
-				// pass to DNS sniffer for parsing
-				double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
-				//INFO2("t (sniffed dns) %f\n", t);
-				int dirn = dns_sniffer(nexth,pkt_proper_len);
-				cm_add_sample_lock(&stats.cm_t_dns,t);
-				if (dirn != 1) continue; // ignore outgoing DNS requests
-			} //else if ((sport == 443) || (dport == 443)) {
-				//printf("UDP %d/%d %d\n",sport, dport,udp_cache_size);
-				conn_raw_t cr;
-				cr.af=af; cr.udp=1;
-				/*if (sport == 443){
-					// incoming pkt, flip things around since we always store conn details
-					// with reference to outgoing pkts
-					cr.src_addr=dst; cr.dst_addr=src; cr.sport=dport; cr.dport=sport;
-				} else { //outgoing pkt
-					//printf("UDP outgoing %d/%d %d\n",sport, dport,udp_cache_size);
-					cr.src_addr=src; cr.dst_addr=dst; cr.sport=sport; cr.dport=dport;
-				}*/
-				// only incoming UDP pkts are logged, flip things around since we always store
-				// conn details with reference to outgoing pkts
-				cr.src_addr=dst; cr.dst_addr=src; cr.sport=dport; cr.dport=sport;
-				// don't log localhost connections
-				if ((cr.af==AF_INET) && (is_ipv4_localhost(&cr.src_addr))) continue;
-				if ((cr.af==AF_INET6) && (is_ipv6_localhost(&cr.src_addr))) continue;
-				int i;
-				for (i=udp_cache_start; i<udp_cache_start+udp_cache_size; i++) {
-					if (udp_cache[i%MAXUDP].af != af) continue;
-					if (udp_cache[i%MAXUDP].sport != sport) continue;
-					if (udp_cache[i%MAXUDP].dport != dport) continue;
-					if (are_addr_same(af,&udp_cache[i%MAXUDP].dst,&dst)) {
-						//printf("match\n");
-						break; // found match
-					}
-				}
-				if (i == udp_cache_start+udp_cache_size) {
-					// new connection, log it
-					
-					// add to connection cache
-					if (udp_cache_size==MAXUDP) {
-						udp_cache_start++; udp_cache_size--;
-					}
-					int end = (udp_cache_start+udp_cache_size)%MAXUDP;
-					udp_cache[end].af=af; udp_cache[end].sport=sport;
-					udp_cache[end].dport=dport; udp_cache[end].dst=dst;
-					udp_cache_size++;
-					
-					int quic = ((sport == 443) || (dport == 443) || (sport == 80) || (dport == 80));
-					// carry out PID and DNS lookup
-					bl_item_t c = create_blockitem_from_addr(&cr,0,pkt_pid,pkt_name);
-					if ((strcmp(c.name,NOTFOUND)==0) && quic) {
-						// we seem to often miss process for quic pkts, for now
-						// we guess its Chrome.
-						strlcpy(c.name,"Google Chrome H",MAXCOMLEN);
-						stats.num_guesses++;
-					}
-					// log connection
-					char dns[MAXDOMAINLEN]={0};
-					if (strnlen(c.domain,MAXDOMAINLEN)) {
-						snprintf(dns,MAXDOMAINLEN, "%s (%s)", c.addr_name,c.domain);
-					}
-					char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
-					inet_ntop(af, &cr.src_addr, sn, INET6_ADDRSTRLEN);
-					char* service="";
-					if (quic) {
-						service = "/QUIC";
-					} else if ((sport==53) || (dport==53)) {
-						service = "/DNS";
-					}
-					snprintf(str,LOGSTRSIZE, "%s → UDP%s %s:%u", c.name, service, c.domain, cr.dport);
-					snprintf(long_str,LOGSTRSIZE,"%s\tUDP%s %s:%u -> %s:%u", c.name, service, sn, cr.sport, dns, cr.dport);
-					append_log(str, long_str, &c, &cr, 0, 1.0); // can't block QUIC yet ...
-					
-					double t =(start.tv_sec - ts.tv_sec) +(start.tv_usec - ts.tv_usec)/1000000.0;
-					INFO2("t (sniffed) %f ", t);
-					cm_add_sample_lock(&stats.cm_t_sniff,t);
-					struct timeval endu; gettimeofday(&endu, NULL);
-					t =(endu.tv_sec - ts.tv_sec) +(endu.tv_usec - ts.tv_usec)/1000000.0;
-					INFO2(" (UDP not blocked) %f\n",t );
-					cm_add_sample_lock(&stats.cm_t_udp,t);
-				}
-			//}
-			continue;
-		}
-		
-		if (proto != IPPROTO_TCP) {
-			// shouldn't happen
-			WARN("sniffed pkt is not udp or tcp\n");
-			continue;
-		}
-
-		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
-
-		char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-		inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
-		inet_ntop(af, &src, dn, INET6_ADDRSTRLEN);
-		printf("%s (%d) %s:%d -> %s:%d\n",pkt_name,pkt_pid,sn,ntohs(tcp->th_sport),dn,ntohs(tcp->th_dport));
-
-		int syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
-		int synack = (tcp->th_flags & (TH_SYN)) && (tcp->th_flags & (TH_ACK));
-		if ( (!syn) && (!synack)) {
-			// not SYN or SYN-ACK, ignore.  shouldn't happen
-			WARN("sniffed tcp pkt is not syn/syn-ack\n");
-			continue;
-		}
-
-		conn_raw_t cr;
-		cr.af=af; cr.udp=0;
+		// extract connection details from pkt
+		int syn=0, synack=0;
+		conn_raw_t cr = get_conn_from_pkt(pkt, &syn, &synack);
 		cr.ts = ts; cr.start = start;
-		if (syn) {
-			// when SYN the src is local and dst is remote
-			cr.src_addr=src; cr.dst_addr=dst;
-			cr.sport=ntohs(tcp->th_sport); cr.dport=ntohs(tcp->th_dport);
-			cr.seq=ntohl(tcp->th_seq); cr.ack=ntohl(tcp->th_ack);
-		} else { // SYN-ACK
-			// blocklist assumes outgoing connections,
-			// when SYN-ACK the src is remote and dst is local so need to flip them
-			cr.src_addr=dst; cr.dst_addr=src;
-			cr.sport=ntohs(tcp->th_dport); cr.dport=ntohs(tcp->th_sport);
-			cr.seq=ntohl(tcp->th_ack); cr.ack=ntohl(tcp->th_seq);
-			// our info is from a syn-ack and local host will have sent an ack in
-			// response and so we need to account for this.
-			cr.ack++;
+		if (cr.udp == -1) {// neither TCP nor UDP
+			// shouldn't happen
+			WARN("sniffed pkt is neither udp nor tcp\n");
+			continue;
+		}
+		
+		// extract lookup info from UDP DNS packets (we ignore TCP DNS, they're rare)
+		int dns = (cr.sport == 53 || cr.dport == 53
+							|| cr.sport == 5353 || cr.dport == 5353);
+		if ((cr.udp==1) && dns) {
+			// pass to DNS sniffer for parsing
+			double t = (start.tv_sec - cr.ts.tv_sec) +(start.tv_usec - cr.ts.tv_usec)/1000000.0;
+			//INFO2("t (sniffed dns) %f\n", t);
+			int dirn = dns_sniffer(payload(pkt),pkt_proper_len);
+			cm_add_sample_lock(&stats.cm_t_dns,t);
+			if (dirn != 1) continue; // don't log outgoing DNS requests
+		}
+		
+		// write connection details to console
+		char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
+		inet_ntop(cr.af, &cr.src_addr, sn, INET6_ADDRSTRLEN);
+		inet_ntop(cr.af, &cr.dst_addr, dn, INET6_ADDRSTRLEN);
+		char *udp_str=""; if (cr.udp==1) udp_str="UDP";
+		printf("%s (%d) %s %s:%d -> %s:%d\n",pkt_name,pkt_pid,udp_str,sn,cr.sport,dn,cr.dport);
 
+		if (cr.udp==1) { // UDP
+			handle_udp_conn(&cr, pkt_pid, pkt_name);
+		} else { // TCP
+			handle_tcp_conn(&cr, pkt_pid, pkt_name, syn, synack);
 		}
-		// try to get PID name and domain for this connection ...
-		bl_item_t c = create_blockitem_from_addr(&cr, syn, pkt_pid, pkt_name);
-		
-		if (syn) {
-			// when not using dtrace or pktap we use
-			// syn's to prime the procinfo cache.  if connection is not in
-			// cache we trigger a refresh here.  the hope is that by the time the
-			// synack arrives the connection will be in the cache and we'll avoid
-			// waiting.
-			if (strcmp(c.name,NOTFOUND)==0) signal_pid_watcher(0,0);
-			continue; // nothing more to do for a syn.
-		}
-		
-		if (strcmp(c.name,NOTFOUND)==0) {
-			// failed to look up PID name
-			// put into waiting list to try again
-			TAKE_LOCK(&wait_list_mutex,"listener()");
-			add_item(&waiting_list,&cr,sizeof(conn_raw_t));
-			pthread_mutex_unlock(&wait_list_mutex);
-		} else {
-			// got PID name, proceed with processing ...
-			// if on block list, send rst.  otherwise just log conn and move on
-			process_conn(&cr, &c, 1.0, &r_sock, 1);
-		}
-		// refresh pid info (may take a while, so we don't wait here).  serves a
-		// dual purpose:
-		// 1. if have just added conn to waiting list because can't find the conn in
-		// the current pidinfo list of processes and conns then this will cause the
-		// list to be updated, so that hopefully can now find the conn and take it
-		// off waiting list
-		// 2. for a conn which we've just processed refresh of pidinfo will cause a
-		// check that conn has really died, and if not will call helper to catch the
-		// "escapee".		
-		signal_pid_watcher(0,0);
-		continue;
+	continue;
 		
 	err_p:
 		if (errno==0) {

@@ -41,7 +41,11 @@
 
 void init_sniffer_blocker(char* filter_exp);
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char* pkt_name);
+void handle_tcp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name, int syn, int synack);
+void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name);
 void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, int logstats);
+int in_udp_cache(conn_raw_t *cr);
+void add_to_udp_cache(conn_raw_t *cr);
 
 // swift
 void start_listener(void);
