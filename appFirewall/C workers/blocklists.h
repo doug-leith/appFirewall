@@ -15,7 +15,7 @@
 #include <sys/errno.h>
 #include "util.h"
 #include "table.h"
-#include "blocklist.h"
+#include "connection.h"
 #include "hostlists.h"
 
 #define HTABSIZE 250000

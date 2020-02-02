@@ -283,13 +283,13 @@ void load_blocklist(const char* fname) {
 	//dump_blocklist();
 }
 
-bl_item_t conn_to_bl_item(const conn_t *item) {
+/*bl_item_t conn_to_bl_item(const conn_t *item) {
 		bl_item_t bl;
 		strlcpy(bl.name, item->name,MAXCOMLEN);
 		strlcpy(bl.addr_name, item->dst_addr_name,INET6_ADDRSTRLEN);
 		strlcpy(bl.domain, item->domain,MAXDOMAINLEN);
 		return bl;
-}
+}*/
 
 
 

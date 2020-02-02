@@ -25,6 +25,18 @@ char* conn_hash(const void *it) {
 	return conn_raw_hash(&c->raw);
 }
 
+char* cl_hash(const void *it) {
+	// generate table lookup key string from conn list item
+	bl_item_t *item = (bl_item_t*) it;
+	size_t len = strnlen(item->name, MAXCOMLEN)+strnlen(item->domain, MAXDOMAINLEN)+4;
+	if (len>STR_SIZE) len=STR_SIZE; // just to be safe !
+	char* temp = malloc(len);
+	strlcpy(temp,item->name, len);
+	strlcat(temp,":", len);
+	strlcat(temp,item->domain, len);
+	return temp;
+}
+
 #include "circular_list.h"
 void dump_connlist(list_t *l) {
 	size_t i;

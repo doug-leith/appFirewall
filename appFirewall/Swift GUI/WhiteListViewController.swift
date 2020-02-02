@@ -25,9 +25,9 @@ class WhiteListViewController: appViewController {
     var asc1: Int = 1
 		if (!asc) { asc1 = -1 }
 		if (sortKey == sortKeys[0]) {
-			sort_white_list(Int32(asc1), 0)
+			sort_conn_list(get_whitelist(),Int32(asc1), 0)
 		} else {
-			sort_white_list(Int32(asc1), 1)
+			sort_conn_list(get_whitelist(), Int32(asc1), 1)
 		}
 		tableView?.reloadData() // refresh the table when it is redisplayed
 		if (timer != nil) { timer?.invalidate() } // don't need regular refreshes
@@ -39,27 +39,27 @@ class WhiteListViewController: appViewController {
 	
 	@IBAction func click(_ sender: NSButton?) {
 		guard let row = sender?.tag else {print("WARNING: problem in whitelistView BlockBtnAction getting row"); return}
-		let item = get_whitelist_item(Int32(row))
-		del_whiteitem(item)
+		let item = get_connlist_item(get_whitelist(), Int32(row))
+		del_connitem(get_whitelist(), item)
 		refresh(timer:nil) // update the GUI to show the change
 	}
 	
 	override 	func getRowText(row: Int) -> String {
-		let item = get_whitelist_item(Int32(row))
-		let name = String(cString: get_whitelist_item_name(item))
-		let addr_name = String(cString: get_whitelist_item_domain(item))
+		let item = get_connlist_item(get_whitelist(),Int32(row))
+		let name = String(cString: get_connlist_item_name(item))
+		let addr_name = String(cString: get_connlist_item_domain(item))
 		return name+", "+addr_name
 	}
 	
 	override func updateTable (rowView: NSTableRowView, row:Int) {}
 
-	override func numTableRows()->Int {return Int(get_whitelist_size())}
+	override func numTableRows()->Int {return Int(get_connlist_size(get_whitelist()))}
 
 	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		// decide on table contents at specified col and row
-		let item = get_whitelist_item(Int32(row))
-		let name = String(cString: get_whitelist_item_name(item))
-		let domain = String(cString: get_whitelist_item_domain(item))
+		let item = get_connlist_item(get_whitelist(),Int32(row))
+		let name = String(cString: get_connlist_item_name(item))
+		let domain = String(cString: get_connlist_item_domain(item))
 		
 		var cellIdentifier: String = ""
 		var content: String = ""
@@ -107,7 +107,7 @@ class WhiteListViewController: appViewController {
 					if let app = Bundle(url: url)?.executableURL?.lastPathComponent {
 						// url points to a bundle with an executable, great !
 						print("adding ",app," to whitelist using drag and drop")
-						add_whiteitem2(app, "<all connections>")
+						add_connitem2(get_whitelist(), app, "<all connections>")
 					}
 				}
 			}

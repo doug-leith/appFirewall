@@ -49,7 +49,7 @@ void* in_blocklists_htab(bl_item_t *b) {
 	// don't matter
 	TAKE_LOCK(&bls_mutex,"in_blocklists_htab()");
 	if (wls_app_htab!=NULL) {
-		char *temp = bl_hash((void*)b);
+		char *temp = cl_hash((void*)b);
 		void* res_ptr=hashtable_get(wls_app_htab, temp);
 		free(temp);
 		// on whitelist, pass
@@ -69,7 +69,7 @@ void* in_blocklists_htab(bl_item_t *b) {
 		}
 	}
 	if (bls_htab!=NULL) {
-		char *temp = bl_hash((void*)b);
+		char *temp = cl_hash((void*)b);
 		void* res_ptr=hashtable_get(bls_htab, temp);
 		free(temp);
 		// on blacklist, block
@@ -166,7 +166,7 @@ int_sw load_blocklistfile(const char* fname) {
 		
 		if (!allapps){
 			// and add to blocklists table
-			char *str = bl_hash(&b);
+			char *str = cl_hash(&b);
 			TAKE_LOCK(&bls_mutex,"load_blocklistfile() #3");
 			hashtable_put(htab, str, bls_htab); // last parameter is just a placeholder
 			pthread_mutex_unlock(&bls_mutex);

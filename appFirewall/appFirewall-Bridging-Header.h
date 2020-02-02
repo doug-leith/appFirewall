@@ -9,8 +9,7 @@
 
 #include "pid_conn_info.h"
 #include "sniffer_blocker.h"
-#include "blocklist.h"
-#include "whitelist.h"
+#include "conn_list.h"
 #include "log.h"
 #include "util.h"
 #include "hostlists.h"

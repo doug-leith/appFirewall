@@ -25,9 +25,9 @@ class BlockListViewController: appViewController {
     var asc1: Int = 1
 		if (!asc) { asc1 = -1 }
 		if (sortKey == sortKeys[0]) {
-			sort_block_list(Int32(asc1), 0)
+			sort_conn_list(get_blocklist(),Int32(asc1), 0)
 		} else {
-			sort_block_list(Int32(asc1), 1)
+			sort_conn_list(get_blocklist(),Int32(asc1), 1)
 		}
 		tableView?.reloadData() // refresh the table when it is redisplayed
 		if (timer != nil) { timer?.invalidate() } // don't need regular refreshes
@@ -40,28 +40,28 @@ class BlockListViewController: appViewController {
 	@IBAction func Click(_ sender: NSButton?) {
 		// table button to remove from blocklist
 		guard let row = sender?.tag else {print("WARNING: problem in blocklistView AllowBtnAction getting row");  return}
-		let item = get_blocklist_item(Int32(row))
-		del_blockitem(item)
+		let item = get_connlist_item(get_blocklist(),Int32(row))
+		del_connitem(get_blocklist(),item)
 		refresh(timer:nil) // update the GUI to show the change
 	}
 	
 	override func getRowText(row: Int) -> String {
-		let item = get_blocklist_item(Int32(row))
-		let name = String(cString: get_blocklist_item_name(item))
-		let addr_name = String(cString: get_blocklist_item_domain(item))
+		let item = get_connlist_item(get_blocklist(),Int32(row))
+		let name = String(cString: get_connlist_item_name(item))
+		let addr_name = String(cString: get_connlist_item_domain(item))
 		return name+", "+addr_name
 	}
 	
 	override func updateTable (rowView: NSTableRowView, row:Int) {}
 	
-	override func numTableRows()->Int {return Int(get_blocklist_size())}
+	override func numTableRows()->Int {return Int(get_connlist_size(get_blocklist()))}
 	
 	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		// decide on table contents at specified col and row
-		let item = get_blocklist_item(Int32(row))
-		let name = String(cString: get_blocklist_item_name(item))
-		let addr_name = String(cString: get_blocklist_item_addrname(item))
-		let domain = String(cString: get_blocklist_item_domain(item))
+		let item = get_connlist_item(get_blocklist(),Int32(row))
+		let name = String(cString: get_connlist_item_name(item))
+		let addr_name = String(cString: get_connlist_item_addrname(item))
+		let domain = String(cString: get_connlist_item_domain(item))
 		
 		var cellIdentifier: String = ""
 		var content: String = ""
@@ -120,7 +120,7 @@ class BlockListViewController: appViewController {
 						// derived fromn url E.g. for Anaconda the executable is run.sh
 						let appName = (url.deletingPathExtension()).lastPathComponent
 						print("adding ",appName,"(",app,") to blocklist using drag and drop")
-						add_blockitem2(appName, "<all connections>")
+						add_connitem2(get_blocklist(), appName, "<all connections>")
 					}
 				}
 			}

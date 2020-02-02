@@ -42,6 +42,7 @@ typedef struct bl_item_t {
 
 char* conn_raw_hash(const void *it);
 char* conn_hash(const void *it);
+char* cl_hash(const void *it);
 void dump_connlist(list_t *l);
 
 #endif /* connection_h */

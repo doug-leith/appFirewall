@@ -198,7 +198,7 @@ class appViewController: NSViewController {
 			infoPopup(msg: str, sender: cell1, row:row)
 			return
 		}*/
-		add_blockallitem(&bl_item);
+		add_connallitem(get_blocklist(),&bl_item);
 	}
 	
 	@objc func blockDomain(sender: AnyObject?){
@@ -206,7 +206,7 @@ class appViewController: NSViewController {
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in blockDomain getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
-		add_blockdomainitem(&bl_item);
+		add_conndomainitem(get_blocklist(),&bl_item);
 	}
 	
 	@objc func allowAll(sender: AnyObject?){
@@ -220,7 +220,7 @@ class appViewController: NSViewController {
 			infoPopup(msg: str, sender: cell1, row:row)
 			return
 		}*/
-		add_allowallitem(&bl_item);
+		add_connallitem(get_whitelist(),&bl_item);
 	}
 	
 	@objc func allowDomain(sender: AnyObject?){
@@ -228,7 +228,7 @@ class appViewController: NSViewController {
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowDomain getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
-		add_allowdomainitem(&bl_item);
+		add_conndomainitem(get_whitelist(),&bl_item);
 	}
 	
 	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {

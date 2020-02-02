@@ -33,7 +33,7 @@ int bl_sort_cmp(const void* it1, const void* it2);
 char* bl_hash(const void *it);
 
 //swift
-bl_item_t conn_to_bl_item(const conn_t *item);
+//bl_item_t conn_to_bl_item(const conn_t *item);
 int_sw get_blocklist_size(void);
 bl_item_t* get_blocklist_item(int_sw row);
 char* get_blocklist_item_name(bl_item_t *item);

@@ -72,11 +72,11 @@ class blButton: NSButton {
 			
 		let domain = String(cString: &bl_item.domain.0)
 		var white: Int = 0
-		if (in_whitelist_htab(&bl_item, 0) != nil) {
+		if (in_connlist_htab(get_whitelist(), &bl_item, 0) != nil) {
 			white = 1
 		}
 		var blocked: Int = 0
-		if (in_blocklist_htab(&bl_item, 0) != nil) {
+		if (in_connlist_htab(get_blocklist(),&bl_item, 0) != nil) {
 			blocked = 1
 		} else if (in_hostlist_htab(domain) != nil) {
 			blocked = 2
@@ -86,16 +86,16 @@ class blButton: NSButton {
 		
 		if (self.title.contains("Allow")) {
 			if (blocked == 1) { // on block list, remove
-				del_blockitem(&bl_item)
+				del_connitem(get_blocklist(),&bl_item)
 			} else if (blocked>1) { // on host list, add to whitelist
-				add_whiteitem(&bl_item)
+				add_connitem(get_whitelist(), &bl_item)
 			}
 		} else { // block
 			if (white == 1) { // on white list, remove
-				del_whiteitem(&bl_item)
+				del_connitem(get_whitelist(), &bl_item)
 			}
 			if (blocked == 0) {
-				add_blockitem(&bl_item)
+				add_connitem(get_blocklist(),&bl_item)
 			}
 		}
 	}

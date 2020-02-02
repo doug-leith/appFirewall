@@ -72,9 +72,9 @@ class addRuleViewController: NSViewController {
 		}
 		print("addRule adding with: mode=",mode,"app=",app,"domain=",domain)
 		if mode == "blacklist" {
-			add_blockitem2(app, domain)
+			add_connitem2(get_blocklist(),app, domain)
 		} else if mode == "whitelist" {
-			add_whiteitem2(app, domain)
+			add_connitem2(get_whitelist(), app, domain)
 		}
 		// update display and exit
 		parentController?.refresh(timer:nil)

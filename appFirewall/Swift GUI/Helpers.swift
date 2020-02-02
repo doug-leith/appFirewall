@@ -125,13 +125,13 @@ func log_rotate(logName: String) {
 
 func save_state() {
 	save_log(Config.logName)
-	save_blocklist(Config.blockListName); save_whitelist(Config.whiteListName)
+	save_connlist(get_blocklist(),Config.blockListName); save_connlist(get_whitelist(),Config.whiteListName)
 	save_dns_cache(Config.dnsName); save_dns_conn_list(Config.dnsConnListName)
 }
 
 func load_state() {
 	load_log(Config.logName, Config.logTxtName);
-	load_blocklist(Config.blockListName); load_whitelist(Config.whiteListName)
+	load_connlist(get_blocklist(),Config.blockListName); load_connlist(get_whitelist(),Config.whiteListName)
 	load_dns_cache(Config.dnsName);
 	// we distribute app with preconfigured dns_conn cache so that
 	// can guess process names of common apps more quickly
