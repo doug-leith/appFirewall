@@ -40,8 +40,8 @@
 #define CONF_THRESH 0.5 // when confidence in guess of process associated with a connection is less than this then we add a ? next to name in log and disable connection blocking.  decreasing this makes blocking more aggressive.
 
 void init_sniffer_blocker(char* filter_exp);
-void sniffer_blocker_callback(u_char *args, const struct pcap_pkthdr *pkthdr, 	const 			u_char* pkt);
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char* pkt_name);
+void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, int logstats);
 
 // swift
 void start_listener(void);

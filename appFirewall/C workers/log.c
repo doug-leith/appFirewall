@@ -108,7 +108,7 @@ double update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
 		return prev_conf;
 	}
 	// failed, let's walk recent log entries ...
-	char* temp0 = conn_raw_hash(&c);
+	char* temp0 = conn_raw_hash(c);
 	#define RECENT_LOG_LINES 50
 	for (size_t i = 1; i < RECENT_LOG_LINES; i++) {
 		if (i > log_list.list_size) break;
@@ -118,6 +118,7 @@ double update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
 		char* temp1 = conn_raw_hash(&res->raw);
 		if (strcmp(temp0,temp1)==0) {
 			// we've found an entry with the right connection details
+			printf("%0.2f, %s %s\n",res->confidence,res->bl_item.name,name);
 			if ((res->confidence >=0.95) && (strcmp(res->bl_item.name,name)!=0)) {
 				// different process name, and we're v sure of it, move on
 				free(temp1);
@@ -126,7 +127,11 @@ double update_log_by_conn(char* name, conn_raw_t* c, int blocked) {
 			// it could be that the source port number has been recycled
 			// and so this is a different connection, but we've only checked
 			// recent connections so let's take a gamble!
+			// start by removing incorrect hash table entry
+			del_from_htab(&log_list, res);
 			prev_conf = update_log_line(res,name);
+			// and now add new hash table entry
+			add_item_to_htab(&log_list, res);
 			free(temp1);
 			break;
 		}
@@ -171,10 +176,7 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	log_line_t *l = calloc(1,sizeof(log_line_t)+2);
 	strlcpy(l->log_line,str,LOGSTRSIZE);
 	time_t t; time(&t);
-	strftime(str,LOGSTRSIZE,"%b %d %H:%M:%S %Y",localtime(&t));
-	size_t len = strnlen(str,LOGSTRSIZE-1)+1;
-	//if (len > LOGSTRSIZE) len = LOGSTRSIZE;
-	strlcpy(l->time_str, str, len);
+	strftime(l->time_str,LOGSTRSIZE,"%b %d %H:%M:%S %Y",localtime(&t));
 	memcpy(&l->bl_item,bl_item,sizeof(struct bl_item_t));
 	memcpy(&l->raw,raw,sizeof(conn_raw_t));
 	l->blocked = blocked;
@@ -290,7 +292,7 @@ char* get_filter_log_addr_name(int_sw row) {
 static char suggestions[NUM_SUGGESTIONS][MAXDOMAINLEN] = {0};
 static int suggestion_count = 0;
 int search_log_domains(const char* str) {
-	// returns domains in log that start with str (used by addRulw GUI)
+	// returns domains in log that start with str (used by addRule GUI)
 	memset(suggestions,0,MAXDOMAINLEN*NUM_SUGGESTIONS);
 	suggestion_count = 0;
 	for (size_t i=0; i< get_log_size(); i++) {

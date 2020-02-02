@@ -134,17 +134,6 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 		char dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
 		inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 		inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
-		/*char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dns[MAXDOMAINLEN], dst_name[MAXDOMAINLEN];
-		if (strnlen(c->domain,MAXDOMAINLEN)>0) {
-			snprintf(dns,LOGSTRSIZE,"%s (%s)",c->addr_name,c->domain);
-			strlcpy(dst_name,c->domain,MAXDOMAINLEN);
-		} else {
-			strlcpy(dns,c->addr_name,MAXDOMAINLEN);
-			strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
-		}
-		snprintf(str,LOGSTRSIZE,"%s%s → %s:%u", c->name, conf_str, dst_name, cr->dport);
-		snprintf(long_str,LOGSTRSIZE,"%s\t%s:%u -> %s:%u\t(blocked=%d, confidence=%.2f)", c->name, sn, cr->sport, dns, cr->dport,blocked, confidence);
-		append_log(str, long_str, c, cr, blocked, confidence);*/
 		log_connection(cr, c, blocked, confidence, conf_str);
 
 		if (!blocked) {

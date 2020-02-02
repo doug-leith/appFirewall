@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "99F41C43-99ED-4B65-943C-D487F00B05F1",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:appFirewall.xcodeproj",
+        "identifier" : "91ED43D623E5AACC00966771",
+        "name" : "appFirewallTests"
+      }
+    }
+  ],
+  "version" : 1
+}
