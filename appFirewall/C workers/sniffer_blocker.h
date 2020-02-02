@@ -44,8 +44,16 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char*
 void handle_tcp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name, int syn, int synack);
 void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name);
 void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, int logstats);
+void process_conn_waiting_list(void);
 int in_udp_cache(conn_raw_t *cr);
+void clear_udp_cache(void);
 void add_to_udp_cache(conn_raw_t *cr);
+size_t get_waiting_list_size(void);
+void clear_waiting_list(void);
+void add_waiting_list(conn_raw_t *cr);
+
+u_char* payload(u_char* pkt);
+conn_raw_t get_conn_from_pkt(u_char* pkt, int* syn, int* synack);
 
 // swift
 void start_listener(void);

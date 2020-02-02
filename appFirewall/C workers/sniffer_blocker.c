@@ -191,18 +191,30 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 		return;
 }
 
+size_t get_waiting_list_size() {
+	return get_list_size(&waiting_list);
+}
+
+void clear_waiting_list() {
+	clear_list(&waiting_list);
+}
+
+void add_waiting_list(conn_raw_t *cr) {
+	add_item(&waiting_list,cr,sizeof(conn_raw_t));
+}
+
 void process_conn_waiting_list(void) {
 		// try to process waiting conns. called whenever pid info is updated,
 		// so have a hope of being able to remove conns from list
 		
 		TAKE_LOCK(&wait_list_mutex,"process_conn_waiting_list()");
 
-		if (get_list_size(&waiting_list) !=0 ) {
+		if (get_waiting_list_size() !=0 ) {
 			INFO2("waiting list size = %zu, hits=%d, misses=%d\n",get_list_size(&waiting_list),stats.waitinglist_hits,stats.waitinglist_misses);
 		}
 		struct timeval end; gettimeofday(&end, NULL);
 		size_t i = 0;
-		while (i<get_list_size(&waiting_list) ) {
+		while (i<get_waiting_list_size() ) {
 			conn_raw_t cr_w;
 			memcpy(&cr_w,get_list_item(&waiting_list,i),sizeof(conn_raw_t));
 			pthread_mutex_unlock(&wait_list_mutex);
@@ -265,7 +277,6 @@ void process_conn_waiting_list(void) {
 			}
 		}
 		pthread_mutex_unlock(&wait_list_mutex);
-
 }
 
 u_char* payload(u_char* pkt) {
@@ -317,9 +328,6 @@ conn_raw_t get_conn_from_pkt(u_char* pkt, int* syn, int* synack) {
 		*syn = 0; *synack = 0;
 	} else if (proto == IPPROTO_TCP) {
 		struct libnet_tcp_hdr *tcp = (struct libnet_tcp_hdr *)nexth;
-		char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-		inet_ntop(af, &src, sn, INET6_ADDRSTRLEN);
-		inet_ntop(af, &src, dn, INET6_ADDRSTRLEN);
 		*syn = (tcp->th_flags & (TH_SYN)) && !(tcp->th_flags & (TH_ACK));
 		*synack = (tcp->th_flags & (TH_SYN)) && (tcp->th_flags & (TH_ACK));
 		cr.af=af; cr.udp=0;
@@ -358,6 +366,11 @@ int in_udp_cache(conn_raw_t *cr) {
 	return 0; // no match
 }
 
+void clear_udp_cache() {
+	udp_cache_size = 0;
+	udp_cache_start = 0;
+}
+
 void add_to_udp_cache(conn_raw_t *cr) {
 	if (udp_cache_size==MAXUDP) {
 		udp_cache_start++; udp_cache_size--;
@@ -366,7 +379,6 @@ void add_to_udp_cache(conn_raw_t *cr) {
 	udp_cache[end].af=cr->af; udp_cache[end].sport=cr->sport;
 	udp_cache[end].dport=cr->dport; udp_cache[end].dst=cr->dst_addr;
 	udp_cache_size++;
-
 }
 
 void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
@@ -442,7 +454,7 @@ void handle_tcp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name, int syn, int s
 		// failed to look up PID name
 		// put into waiting list to try again
 		TAKE_LOCK(&wait_list_mutex,"listener()");
-		add_item(&waiting_list,cr,sizeof(conn_raw_t));
+		add_waiting_list(cr);
 		pthread_mutex_unlock(&wait_list_mutex);
 	} else {
 		// got PID name, proceed with processing ...

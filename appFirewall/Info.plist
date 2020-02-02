@@ -50,7 +50,7 @@
 	<key>SMPrivilegedExecutables</key>
 	<dict>
 		<key>com.leith.appFirewall-Helper</key>
-		<string>identifier &quot;com.leith.appFirewall-Helper&quot;</string>
+		<string>identifier "com.leith.appFirewall-Helper"</string>
 	</dict>
 </dict>
 </plist>
