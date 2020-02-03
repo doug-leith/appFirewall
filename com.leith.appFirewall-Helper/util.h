@@ -50,6 +50,7 @@ FILE* run_cmd_pipe(char* cmd, char* arg, int *pid);
 int run_cmd(char* cmd, int t);
 int readline_timed(char* buf, int len, FILE* fp, int t);
 
+// defs for functions in codesign.m
 int check_signature(int pid, int port);
 int get_sock_pid(int sock, int port);
 int check_file_signature(char* path);

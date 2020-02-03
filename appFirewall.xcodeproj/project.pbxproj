@@ -86,6 +86,19 @@
 		91FDE8B623E1A8C20097BBCA /* dnscrypt-proxy.toml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */; };
 		91FDE8C223E1AD800097BBCA /* dnscrypt-proxy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE8AB23E1A6CF0097BBCA /* dnscrypt-proxy */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		91FE188923E699D4004A5CF9 /* conn_list.c in Sources */ = {isa = PBXBuildFile; fileRef = 91FE188823E699D4004A5CF9 /* conn_list.c */; };
+		91FE18A223E81F23004A5CF9 /* helperTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 91FE18A123E81F23004A5CF9 /* helperTests.m */; };
+		91FE18A823E81F90004A5CF9 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C262372FF7E002E50A8 /* main.c */; };
+		91FE18A923E81FA6004A5CF9 /* tests.m in Sources */ = {isa = PBXBuildFile; fileRef = 91FE188B23E81D8F004A5CF9 /* tests.m */; };
+		91FE18AA23E81FF1004A5CF9 /* libnet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607C252372FF7E002E50A8 /* libnet.a */; };
+		91FE18AB23E81FFC004A5CF9 /* pcap_sniffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F672237BB1BB00600D37 /* pcap_sniffer.c */; };
+		91FE18AC23E81FFF004A5CF9 /* dtrace.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F66F237BB18600600D37 /* dtrace.c */; };
+		91FE18AD23E82001004A5CF9 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F675237BB20F00600D37 /* util.c */; };
+		91FE18AE23E82004004A5CF9 /* codesign.m in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.m */; };
+		91FE18AF23E82007004A5CF9 /* send_rst.c in Sources */ = {isa = PBXBuildFile; fileRef = 9139F678237BB9A800600D37 /* send_rst.c */; };
+		91FE18B023E82009004A5CF9 /* catch_escapee.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E174238927A2007002CB /* catch_escapee.c */; };
+		91FE18B123E8200C004A5CF9 /* cmd.c in Sources */ = {isa = PBXBuildFile; fileRef = 91B976FD23D3108A00B4BE16 /* cmd.c */; };
+		91FE18B223E8203A004A5CF9 /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
+		91FE18B323E82041004A5CF9 /* libdtrace.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B5909923925620000F418D /* libdtrace.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -313,6 +326,13 @@
 		91FDE8B323E1A7E80097BBCA /* dnscrypt_proxy.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = dnscrypt_proxy.entitlements; sourceTree = "<group>"; };
 		91FE188723E699D4004A5CF9 /* conn_list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = conn_list.h; sourceTree = "<group>"; };
 		91FE188823E699D4004A5CF9 /* conn_list.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = conn_list.c; sourceTree = "<group>"; };
+		91FE188B23E81D8F004A5CF9 /* tests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = tests.m; sourceTree = "<group>"; };
+		91FE189523E81E46004A5CF9 /* helperTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = helperTests.m; sourceTree = "<group>"; };
+		91FE189723E81E46004A5CF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		91FE189F23E81F22004A5CF9 /* helperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = helperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		91FE18A123E81F23004A5CF9 /* helperTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = helperTests.m; sourceTree = "<group>"; };
+		91FE18A323E81F23004A5CF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		91FE18A723E81F74004A5CF9 /* TestPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestPlan.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -358,6 +378,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		91FE189C23E81F22004A5CF9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91FE18B323E82041004A5CF9 /* libdtrace.tbd in Frameworks */,
+				91FE18B223E8203A004A5CF9 /* libpcap.tbd in Frameworks */,
+				91FE18AA23E81FF1004A5CF9 /* libnet.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -376,6 +406,8 @@
 				91C0DF9723B0B05500E5215B /* appFirewall-loginLaunch */,
 				91FDE8AC23E1A6CF0097BBCA /* dnscrypt-proxy */,
 				91ED43D823E5AACC00966771 /* appFirewallTests */,
+				91FE189423E81E46004A5CF9 /* helperTests */,
+				91FE18A023E81F23004A5CF9 /* helperTests */,
 				91607BB0236AB280002E50A8 /* Products */,
 				91607BCB236AD6BA002E50A8 /* Frameworks */,
 			);
@@ -389,6 +421,7 @@
 				91C0DF9623B0B05500E5215B /* appFirewall-loginLaunch.app */,
 				91FDE8AB23E1A6CF0097BBCA /* dnscrypt-proxy */,
 				91ED43D723E5AACC00966771 /* appFirewallTests.xctest */,
+				91FE189F23E81F22004A5CF9 /* helperTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -455,6 +488,7 @@
 				9135AEF823C3DA7700BBC39F /* conn.h */,
 				91B976FC23D3108A00B4BE16 /* cmd.h */,
 				91B976FD23D3108A00B4BE16 /* cmd.c */,
+				91FE188D23E81DDB004A5CF9 /* tests */,
 			);
 			path = "com.leith.appFirewall-Helper";
 			sourceTree = "<group>";
@@ -578,6 +612,33 @@
 			path = "dnscrypt-proxy";
 			sourceTree = "<group>";
 		};
+		91FE188D23E81DDB004A5CF9 /* tests */ = {
+			isa = PBXGroup;
+			children = (
+				91FE188B23E81D8F004A5CF9 /* tests.m */,
+				91FE18A723E81F74004A5CF9 /* TestPlan.xctestplan */,
+			);
+			path = tests;
+			sourceTree = "<group>";
+		};
+		91FE189423E81E46004A5CF9 /* helperTests */ = {
+			isa = PBXGroup;
+			children = (
+				91FE189523E81E46004A5CF9 /* helperTests.m */,
+				91FE189723E81E46004A5CF9 /* Info.plist */,
+			);
+			path = helperTests;
+			sourceTree = "<group>";
+		};
+		91FE18A023E81F23004A5CF9 /* helperTests */ = {
+			isa = PBXGroup;
+			children = (
+				91FE18A123E81F23004A5CF9 /* helperTests.m */,
+				91FE18A323E81F23004A5CF9 /* Info.plist */,
+			);
+			path = helperTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -673,6 +734,23 @@
 			productReference = 91FDE8AB23E1A6CF0097BBCA /* dnscrypt-proxy */;
 			productType = "com.apple.product-type.tool";
 		};
+		91FE189E23E81F22004A5CF9 /* helperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 91FE18A423E81F23004A5CF9 /* Build configuration list for PBXNativeTarget "helperTests" */;
+			buildPhases = (
+				91FE189B23E81F22004A5CF9 /* Sources */,
+				91FE189C23E81F22004A5CF9 /* Frameworks */,
+				91FE189D23E81F22004A5CF9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = helperTests;
+			productName = helperTests;
+			productReference = 91FE189F23E81F22004A5CF9 /* helperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -700,6 +778,9 @@
 					91FDE8AA23E1A6CF0097BBCA = {
 						CreatedOnToolsVersion = 11.3.1;
 					};
+					91FE189E23E81F22004A5CF9 = {
+						CreatedOnToolsVersion = 11.3.1;
+					};
 				};
 			};
 			buildConfigurationList = 91607BAA236AB280002E50A8 /* Build configuration list for PBXProject "appFirewall" */;
@@ -720,6 +801,7 @@
 				91C0DF9523B0B05500E5215B /* appFirewall-loginLaunch */,
 				91FDE8AA23E1A6CF0097BBCA /* dnscrypt-proxy */,
 				91ED43D623E5AACC00966771 /* appFirewallTests */,
+				91FE189E23E81F22004A5CF9 /* helperTests */,
 			);
 		};
 /* End PBXProject section */
@@ -751,6 +833,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		91ED43D523E5AACC00966771 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91FE189D23E81F22004A5CF9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -846,6 +935,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91FE189B23E81F22004A5CF9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91FE18A923E81FA6004A5CF9 /* tests.m in Sources */,
+				91FE18A823E81F90004A5CF9 /* main.c in Sources */,
+				91FE18AC23E81FFF004A5CF9 /* dtrace.c in Sources */,
+				91FE18A223E81F23004A5CF9 /* helperTests.m in Sources */,
+				91FE18AB23E81FFC004A5CF9 /* pcap_sniffer.c in Sources */,
+				91FE18B023E82009004A5CF9 /* catch_escapee.c in Sources */,
+				91FE18B123E8200C004A5CF9 /* cmd.c in Sources */,
+				91FE18AF23E82007004A5CF9 /* send_rst.c in Sources */,
+				91FE18AE23E82004004A5CF9 /* codesign.m in Sources */,
+				91FE18AD23E82001004A5CF9 /* util.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1301,6 +1407,51 @@
 			};
 			name = Release;
 		};
+		91FE18A523E81F23004A5CF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				INFOPLIST_FILE = helperTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leith.helperTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		91FE18A623E81F23004A5CF9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
+				INFOPLIST_FILE = helperTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leith.helperTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1354,6 +1505,15 @@
 			buildConfigurations = (
 				91FDE8B023E1A6CF0097BBCA /* Debug */,
 				91FDE8B123E1A6CF0097BBCA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		91FE18A423E81F23004A5CF9 /* Build configuration list for PBXNativeTarget "helperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91FE18A523E81F23004A5CF9 /* Debug */,
+				91FE18A623E81F23004A5CF9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
