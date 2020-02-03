@@ -49,6 +49,7 @@ int in_udp_cache(conn_raw_t *cr);
 void clear_udp_cache(void);
 void add_to_udp_cache(conn_raw_t *cr);
 size_t get_waiting_list_size(void);
+void init_waiting_list(void);
 void clear_waiting_list(void);
 void add_waiting_list(conn_raw_t *cr);
 

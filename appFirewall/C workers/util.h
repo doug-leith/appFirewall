@@ -99,4 +99,8 @@ int get_error_force(void);
 void set_error_msg(char* msg, int force);
 int check_for_error(void);
 
+// flag when testing
+void set_unit_testing(void);
+int get_unit_testing(void);
+
 #endif

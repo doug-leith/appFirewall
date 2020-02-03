@@ -340,7 +340,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 		// set up handler to catch errors.
 		setup_sig_handlers()
-		
+	
+		// flag to C code when we're testing
+		if unitTesting() {
+				print("unit testing: true")
+				set_unit_testing()
+		}
+
 		// install appFirewall-Helper, if not already installed
 		UserDefaults.standard.register(defaults: ["force_helper_restart":false])
 		let force = UserDefaults.standard.bool(forKey: "force_helper_restart")

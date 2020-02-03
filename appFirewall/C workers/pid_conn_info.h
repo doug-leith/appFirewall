@@ -51,8 +51,10 @@ typedef struct pid_info_t {
 	int (*proc_pidinfo)(int pid, int flavor, uint64_t arg, void *buffer, int buffersize);
 	int (*proc_pidfdinfo)(int pid, int fd, int flavor, void * buffer, int buffersize);
 	int (*proc_listpids)(uint32_t type, uint32_t typeinfo, void *buffer, int buffersize);
+	void (*start_catch_escapee)(conn_t *e);
+	int (*is_ppp)(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr);
 } pid_info_t;
-#define PID_INFO_INITIALSER {LIST_INITIALISER,LIST_INITIALISER,LIST_INITIALISER,1,LIST_INITIALISER,0,&proc_pidinfo,&proc_pidfdinfo,&proc_listpids}
+#define PID_INFO_INITIALSER {LIST_INITIALISER,LIST_INITIALISER,LIST_INITIALISER,1,LIST_INITIALISER,0,&proc_pidinfo,&proc_pidfdinfo,&proc_listpids,&start_catch_escapee,&is_ppp}
 
 pid_info_t* get_pid_info(void);
 int get_pid_name(int pid, char* name, uint32_t *status);
@@ -70,6 +72,7 @@ void set_pid_watcher_hook(void (*hook)(void));
 int get_pid_changed(void);
 void clear_pid_changed(void);
 void find_escapees(void);
+void start_catch_escapee(conn_t *e);
 void *catch_escapee(void *ptr);
 
 //swift

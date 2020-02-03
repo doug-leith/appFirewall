@@ -8,6 +8,7 @@
 
 #import <XCTest/XCTest.h>
 #include "pid_conn_info.h"
+#include "conn_list.h"
 
 @interface pid_conn_info_test : XCTestCase
 
@@ -65,6 +66,16 @@ int proc_listpids_stub(uint32_t type, uint32_t typeinfo, void *buffer, int buffe
 	p = (pid_t*)buffer;
 	p[0] = listpids_pid;
 	return sizeof(pid_t);
+}
+conn_t *e_stub=NULL;
+int called_stub = 0;
+void start_catch_escapee_stub(conn_t *e){
+	called_stub = 1;
+	e_stub = e;
+}
+int is_ppp_val = 0;
+int is_ppp_stub(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr){
+	return is_ppp_val;
 }
 
 @implementation pid_conn_info_test
@@ -231,15 +242,66 @@ int proc_listpids_stub(uint32_t type, uint32_t typeinfo, void *buffer, int buffe
 	XCTAssertEqual(strcmp(resc2.dst_addr_name,stub_dst_addr),0);
 	//printf("**resc2:%s\n",resc2.name);
 	XCTAssertEqual(strcmp(resc2.name,"test"),0);
-
-
-	//to do: need to add stub for catch_escapee() to test:
-	//void find_escapees(void);
 	
 	// hard to test these since they involve creating threads:
 	//void start_pid_watcher(void);
 	//void signal_pid_watcher(int force, int full_refresh);
 	//void set_pid_watcher_hook(void (*hook)(void));
-	//void *catch_escapee(void *ptr);
 }
+
+- (void)testEscapees {
+	pid_info_t *pid_info = get_pid_info();
+	pid_info->start_catch_escapee = &start_catch_escapee_stub;
+	pid_info->is_ppp = &is_ppp_stub;
+	
+	init_pid_lists();
+	// called with empty pid list
+	find_escapees();
+	XCTAssertEqual(called_stub,0);
+
+	// item on pid list, empty log. not blocked
+	conn_raw_t cr; memset(&cr,1,sizeof(cr)); cr.af=AF_INET; cr.udp=0;
+	conn_t c; c.raw = cr;
+	c.pid = 10; c.fd=23; strcpy(c.name,"test");
+	strcpy(c.domain,"testdomain");
+	add_item(&pid_info->pid_list,&c,sizeof(c));
+	set_path("/tmp/");
+	load_log("empty", "txt_log");
+	load_connlist(get_blocklist(),"empty");
+	load_connlist(get_whitelist(),"empty");
+	called_stub = 0; 	is_ppp_val=0;
+	find_escapees();
+	XCTAssertEqual(called_stub,0);
+
+	// item is now on blacklist
+	bl_item_t item;
+	strcpy(item.name,"test"); strcpy(item.domain,"testdomain");strcpy(item.addr_name,"testaddr");
+	add_connitem(get_blocklist(),&item);
+	XCTAssertEqual(is_blocked(&item),1);
+	load_log("empty", "txt_log");
+	pid_info->escapee_thread_count = 0;
+	called_stub = 0;
+	//printf("***escapee\n");
+	find_escapees();
+	XCTAssertEqual(get_log_size(),1); // new log entry
+	XCTAssertEqual(get_list_size(&pid_info->escapee_list),1); // new escapee list entry
+	XCTAssertEqual(called_stub,1); // catcher called
+	XCTAssertNotEqual(e_stub,NULL);
+	XCTAssertEqual(e_stub->raw.af,cr.af);
+	XCTAssertEqual(e_stub->raw.sport,cr.sport);
+	XCTAssertEqual(e_stub->raw.dport,cr.dport);
+	XCTAssertEqual(e_stub->raw.udp,cr.udp);
+	XCTAssertEqual(memcmp(&e_stub->raw.src_addr,&cr.src_addr,sizeof(cr.src_addr)),0);
+	XCTAssertEqual(memcmp(&e_stub->raw.dst_addr,&cr.src_addr,sizeof(cr.dst_addr)),0);
+
+	// ignore vpn conns
+	called_stub = 0;
+	is_ppp_val=1; // vpn
+	find_escapees();
+	XCTAssertEqual(called_stub,0);
+
+	//void *catch_escapee(void *ptr);
+
+}
+
 @end

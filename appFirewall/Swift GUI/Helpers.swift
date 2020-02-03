@@ -536,3 +536,9 @@ func pgrep(Name: String)->Int {
 	print(count)
 	return count*/
 }
+
+func unitTesting()->Bool {
+	//return UserDefaults.standard.bool(forKey: "testing")
+	return (NSClassFromString("XCTest") != nil)
+	//return ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+}

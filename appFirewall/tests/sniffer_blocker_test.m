@@ -14,6 +14,7 @@
 
 #include "sniffer_blocker.h"
 #include "dns_sniffer.h"
+#include "conn_list.h"
 
 @implementation sniffer_blocker_test
 
@@ -33,6 +34,9 @@
 	
 	// flush dns cache
 	load_dns_cache("empty"); // will clear cache
+	// clear blacklists
+	load_connlist(get_blocklist(),"empty");
+	load_connlist(get_whitelist(),"empty");
 
 	// basic type conversion
 	conn_raw_t c; memset(&c,1,sizeof(c));
@@ -165,7 +169,7 @@
 	// TCP syn-ack with unknown process name
 	set_path("/tmp/");
 	load_log("empty", "txt_log");
-	clear_waiting_list();
+	init_waiting_list();
 	load_dns_cache("empty"); // will clear cache
 	handle_tcp_conn(&c, pkt_pid, NOTFOUND, 0, 1);
 	XCTAssertEqual(get_log_size(),0);

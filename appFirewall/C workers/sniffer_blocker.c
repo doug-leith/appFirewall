@@ -199,6 +199,10 @@ void clear_waiting_list() {
 	clear_list(&waiting_list);
 }
 
+void init_waiting_list() {
+	init_list(&waiting_list,conn_raw_hash,NULL,1,-1,"waiting_list");
+}
+
 void add_waiting_list(conn_raw_t *cr) {
 	add_item(&waiting_list,cr,sizeof(conn_raw_t));
 }
@@ -496,7 +500,7 @@ void *listener(void *ptr) {
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
 
-	init_list(&waiting_list,conn_raw_hash,NULL,1,-1,"waiting_list");
+	init_waiting_list();
 	//init_dns_conn_list();
 	
 	// set up handler for waiting list (connections for which we didn't manage to

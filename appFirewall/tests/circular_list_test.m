@@ -72,7 +72,7 @@ char* test_hash(const void *it) {
 	XCTAssertNotEqual(&l,NULL);
 	XCTAssertEqual(get_list_size(&l),0);
 	char *item="test", *item2="test2";
-	void* res = add_item(&l, item, strlen(item));
+	void* res = add_item(&l, item, strlen(item)+1);
 	XCTAssertEqual(res,NULL);
 	XCTAssertEqual(get_list_size(&l),1);
 	res = get_list_item(&l, 0);
@@ -98,7 +98,7 @@ char* test_hash(const void *it) {
 	XCTAssertEqual(find_item_row(&l,item2),1); // lookup for non-existent item
 	
 	// add second and fetch
-	res = add_item(&l, item2, strlen(item2));
+	res = add_item(&l, item2, strlen(item2)+1);
 	XCTAssertEqual(res,NULL);
 	XCTAssertEqual(get_list_size(&l),2);
 	res = get_list_item(&l, 0);
@@ -152,13 +152,13 @@ char* test_hash(const void *it) {
 	XCTAssertNotEqual(&l,NULL);
 	XCTAssertEqual(get_list_size(&l),0);
 	char *item="test", *item2="test3", *item3="test2";
-	void* res = add_item(&l, item, strlen(item));
+	void* res = add_item(&l, item, strlen(item)+1);
 	XCTAssertEqual(get_list_size(&l),1);
 	res = get_list_item(&l, 0);
 	XCTAssertNotEqual(res,NULL);
 	XCTAssertEqual(strcmp((char*)res,item),0);
 
-	res = add_item(&l, item2, strlen(item2));
+	res = add_item(&l, item2, strlen(item2)+1);
 	XCTAssertEqual(get_list_size(&l),2);
 	res = get_list_item(&l, 0);
 	XCTAssertNotEqual(res,NULL);
@@ -167,7 +167,7 @@ char* test_hash(const void *it) {
 	XCTAssertNotEqual(res,NULL);
 	XCTAssertEqual(strcmp((char*)res,item2),0);
 
-	res = add_item(&l, item3, strlen(item3));
+	res = add_item(&l, item3, strlen(item3)+1);
 	XCTAssertEqual(get_list_size(&l),2);
 	res = get_list_item(&l, 0);
 	XCTAssertNotEqual(res,NULL);
@@ -189,10 +189,12 @@ char* test_hash(const void *it) {
 - (void)testSaveList {
 	list_t l = LIST_INITIALISER;
 	init_list(&l, test_hash, NULL, 1, -1, "test");
-	char *item="test", *item2="test3", *item3="test2";
-	void* res = add_item(&l, item, strlen(item));
-	res = add_item(&l, item2, strlen(item3));
-	res = add_item(&l, item3, strlen(item3));
+	char item[32], item2[32], item3[32];
+	strcpy(item,"test"); strcpy(item2,"test3"); strcpy(item3,"test2");
+	//char *item="test", *item2="test3", *item3="test2";
+	void* res = add_item(&l, item, 32);
+	res = add_item(&l, item2, 32);
+	res = add_item(&l, item3, 32);
 	save_list(&l, "/tmp/list.dat", 32, 0);
 	
 	list_t l2 = LIST_INITIALISER;

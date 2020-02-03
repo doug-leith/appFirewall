@@ -357,3 +357,11 @@ int is_ppp(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr) {
 	return -1; // interface is down or has gone away
 }
 
+static int unit_testing = 0;
+void set_unit_testing() {
+	unit_testing = 1;
+}
+
+int get_unit_testing() {
+	return unit_testing;
+}

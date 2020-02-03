@@ -327,6 +327,9 @@ err:
 
 void start_helper_listeners(int_sw dtrace, int_sw nstat) {
 	// fire up thread that listens for pkts sent by helper
+	
+	if (get_unit_testing()) return; // don't start helpers when testing
+	
 	start_listener(); // pkt sniffer
 	if (dtrace) start_dtrace_listener(); // dtrace
 	if (nstat) start_netstats();

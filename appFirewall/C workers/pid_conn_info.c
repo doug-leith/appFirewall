@@ -615,12 +615,14 @@ void find_escapees() {
 			int is_new_escapee = (!in_list(&pid_info.escapee_list,&c,0));
 			pthread_mutex_unlock(&escapee_mutex);
 			// we don't try to catch VPN conns, openvpn (at least) blocks RSTs-to-self
-			int vpn = is_ppp(c.raw.af, &c.raw.src_addr, &c.raw.dst_addr);
+			int vpn = (pid_info.is_ppp)(c.raw.af, &c.raw.src_addr, &c.raw.dst_addr);
 			//vpn=1; //disable catching
 			int admissible = (l==NULL) || ((l!=NULL) && (l->escapee_count < MAX_ESCAPEE_ATTEMPTS));
+			//printf("**is_new_escapee %d, vpn %d, admissible %d count %d\n",is_new_escapee,vpn,admissible,pid_info.escapee_thread_count);
 			if (is_new_escapee && !vpn && admissible && (pid_info.escapee_thread_count<ESCAPEEMAX)) {
 				conn_t *e = malloc(sizeof(conn_t));
 				memcpy(e,&c,sizeof(conn_t));
+				//printf("udp %d/%d\n",c.raw.udp,e->raw.udp);
 				// get the initial seq number of conn from log, if possible.
 				if (l==NULL) { // not in the log, conn started before app started up
 					//INFO("escapee not in log %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp,l==NULL);
@@ -660,8 +662,9 @@ void find_escapees() {
 				INFO("escapee added %s(%d): %s:%u -> %s(%s):%u udp=%d,l=%d,vpn=%d\n", c.name, c.pid, c.src_addr_name,c.raw.sport, c.domain, c.dst_addr_name, c.raw.dport, c.raw.udp, l==NULL,vpn);
 				
 				// and ask helper to catch this "escapee" connection
-				pthread_t escapee_thread;
-				pthread_create(&escapee_thread,NULL,catch_escapee,e);
+				//pthread_t escapee_thread;
+				//pthread_create(&escapee_thread,NULL,catch_escapee,e);
+				(pid_info.start_catch_escapee)(e);
 				cm_add_sample_lock(&stats.cm_escapee_thread_count,pid_info.escapee_thread_count);
 				// escapee_thread will now remove from escapee_list and free(e)
 			}
@@ -673,6 +676,11 @@ void find_escapees() {
 }
 
 #include "helper.h"
+void start_catch_escapee(conn_t *e) {
+	pthread_t escapee_thread;
+	pthread_create(&escapee_thread,NULL,catch_escapee,e);
+}
+
 void *catch_escapee(void *ptr) {
 	TAKE_LOCK(&escapee_mutex,"catch_escapee");
 	pid_info.escapee_thread_count++;
