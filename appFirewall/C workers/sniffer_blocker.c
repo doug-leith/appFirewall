@@ -389,6 +389,9 @@ void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
 	// don't log localhost connections
 	if ((cr->af==AF_INET) && (is_ipv4_localhost(&cr->src_addr))) return;
 	if ((cr->af==AF_INET6) && (is_ipv6_localhost(&cr->src_addr))) return;
+	// don't log mDNS local traffic
+	if ((cr->sport == 5353)||(cr->dport==5353)) return;
+	
 	// don't log existing UDP connections
 	if (in_udp_cache(cr)) return;
 	
@@ -441,6 +444,10 @@ void handle_tcp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name, int syn, int s
 		WARN("sniffed tcp pkt is not syn/syn-ack\n");
 		return;
 	}
+	// don't log localhost connections
+	if ((cr->af==AF_INET) && (is_ipv4_localhost(&cr->src_addr))) return;
+	if ((cr->af==AF_INET6) && (is_ipv6_localhost(&cr->src_addr))) return;
+
 	// try to get PID name and domain for this connection ...
 	bl_item_t c = create_blockitem_from_addr(cr, syn, pkt_pid, pkt_name);
 	
