@@ -12,7 +12,7 @@
 
 @end
 
-#include "log.h"
+#include "../C workers/log.h"
 
 @implementation log_test
 

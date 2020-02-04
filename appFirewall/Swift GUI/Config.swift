@@ -30,7 +30,7 @@ class Config: NSObject {
 	static let enableDtrace = 0 // disable, replaced by nstat
 	static let enableNstat = 0 // disable, replaced by pktap
 	static let enableUpdates = 1 // disable for testing
-	static let enableConsentForm = 0 // disable for testing
+	static let enableConsentForm = 1 // disable for testing
 	static let testFirst = false // enable for testing first run behaviour
 	static let testUpdates = false // enable for testing download of updates
 
