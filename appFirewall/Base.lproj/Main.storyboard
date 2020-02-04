@@ -763,7 +763,7 @@
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="VF7-ky-Vo1" viewBased="YES" id="yku-Jn-JpS">
-                                            <rect key="frame" x="0.0" y="0.0" width="658" height="246"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="648" height="246"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <size key="intercellSpacing" width="3" height="2"/>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -848,11 +848,11 @@
                                                     </textFieldCell>
                                                     <prototypeCellViews>
                                                         <tableCellView id="43U-co-vaQ">
-                                                            <rect key="frame" x="556" y="1" width="100" height="17"/>
+                                                            <rect key="frame" x="556" y="1" width="90" height="17"/>
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                         </tableCellView>
                                                         <button identifier="ButtonCell" verticalHuggingPriority="750" id="mfE-NX-Vxa" customClass="blButton" customModule="appFirewall" customModuleProvider="target">
-                                                            <rect key="frame" x="556" y="20" width="100" height="32"/>
+                                                            <rect key="frame" x="556" y="20" width="90" height="32"/>
                                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                             <buttonCell key="cell" type="push" title="Button" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="5ye-eN-WNY">
                                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -878,7 +878,7 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                                 <tableHeaderView key="headerView" id="VF7-ky-Vo1">
-                                    <rect key="frame" x="0.0" y="0.0" width="658" height="25"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="648" height="25"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </tableHeaderView>
                             </scrollView>
@@ -1282,8 +1282,8 @@
         <scene sceneID="bq9-QL-vh0">
             <objects>
                 <viewController title="Settings" id="XPy-PT-yGD" customClass="SettingsViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" id="t7c-TO-bAv">
-                        <rect key="frame" x="0.0" y="0.0" width="600" height="346"/>
+                    <view key="view" misplaced="YES" id="t7c-TO-bAv">
+                        <rect key="frame" x="0.0" y="0.0" width="612" height="346"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Wb7-4A-Hag">
@@ -1327,8 +1327,8 @@
                                 </connections>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8cJ-0h-doJ">
-                                <rect key="frame" x="40" y="123" width="184" height="18"/>
-                                <buttonCell key="cell" type="check" title="Block QUIC (Experimental)" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="KFp-N0-gzf">
+                                <rect key="frame" x="40" y="123" width="196" height="18"/>
+                                <buttonCell key="cell" type="check" title="Block QUIC (Recommended)" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="KFp-N0-gzf">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
@@ -1337,7 +1337,7 @@
                                 </connections>
                             </button>
                             <button horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NP7-KU-Dqg" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
-                                <rect key="frame" x="228" y="118" width="25" height="25"/>
+                                <rect key="frame" x="240" y="118" width="25" height="25"/>
                                 <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="oTA-gP-I34">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1347,8 +1347,8 @@
                                 </connections>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0eU-PF-O5m">
-                                <rect key="frame" x="40" y="82" width="157" height="19"/>
-                                <buttonCell key="cell" type="check" title="Use DNS-over-HTTPS" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="Toe-w4-vx7">
+                                <rect key="frame" x="40" y="82" width="261" height="19"/>
+                                <buttonCell key="cell" type="check" title="Use DNS-over-HTTPS (Recommended)" bezelStyle="regularSquare" imagePosition="right" state="on" inset="2" id="Toe-w4-vx7">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
@@ -1357,7 +1357,7 @@
                                 </connections>
                             </button>
                             <button horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mdP-4p-EVU" customClass="helpButton" customModule="appFirewall" customModuleProvider="target">
-                                <rect key="frame" x="202" y="78" width="25" height="25"/>
+                                <rect key="frame" x="306" y="78" width="25" height="25"/>
                                 <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="KBv-eb-iwk">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
