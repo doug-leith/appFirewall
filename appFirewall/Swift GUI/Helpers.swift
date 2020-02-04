@@ -173,13 +173,13 @@ func restart_app() {
 	// flag to app that its been restarted
 	UserDefaults.standard.set(true, forKey: "restart")
 	// relaunch app
-	//NSWorkspace.shared.launchApplication("appFirewall")
-	let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
+	NSWorkspace.shared.launchApplication("appFirewall")
+	/*let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
 	let path = url.deletingLastPathComponent().deletingLastPathComponent().absoluteString
 	let task = Process()
 	task.launchPath = "/usr/bin/open"
 	task.arguments = [path]
-	task.launch()
+	task.launch()*/
 	
 	// and stop our copy of app
   DispatchQueue.main.async{
