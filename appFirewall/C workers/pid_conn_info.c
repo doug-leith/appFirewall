@@ -595,30 +595,27 @@ int refresh_active_conns(int full_refresh) {
 		int pid = pids[j];
 		// get app name associated with process
 		// this call consumes around 10% of executiin time of refresh_active_conns()
-		char name[MAXCOMLEN];
-		if (get_pid_name(pid, name, NULL)<0) {
+		pid_path_name_t path_name; memset(&path_name,0,sizeof(pid_path_name_t));
+		if (get_pid_name(pid, path_name.name, NULL)<0) {
 			// problem getting name for PID, probably process has stopped
 			// between call to proc_listpids() above and our call to get_pid_name()
 			continue;
 		}
 		// add path to executable to table (doesn't change, so no need to
 		// do expensive syscall every time)
-		pid_path_name_t path_name; memset(&path_name,0,sizeof(pid_path_name_t));
-		strlcpy(path_name.name,name,MAXCOMLEN);
 		if (!in_list(&pid_info.pid_path_list,&path_name,0)) {
 			// new process, get the executable path
 			if (get_pid_path(pid, path_name.path, PROC_PIDPATHINFO_MAXSIZE+1)==0) {
-				//printf("pid=%d name=%s path=%s\n",pid,path_name.name,path_name.path);
 				add_item(&pid_info.pid_path_list,&path_name,sizeof(pid_path_name_t));
 			} else {
-				//error
+				//error, probably process has stopped.  not fatal, continue on
 			}
 		}
 		
 		// this call to find_fds() consumes >75% of execution time of
 		// refresh_active_conns()
 		TAKE_LOCK(&pid_mutex,"find_fds pid_mutex");
-		if (find_fds(pid, name, &new_pid_list, full_refresh)<0) {
+		if (find_fds(pid, path_name.name, &new_pid_list, full_refresh)<0) {
 			pthread_mutex_unlock(&pid_mutex);
 			free_list(&new_pid_list);
 			return 0;
