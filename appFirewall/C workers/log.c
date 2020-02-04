@@ -203,7 +203,7 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	free(l); // free our temp copy
 }
 
-void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence, char* conf_str) {
+void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence, char* conf_str, char* service, char* path) {
 	char str[LOGSTRSIZE], long_str[LOGSTRSIZE], dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
 	inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 	inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
@@ -215,8 +215,9 @@ void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence
 		strlcpy(dns,c->addr_name,MAXDOMAINLEN);
 		strlcpy(dst_name,c->addr_name,MAXDOMAINLEN);
 	}
-	snprintf(str, LOGSTRSIZE, "%s%s → %s:%u", c->name, conf_str, dst_name, cr->dport);
-	snprintf(long_str, LOGSTRSIZE, "%s\t%s:%u -> %s:%u\t(blocked=%d, confidence=%.2f)", c->name, sn, cr->sport, dns, cr->dport, blocked, confidence);
+	snprintf(str, LOGSTRSIZE, "%s%s → %s%s:%u", c->name, conf_str, service, dst_name, cr->dport);
+	if (path==NULL) path="";
+	snprintf(long_str, LOGSTRSIZE, "%s\t%s%s:%u -> %s:%u\t(blocked=%d, confidence=%.2f)\t%s", c->name, service, sn, cr->sport, dns, cr->dport, blocked, confidence, path);
 	append_log(str, long_str, c, cr, blocked, confidence);
 }
 

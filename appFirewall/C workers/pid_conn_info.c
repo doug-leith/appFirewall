@@ -347,6 +347,29 @@ int get_pid_name(int pid, char* name, uint32_t *status) {
 	return 0;
 }
 
+int get_pid_path(int pid, char* path, int size) {
+	// use syscall to get path of executable associated with pid
+	char pathbuf[PROC_PIDPATHINFO_MAXSIZE+1];
+	memset(pathbuf,0,PROC_PIDPATHINFO_MAXSIZE+1);
+	int res = proc_pidpath(pid, pathbuf, PROC_PIDPATHINFO_MAXSIZE);
+	if (res <= 0) { // error, likely pid has gone away
+		//WARN("get_pid_path(): %s\n",strerror(errno));
+		return -1;
+	}
+	strlcpy(path,pathbuf,size);
+	return 0;
+}
+
+char* get_name_path(char* name) {
+	// get executable path associated with process name
+	pid_path_name_t path_name; memset(&path_name,0,sizeof(pid_path_name_t));
+	strlcpy(path_name.name,name,MAXCOMLEN);
+	pid_path_name_t* res = in_list(&pid_info.pid_path_list,&path_name,0);
+	if (res == NULL)
+		return "";
+	else return res->path;
+}
+
 char* pid_hash(const void *it) {
 	last_pid_item_t *item = (last_pid_item_t*) it;
 	char* temp = malloc(STR_SIZE);
@@ -360,12 +383,20 @@ char* pid_fdtab_hash(const int fd, const int pid) {
 	return temp;
 }
 
+char* pid_path_name_hash(const void *it) {
+ pid_path_name_t *item = (pid_path_name_t*)it;
+	char* temp = malloc(PROC_PIDPATHINFO_MAXSIZE+1);
+	snprintf(temp,PROC_PIDPATHINFO_MAXSIZE+1,"%s",item->name);
+	return temp;
+}
+
 void init_pid_lists() {
 	// should hold lock when call this
 	init_list(&pid_info.pid_list,conn_hash,NULL,0,-1,"pid_list");
 	init_list(&pid_info.gui_pid_list,gui_pid_hash,NULL,0,-1,"pid_list");
 	init_list(&pid_info.last_pid_list,pid_hash,NULL,1,PID_CACHE_SIZE,"last_pid_list");
 	init_list(&pid_info.escapee_list,conn_hash,NULL,1,-1,"escapee_list");
+	init_list(&pid_info.pid_path_list,pid_path_name_hash,NULL,1,-1,"pid_path_list");
 }
 
 conn_t * find_conn(int pid, int fd) {
@@ -570,6 +601,19 @@ int refresh_active_conns(int full_refresh) {
 			// between call to proc_listpids() above and our call to get_pid_name()
 			continue;
 		}
+		// add path to executable to table (doesn't change, so no need to
+		// do expensive syscall every time)
+		pid_path_name_t path_name; memset(&path_name,0,sizeof(pid_path_name_t));
+		strlcpy(path_name.name,name,MAXCOMLEN);
+		if (!in_list(&pid_info.pid_path_list,&path_name,0)) {
+			// new process, get the executable path
+			if (get_pid_path(pid, path_name.path, PROC_PIDPATHINFO_MAXSIZE+1)==0) {
+				//printf("pid=%d name=%s path=%s\n",pid,path_name.name,path_name.path);
+				add_item(&pid_info.pid_path_list,&path_name,sizeof(pid_path_name_t));
+			} else {
+				//error
+			}
+		}
 		
 		// this call to find_fds() consumes >75% of execution time of
 		// refresh_active_conns()
@@ -633,7 +677,7 @@ void find_escapees() {
 					e->raw.seq = (uint32_t)rand(); e->raw.ack = (uint32_t)rand();
 					stats.escapees_not_in_log++;
 					// add conn to log
-					log_connection(&e->raw, &b, is_blocked(&b), 1.0, "");
+					log_connection(&e->raw, &b, is_blocked(&b), 1.0, "", "", get_name_path(e->name));
 					add_dns_conn(c.domain, c.name);
 				} else { // in the log
 					// we get the seq number from syn-ack in log ...

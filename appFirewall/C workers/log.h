@@ -38,7 +38,7 @@ log_line_t* get_log_row(size_t row);
 log_line_t* find_log_by_conn(char* name, conn_raw_t* c, int debug);
 double update_log_by_conn(char* name, conn_raw_t* c, int blocked);
 void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t *raw, int blocked, double confidence);
-void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence, char* conf_str);
+void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence, char* conf_str, char* service, char* path);
 
 //swift
 void filter_log_list(int_sw show_blocked, const char* str);

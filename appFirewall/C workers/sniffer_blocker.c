@@ -134,7 +134,7 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 		char dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
 		inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
 		inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
-		log_connection(cr, c, blocked, confidence, conf_str);
+		log_connection(cr, c, blocked, confidence, conf_str,"", get_name_path(c->name));
 
 		if (!blocked) {
 			INFO2("t (sniffed) %f ", (cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0);
@@ -416,17 +416,18 @@ void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
 	if (strnlen(c.domain,MAXDOMAINLEN)) {
 		snprintf(dns,MAXDOMAINLEN, "%s (%s)", c.addr_name,c.domain);
 	}
-	char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
-	inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
-	char* service="";
+	//char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
+	//inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
+	char* service="UDP ";
 	if (quic) {
-		service = "/QUIC";
+		service = "UDP/QUIC ";
 	} else if ((cr->sport==53) || (cr->dport==53)) {
-		service = "/DNS";
+		service = "UDP/DNS ";
 	}
-	snprintf(str,LOGSTRSIZE, "%s → UDP%s %s:%u", c.name, service, c.domain, cr->dport);
-	snprintf(long_str,LOGSTRSIZE,"%s\tUDP%s %s:%u -> %s:%u", c.name, service, sn, cr->sport, dns, cr->dport);
-	append_log(str, long_str, &c, cr, 0, 1.0); // can't block QUIC yet ...
+	log_connection(cr, &c, 0, 1.0, "",service, get_name_path(c.name));
+	//snprintf(str,LOGSTRSIZE, "%s → UDP%s %s:%u", c.name, service, c.domain, cr->dport);
+	//snprintf(long_str,LOGSTRSIZE,"%s\tUDP%s %s:%u -> %s:%u", c.name, service, sn, cr->sport, dns, cr->dport);
+	//append_log(str, long_str, &c, cr, 0, 1.0); // can't block QUIC yet ...
 	
 	// and log some performance stats
 	double t =(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;

@@ -38,12 +38,19 @@
 
 typedef struct last_pid_item_t {
 	int pid;
-	char name[MAXCOMLEN];;
+	char name[MAXCOMLEN];
 } last_pid_item_t;
+
+typedef struct pid_path_name_t {
+	char name[MAXCOMLEN]; // process name
+	char path[PROC_PIDPATHINFO_MAXSIZE+1];  // path to executable
+} pid_path_name_t;
+
 typedef struct pid_info_t {
 	list_t pid_list; // list of active pid's and network conns
   list_t gui_pid_list; // filtered list for GUI
   list_t last_pid_list; // cache of recent PIDs and their names
+  list_t pid_path_list; // list of process names and paths to their executables
 	int changed; // flag to GUI if pid list has changed
 	list_t escapee_list; // list of blocked yet active connections
 	int escapee_thread_count;
@@ -54,10 +61,12 @@ typedef struct pid_info_t {
 	void (*start_catch_escapee)(conn_t *e);
 	int (*is_ppp)(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr);
 } pid_info_t;
-#define PID_INFO_INITIALSER {LIST_INITIALISER,LIST_INITIALISER,LIST_INITIALISER,1,LIST_INITIALISER,0,&proc_pidinfo,&proc_pidfdinfo,&proc_listpids,&start_catch_escapee,&is_ppp}
+#define PID_INFO_INITIALSER {LIST_INITIALISER,LIST_INITIALISER,LIST_INITIALISER,LIST_INITIALISER,1,LIST_INITIALISER,0,&proc_pidinfo,&proc_pidfdinfo,&proc_listpids,&start_catch_escapee,&is_ppp}
 
 pid_info_t* get_pid_info(void);
 int get_pid_name(int pid, char* name, uint32_t *status);
+int get_pid_path(int pid, char* path, int size);
+char* get_name_path(char* name);
 int find_pid(conn_raw_t *c, char*name, int syn);
 void cache_pid(int pid, char* name);
 conn_t * find_conn(int pid, int fd);
