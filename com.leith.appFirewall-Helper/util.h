@@ -53,5 +53,5 @@ int readline_timed(char* buf, int len, FILE* fp, int t);
 // defs for functions in codesign.m
 int check_signature(int pid, int port);
 int get_sock_pid(int sock, int port);
-int check_file_signature(char* path);
+int check_file_signature(char* path, int force);
 #endif /* util_h */

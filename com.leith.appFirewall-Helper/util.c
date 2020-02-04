@@ -196,17 +196,6 @@ char *trimwhitespace(char *str) {
   return str;
 }
 
-inline int is_ipv4_localhost(struct in6_addr* addr){
-	const uint32_t dst_addr=((struct in_addr*)addr)->s_addr;
-	return (dst_addr==htonl(INADDR_LOOPBACK))
-					|| (dst_addr==htonl(INADDR_ANY));
-}
-
-inline int is_ipv6_localhost(struct in6_addr* addr){
-	// is in6addr_loopback in host or network byte order ?
-	return memcmp(&addr->s6_addr,&in6addr_loopback.s6_addr,16)==0;
-}
-
 FILE* run_cmd_pipe(char* cmd, char* arg, int *pid) {
 	// a version of popen that gives is the process pid, so we
 	// can interrupt execution by killing it
@@ -226,12 +215,19 @@ FILE* run_cmd_pipe(char* cmd, char* arg, int *pid) {
 
 int readline_timed(char* buf, int len, FILE* fp, int t) {
 	int fd = fileno(fp);
+	if (fd<0) return -1;
 	fd_set input_set; FD_ZERO(&input_set); FD_SET(fd, &input_set);
 	struct timeval timeout;
 	timeout.tv_sec = t; timeout.tv_usec = 0;
 	memset(buf,0,len);
 	int res=0, posn=0;
-	while ( (posn<len) && ((res=select(fd+1, &input_set, NULL, NULL, &timeout))>0)){
+	while (posn<len){
+		res=select(fd+1, &input_set, NULL, NULL, &timeout);
+		if (res < 0) { // error
+			if (errno == EINTR) continue;
+			break;
+		}
+		if (res == 0) break; //timeout
 		if ((buf[posn]=(char)fgetc(fp))==EOF) break;
 		if (buf[posn]=='\n') break; //newline
 		posn++;

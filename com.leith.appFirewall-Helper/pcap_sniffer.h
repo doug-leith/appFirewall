@@ -108,7 +108,9 @@ typedef struct sniffer_callback_args_t {
 
 int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet);
 int setup_pd(interface_t *intf, pcap_t **pd, char* filter_exp, int use_pktap);
+int get_default_gateway(int af, struct sockaddr *gw);
 int get_interfaces(interface_t intf[MAX_INTS], int use_pktap);
+char* get_intf_name(char* ifa_name, int use_pktap, char* name);
 interface_t* find_intf(conn_raw_t* c, interface_t* intf);
 void print_sockaddr(struct sockaddr* daddr);
 void print_eth(uint8_t eth[ETHER_ADDR_LEN]);

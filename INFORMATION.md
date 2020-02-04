@@ -1,5 +1,8 @@
 ## Aims of the appFirewall study
-You are invited to participate in this study which aims to catalogue the network connections made by macOS applications.    By collecting data on the connections made by applications the study aims to highlight potential privacy issues (e.g. undocumented connections to known trackers), improve user security by obtaining baseline data on normal application behaviour, and to improve our understanding of the app ecosystem.
+You are invited to participate in this study.    By collecting data on the connections made by applications the study aims to highlight potential privacy issues, improve user security and to improve our understanding of the app ecosystem.
+
+## Participation and withdrawal is entirely voluntary
+Your participation is entirely voluntary, and you can withdraw at any time by uninstalling the project app.  Note that as there is no way for us (or anyone else) to link collected data to individual participants there is no way for us to delete data of yours once it has been uploaded to the project server.
 
 ## Who is doing the experiment
 This study is being carried out by the research group of Prof Douglas Leith in the [School of Computer Science and Statistics](https://www.scss.tcd.ie/doug.leith/) at Trinity College Dublin.
@@ -15,9 +18,6 @@ The study involves only a small time commitment on your part, namely that needed
 
 ## Anticipated risks/benefits to the participant
 We do not anticipate any risks to you from participating in the study.  The project app also acts as an application firewall, allowing you to observe and allow/block the network connections being made from your computer.  We hope that this will be useful to you.
-
-## Participation and withdrawal is entirely voluntary
-Your participation is entirely voluntary, and you can withdraw at any time by uninstalling the project app.  Note that as there is no way for us (or anyone else) to link collected data to individual participants there is no way for us to delete data of yours once it has been uploaded to the project server.
 
 ## Accessing study results
 Study results will be made publicly available on the [project web site]((https://www.scss.tcd.ie/doug.leith/).   

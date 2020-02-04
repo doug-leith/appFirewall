@@ -1,18 +1,18 @@
 //
-//  helperTests.m
-//  helperTests
+//  appFirewall_HelperTests.m
+//  appFirewall-HelperTests
 //
-//  Created by Doug Leith on 03/02/2020.
+//  Created by Doug Leith on 04/02/2020.
 //  Copyright © 2020 Doug Leith. All rights reserved.
 //
 
 #import <XCTest/XCTest.h>
 
-@interface helperTests : XCTestCase
+@interface appFirewall_HelperTests : XCTestCase
 
 @end
 
-@implementation helperTests
+@implementation appFirewall_HelperTests
 
 - (void)setUp {
     // Put setup code here. This method is called before the invocation of each test method in the class.

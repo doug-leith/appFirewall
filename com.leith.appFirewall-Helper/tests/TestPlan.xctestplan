@@ -15,8 +15,8 @@
     {
       "target" : {
         "containerPath" : "container:appFirewall.xcodeproj",
-        "identifier" : "91FE189E23E81F22004A5CF9",
-        "name" : "helperTests"
+        "identifier" : "9148890F23E92355003EDF02",
+        "name" : "appFirewall-HelperTests"
       }
     }
   ],

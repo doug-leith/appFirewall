@@ -264,7 +264,7 @@ void* cmd_accept_loop(void* ptr) {
 					if ( (res=readn(s2, src, src_len) )<=0) break;
 					snprintf(dnscrypt_cmd,STR_SIZE, "%s/Library/dnscrypt-proxy", src);
 					// check signature of executable
-					if (check_file_signature(dnscrypt_cmd)<0) {
+					if (check_file_signature(dnscrypt_cmd,0)<0) {
 						// code failed signature check, bail
 						ok = -1;
 						break;

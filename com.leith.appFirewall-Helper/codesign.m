@@ -96,7 +96,7 @@ int check_signature(int sock, int port){
 	return pid;
 }
 
-int check_file_signature(char* path){
+int check_file_signature(char* path, int force){
 	
 	// get reference to code
 	SecStaticCodeRef codeRef = NULL;
@@ -150,9 +150,11 @@ int check_file_signature(char* path){
 		CFRelease(codeRef);
 		#ifdef DEBUG
 		// appFirewall will fail sign check when compiled for testing/debugging, but its ok
-		INFO("DEBUG enabled, passed anyway\n");
-		return 1;
-	  //return -1;
+		if (!force) {
+			INFO("DEBUG enabled, passed anyway\n");
+			return 1;
+		} else
+	  	return -1;
 		#else
 		return -1;
 		#endif
