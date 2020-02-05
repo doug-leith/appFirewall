@@ -25,7 +25,8 @@ typedef struct udp_conn_t {
 } udp_conn_t;
 
 #define MAXUDP 50
-udp_conn_t udp_cache[MAXUDP];
+udp_conn_t udp_cache[MAXUDP]={{0,{0},0,0}};
+struct timeval udp_cache_tstamp[MAXUDP]={{0,0}};
 int udp_cache_size=0, udp_cache_start=0;
 
 
@@ -364,7 +365,13 @@ int in_udp_cache(conn_raw_t *cr) {
 		if (udp_cache[i%MAXUDP].dport != cr->dport) continue;
 		if (are_addr_same(cr->af,&udp_cache[i%MAXUDP].dst,&cr->dst_addr)) {
 			//printf("match\n");
-			return 1; // found match
+			struct timeval now; gettimeofday(&now, NULL);
+			if (udp_cache_tstamp[i%MAXUDP].tv_sec - now.tv_sec < UDP_CACHE_LIFETIME)
+				return 1; // found match
+			else { // stale match
+				udp_cache[i%MAXUDP].af = -1; // effectively deletes this cache entry
+				return 0;
+			}
 		}
 	}
 	return 0; // no match
@@ -382,6 +389,7 @@ void add_to_udp_cache(conn_raw_t *cr) {
 	int end = (udp_cache_start+udp_cache_size)%MAXUDP;
 	udp_cache[end].af=cr->af; udp_cache[end].sport=cr->sport;
 	udp_cache[end].dport=cr->dport; udp_cache[end].dst=cr->dst_addr;
+	gettimeofday(&udp_cache_tstamp[end], NULL); // timestamp when conn started
 	udp_cache_size++;
 }
 
@@ -398,7 +406,7 @@ void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
 	// don't log localhost connections
 	if ((cr->af==AF_INET) && (is_ipv4_localhost(&cr->src_addr))) return;
 	if ((cr->af==AF_INET6) && (is_ipv6_localhost(&cr->src_addr))) return;
-	// don't log mDNS local traffic
+	// don't log mDNS local broadcast traffic
 	if ((cr->sport == 5353)||(cr->dport==5353)) return;
 	
 	// don't log existing UDP connections
@@ -413,7 +421,7 @@ void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
 	bl_item_t c = create_blockitem_from_addr(cr,0,pkt_pid,pkt_name);
 	// if can't link connection to a PID then for UDP we just guess (for TCP
 	// we add connection to waiting list and try again - maybe we should
-	// do same for UDP to ?)
+	// do same for UDP?)
 	int quic = ((cr->sport == 443) || (cr->dport == 443) || (cr->sport == 80) || (cr->dport == 80));
 	if ((strcmp(c.name,NOTFOUND)==0) && quic) {
 		// we seem to often miss process for quic pkts, for now
@@ -427,18 +435,14 @@ void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
 	if (strnlen(c.domain,MAXDOMAINLEN)) {
 		snprintf(dns,MAXDOMAINLEN, "%s (%s)", c.addr_name,c.domain);
 	}
-	//char str[LOGSTRSIZE], long_str[LOGSTRSIZE], sn[INET6_ADDRSTRLEN];
-	//inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
 	char* service="UDP ";
 	if (quic) {
 		service = "UDP/QUIC ";
 	} else if ((cr->sport==53) || (cr->dport==53)) {
 		service = "UDP/DNS ";
 	}
+	// blocked = 0 for UDP, at the moment
 	log_connection(cr, &c, 0, 1.0, "",service, get_name_path(c.name));
-	//snprintf(str,LOGSTRSIZE, "%s → UDP%s %s:%u", c.name, service, c.domain, cr->dport);
-	//snprintf(long_str,LOGSTRSIZE,"%s\tUDP%s %s:%u -> %s:%u", c.name, service, sn, cr->sport, dns, cr->dport);
-	//append_log(str, long_str, &c, cr, 0, 1.0); // can't block QUIC yet ...
 	
 	// and log some performance stats
 	double t =(cr->start.tv_sec - cr->ts.tv_sec) +(cr->start.tv_usec - cr->ts.tv_usec)/1000000.0;

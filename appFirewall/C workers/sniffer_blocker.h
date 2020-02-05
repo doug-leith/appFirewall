@@ -38,6 +38,7 @@
 #define WAIT_TIMEOUT 0.02 // 20ms timeout after which we either guess the process associated with a new SYN-ACK or declare the process NOTFOUND.  in latter case, if a long-enough lived connection that should be blocked then it will become an escapee and be caught and blocked.  if connection is v short then we can leak packets here -- either by TCP RSTs failing since pkt seq numbers have advanced or by escapee catcher being too slow, so we'd like to keep this timeout short e.g. might reduce it to 10ms
 #define SYN_TIMEOUT 1 // SYN packets >1s old are dropped (likely due to wakeup after sleep).  could probably safely make this smaller
 #define CONF_THRESH 0.5 // when confidence in guess of process associated with a connection is less than this then we add a ? next to name in log and disable connection blocking.  decreasing this makes blocking more aggressive.
+#define UDP_CACHE_LIFETIME 3600 // UDP connections expire after 3600 secs (1 hour)
 
 void init_sniffer_blocker(char* filter_exp);
 bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char* pkt_name);
