@@ -211,13 +211,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		save_log(Config.logName)
 		
 		let date = UserDefaults.standard.object(forKey: "lastSampleDate") as? NSDate
+		let numSamples = UserDefaults.standard.integer(forKey: "numSamples")
 		if (date == nil) { // first time sent a sample
 			UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
+			UserDefaults.standard.set(0, forKey: "numSamples")
 		} else {
+			var interval = Config.firstSampleInterval // initially we sample daily
+			if numSamples > Config.firstSampleNum {
+				interval = Config.sampleInterval // then monthly
+			}
 			if let diff = date?.timeIntervalSinceNow {
-				if (diff < -Config.sampleInterval) {
+				if (diff < -interval) {
 					sampleLogData(fname: Config.logTxtName) // send a sample from log file
 					UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
+					UserDefaults.standard.set(numSamples+1, forKey: "numSamples")
 				}
 			} else {
 				print("WARNING: Problem getting time interval in refreshLogs()")

@@ -385,6 +385,15 @@ void add_to_udp_cache(conn_raw_t *cr) {
 	udp_cache_size++;
 }
 
+void write_conn_details_to_console(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
+	// write connection details to console
+	char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
+	inet_ntop(cr->af, &cr->src_addr, sn, INET6_ADDRSTRLEN);
+	inet_ntop(cr->af, &cr->dst_addr, dn, INET6_ADDRSTRLEN);
+	char *udp_str=""; if (cr->udp==1) udp_str="UDP";
+	printf("%s (%d) %s %s:%d -> %s:%d\n",pkt_name,pkt_pid,udp_str,sn,cr->sport,dn,cr->dport);
+}
+
 void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
 	// don't log localhost connections
 	if ((cr->af==AF_INET) && (is_ipv4_localhost(&cr->src_addr))) return;
@@ -398,6 +407,8 @@ void handle_udp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name) {
 	// new connection
 	add_to_udp_cache(cr); // add connection to cache
 	
+	write_conn_details_to_console(cr, pkt_pid, pkt_name);
+
 	// carry out PID and DNS lookup
 	bl_item_t c = create_blockitem_from_addr(cr,0,pkt_pid,pkt_name);
 	// if can't link connection to a PID then for UDP we just guess (for TCP
@@ -448,6 +459,8 @@ void handle_tcp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name, int syn, int s
 	// don't log localhost connections
 	if ((cr->af==AF_INET) && (is_ipv4_localhost(&cr->src_addr))) return;
 	if ((cr->af==AF_INET6) && (is_ipv6_localhost(&cr->src_addr))) return;
+
+	write_conn_details_to_console(cr, pkt_pid, pkt_name);
 
 	// try to get PID name and domain for this connection ...
 	bl_item_t c = create_blockitem_from_addr(cr, syn, pkt_pid, pkt_name);
@@ -571,13 +584,6 @@ void *listener(void *ptr) {
 			if (dirn != 1) continue; // don't log outgoing DNS requests
 		}
 		
-		// write connection details to console
-		char sn[INET6_ADDRSTRLEN], dn[INET6_ADDRSTRLEN];
-		inet_ntop(cr.af, &cr.src_addr, sn, INET6_ADDRSTRLEN);
-		inet_ntop(cr.af, &cr.dst_addr, dn, INET6_ADDRSTRLEN);
-		char *udp_str=""; if (cr.udp==1) udp_str="UDP";
-		printf("%s (%d) %s %s:%d -> %s:%d\n",pkt_name,pkt_pid,udp_str,sn,cr.sport,dn,cr.dport);
-
 		if (cr.udp==1) { // UDP
 			handle_udp_conn(&cr, pkt_pid, pkt_name);
 		} else { // TCP
