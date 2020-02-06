@@ -418,11 +418,12 @@ int find_fds(int pid, char* name, list_t* new_pid_list, int full_refresh) {
 	// Figure out the size of the buffer needed to hold the list of open FDs
 	// this call costs about 10% of execution time of find_fds
 	int bufferSize = (pid_info.proc_pidinfo)(pid, PROC_PIDLISTFDS, 0, 0, 0);
-	if (bufferSize == -1) {
+	if (bufferSize < 0) {
 		// probably process has stopped
 		WARN("Unable to get open file handles for PID %d\n", pid);
 		return 0;
 	}
+	if (bufferSize == 0) return 0; // process has no open files
 
 	struct proc_fdinfo *procFDInfo =  malloc((size_t)bufferSize);
 	if (!procFDInfo) {

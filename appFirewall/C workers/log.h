@@ -52,6 +52,7 @@ void clear_log(void);
 void open_logtxt(const char* logTxtName);
 void close_logtxt(void);
 void reopen_logtxt(void);
+void flush_logtxt(void);
 int_sw has_log_changed(void);
 void clear_log_changed(void);
 int search_log_domains(const char* str);

@@ -221,7 +221,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				interval = Config.sampleInterval // then monthly
 			}
 			if let diff = date?.timeIntervalSinceNow {
-				if (diff < -interval) {
+				if ( (diff < -interval) || Config.testSample) {
 					sampleLogData(fname: Config.logTxtName) // send a sample from log file
 					UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
 					UserDefaults.standard.set(numSamples+1, forKey: "numSamples")

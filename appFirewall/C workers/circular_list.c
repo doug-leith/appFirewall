@@ -117,9 +117,14 @@ void del_from_htab(list_t *l, const void *item) {
 
 void* add_item(list_t *l, void* item, size_t item_size) {
 	if ((l->hash == NULL)||(l->list==NULL)||(item==NULL)) return NULL;
+	char* hash = l->hash(item);
+	if (strnlen(hash,STR_SIZE)==0) {
+		WARN("add_item() called for %s with zero length hash\n", l->list_name);
+		free(hash);
+		return NULL;
+	}
 	void* ptr = in_list(l, item, 0);
 	if (ptr) {
-		char* hash = l->hash(item);
 		DEBUG2("add_item() item %s exists in list %s.\n", hash,l->list_name);
 		free(hash);
 		return ptr;
@@ -145,17 +150,15 @@ void* add_item(list_t *l, void* item, size_t item_size) {
 		l->list_start++; l->list_size--;
 		size_t end = (l->list_start+l->list_size)%l->maxsize;
 		l->list[end] = it;
-		char* hash = l->hash(item);
 		INFO2("add_item() %s circular list %s full.\n",hash,l->list_name);
-		free(hash);
 		l->list_size++;
 	} else {
 		free(it);
-		char* hash = l->hash(item);
 		WARN("add_item() %s list %s full.\n", hash,l->list_name);
 		free(hash);
 		return NULL;
 	}
+	free(hash);
 	add_item_to_htab(l, it);
 	//dump_hashtable(l->htab);
 	return NULL;
@@ -293,6 +296,7 @@ int load_list(list_t *l, char* path, size_t item_size, uint8_t file_version) {
 	if (i<l->list_size) {
 		WARN("Read too few records from %s: expected %zu, got %zu\n",path,l->list_size,i);
 		l->list_size = 0;
+		// to do: should free list entries here too
 	}
 	fclose(fp);
 	INFO("loaded %zu items to list %s\n", l->list_size,l->list_name);

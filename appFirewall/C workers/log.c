@@ -365,6 +365,10 @@ void reopen_logtxt() {
 	}
 }
 
+void flush_logtxt() {
+	if (fp_txt) fflush(fp_txt);
+}
+
 void load_log(const char* logName, const char* logTxtName) {
 	close_logtxt();
 	open_logtxt(logTxtName); // will be left open for continuous appending

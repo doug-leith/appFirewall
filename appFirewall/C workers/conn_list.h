@@ -33,6 +33,8 @@ typedef struct connlist_t {
 } connlist_t;
 
 #define CONNLIST_INITIALISER {LIST_INITIALISER,MUTEX_INITIALIZER,0,0,NULL,NULL,{0}}
+#define BLACKLIST_INITIALISER {LIST_INITIALISER,MUTEX_INITIALIZER,0,0,NULL,NULL,"blacklist"}
+#define WHITELIST_INITIALISER {LIST_INITIALISER,MUTEX_INITIALIZER,0,0,NULL,NULL,"whitelist"}
 
 void add_connitem(connlist_t *c, bl_item_t *item);
 void add_connitem2(connlist_t *c, const char* name, const char* domain);

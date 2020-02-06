@@ -35,6 +35,8 @@ class appViewController: NSViewController {
 		menu.addItem(NSMenuItem(title: "Block this domain for all apps", action: #selector(blockDomain), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Allow this app for all domains", action: #selector(allowAll), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Allow this domain for all apps", action: #selector(allowDomain), keyEquivalent: ""))
+		menu.addItem(NSMenuItem(title: "Report this app (send its connections for analysis)", action: #selector(reportApp), keyEquivalent: ""))
+
 		// force using ! since shouldn't fail here and its serious if it does
 		guard tableView != nil else {
 			print("ERROR: appViewDidLoad() tableView is nil!");
@@ -77,22 +79,21 @@ class appViewController: NSViewController {
 
 	@objc func refresh(timer:Timer?) {}
 		
-	func infoPopup(msg: String, sender: NSView, row: Int) {
+	func infoPopup(msg: String, sender: NSView, row: Int, time: UInt32?) {
 		let storyboard = NSStoryboard(name:"Main", bundle:nil)
 		let controller : helpViewController = storyboard.instantiateController(withIdentifier: "HelpViewController") as! helpViewController
-		popover.contentViewController = controller
-		/*let curSize = controller.view.frame.size
-		let size2 = NSSize(width: curSize.width, height: CGFloat.greatestFiniteMagnitude)
-		let frame = msg.boundingRect(with: size2, options: .usesLineFragmentOrigin)
-		let size = CGSize(width: ceil(frame.size.width)+5, height: ceil(frame.size.height) + 10)
-		popover.contentSize = size*/
-		popover.contentSize = controller.view.frame.size
-		popover.behavior = .transient; popover.animates = false
-
-		popover.delegate = self // so we can catch events
-		popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
 		controller.message(msg:msg)
 		popoverRow = row
+		popover.contentViewController = controller
+		popover.behavior = .transient; popover.animates = false
+		popover.delegate = self // so we can catch events
+		popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: NSRectEdge.minY)
+		if let delay = time {
+			DispatchQueue.main.async {
+				sleep(delay)
+				self.popover.close()
+			}
+		}
 	}
 
 	func saveSelected() {
@@ -118,7 +119,7 @@ class appViewController: NSViewController {
 				guard let cell = self.appTableView?.view(atColumn:1, row:row, makeIfNecessary: false) as? NSTableCellView else {return}
 				let str = cell.textField?.toolTip ?? ""
 				if (cell.window != nil) {
-					self.infoPopup(msg: str, sender: cell, row:row)
+					self.infoPopup(msg: str, sender: cell, row:row, time:nil)
 					self.popoverHash=""
 				}
 				usleep(250000) // 250ms
@@ -130,7 +131,7 @@ class appViewController: NSViewController {
 		// if row was selected before reload, we make it selected again
 		for h in selectedRowHashes {
 			if (hashStr == h) {
-				print("cell found selected match ", h)
+				//print("cell found selected match ", h)
 				appTableView?.selectRowIndexes([row], byExtendingSelection: true)
 				let i = selectedRowHashes.firstIndex(of: h) ?? -1
 				if (i<0) { // shouldn't happen
@@ -179,12 +180,12 @@ class appViewController: NSViewController {
 
 	func handleDrag(info: NSDraggingInfo, row: Int) {}
 		
-	@objc func getInfo(sender: AnyObject?){
+	@objc func getInfo(sender: NSMenuItem?){
 		guard let row = appTableView?.selectedRow else {print("WARNING: problem in getInfo getting selected row"); return}
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
 		let str = cell.textField?.toolTip ?? ""
-		infoPopup(msg: str, sender: cell, row:row)
+		infoPopup(msg: str, sender: cell, row:row, time:nil)
 	}
 	
 	@objc func blockAll(sender: AnyObject?){
@@ -214,12 +215,6 @@ class appViewController: NSViewController {
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowAll getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
-		/*if (in_blockalllist_htab(&bl_item,0) != nil) {
-			guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
-			let str = "Connections for this app are blacklisted, remove from blacklist before whitelisting all connections"
-			infoPopup(msg: str, sender: cell1, row:row)
-			return
-		}*/
 		add_connallitem(get_whitelist(),&bl_item);
 	}
 	
@@ -229,6 +224,19 @@ class appViewController: NSViewController {
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowDomain getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
 		add_conndomainitem(get_whitelist(),&bl_item);
+	}
+	
+	@objc func reportApp(sender: NSMenuItem?){
+		guard let row = appTableView?.selectedRow else {print("WARNING: problem in reportApp getting selected row"); return}
+		if (row<0) { return }
+		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in reportApp getting cell"); return}
+		guard var bl_item = cell.bl_item else {return}
+		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
+		let app = String(cString:&bl_item.name.0)
+		infoPopup(msg: "Report for "+app+" queued for upload", sender: cell1, row:row, time: 2)
+		DispatchQueue.global(qos: .background).async {
+			let _ = sampleApp(fname: Config.logTxtName, lines:[], app: app)
+		}
 	}
 	
 	@objc func updateTable (rowView: NSTableRowView, row:Int) -> Void {

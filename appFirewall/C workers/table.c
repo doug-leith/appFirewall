@@ -104,6 +104,11 @@ void*
 hashtable_put(Hashtable *table, const char* key_string, void *value) {
 	Bucket *p;
 	void *prev;
+	size_t len = strnlen(key_string,STR_SIZE-1)+1;
+	if (len == 0) {
+		WARN("hashtable_put() called with empty keystring\n");
+		return NULL; // empty key string
+	}
 	Key key = hash(key_string);
 	uint32_t i = key%table->size;
 	for (p = table->buckets[i]; p; p = p->link)
@@ -112,8 +117,6 @@ hashtable_put(Hashtable *table, const char* key_string, void *value) {
 	if (p == NULL) {
 		p = calloc(1, sizeof(Bucket));
 		p->key = key;
-		size_t len = strnlen(key_string,STR_SIZE-1)+1;
-		//if (len>STR_SIZE) len = STR_SIZE; // just being careful
 		p->key_string = malloc(len);
 		strlcpy(p->key_string,key_string,len);
 		p->link = table->buckets[i];

@@ -259,92 +259,120 @@ func uploadSample(str: String, type: String) {
 	session.finishTasksAndInvalidate()
 }
 
+func sampleApp(fname: String, lines: [String], app:String)->String {
+	// upload a sample from the connection log for a specified app
+	var log_lines: [String] = lines
+	if (log_lines.count == 0) {
+		// load lines from log file
+		let path = String(cString:get_path())+fname
+		do {
+			// read log.  it won't be larger than 5MB since we rotate it otherwise
+			// so its ok to read into memory
+			flush_logtxt()
+			let log_str : String = try String(contentsOfFile: path, encoding: String.Encoding.utf8)
+			log_lines = log_str.components(separatedBy: "\n")
+			if (log_lines.count == 0) {
+				let msg = "Connection log is empty!"
+				print(msg)
+				return msg
+			}
+		} catch {
+			let msg = "WARNING: Problem reading connection log " + path + ":" + error.localizedDescription
+			print(msg)
+			return msg
+		}
+	}
+	// now extract all the log lines for the chosen app
+	log_lines.removeAll{!$0.contains(app)}
+	let lines_selected = log_lines
+	
+	if (lines_selected.count == 0) {
+		let msg = "No connections logged for " + app;
+		print(msg)
+		return msg
+	}
+	
+	// concatenate the lines back together
+	// locale/time zone gives a v rough idea of location, so we can tell if app
+	// behaviour depends on whether in Europe, US, China etc
+	var str: String = "#OS version:\n"+ProcessInfo.processInfo.operatingSystemVersionString+"\n"
+	str = str + "#Locale:\n"+Locale.current.identifier+"\n"
+	str = str + NSTimeZone.local.identifier+"\n"
+	str = str + NSTimeZone.system.identifier+"\n"
+	str = str + "#App connections\n"
+	str = str + lines_selected.joined(separator:"\n")
+	//print("Sample from app connection log:")
+	//print(str)
+	
+	// TO DO: gzip the upload to save bandwidth.  Files are usually quite
+	// small though (10-100K) so sending uncompressed doesn't seem like a big
+	// deal plus using gzip from Swift seems a bit nasty.
+	// zip data to save upload bandwidth
+	/*let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: str.count)
+	var sourceBuffer = Array(str.utf8)
+	let algorithm = COMPRESSION_ZLIB
+	let compressedSize = compression_encode_buffer(destinationBuffer, str.count, &sourceBuffer, str.count, nil, algorithm)
+	if compressedSize == 0 {
+			print("Encoding failed.")
+	}*/
+	
+	// now upload
+	uploadSample(str: str, type: "sample")
+	
+	// and save a copy to ~/Library/Application Support/appFilewall/samples/
+	// so that use has a record of what has been uploaded
+	if let sampleDir = getSampleDir() {
+		let dateString = String(cString:get_date())
+		let dateString2 = dateString.replacingOccurrences(of: " ", with: "_", options: .literal, range: nil)
+		let sampleFile = sampleDir + "sample_" + dateString2
+		print("uploaded sample of connections for ", app, " to ", Config.sampleURL, " and saved copy in ",sampleFile)
+		do {
+			try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
+		} catch {
+			print("WARNING: problem saving "+sampleFile+":"+error.localizedDescription)
+		}
+	}
+	return "Sample uploaded for " + app
+}
+
+
 func sampleLogData(fname: String) {
 	// upload a sample from the app connection log
 	let path = String(cString:get_path())+fname
+	var log_str : String = ""
 	do {
 		// read log.  it won't be larger than 5MB since we rotate it otherwise
 		// so its ok to read into memory
-		let log_str : String = try String(contentsOfFile: path, encoding: String.Encoding.utf8)
-		let lines : Array<Substring> = log_str.split { $0.isNewline }
-		if (lines.count == 0) { print("sampleLogData(): log empty"); return }
-		
-		// pick a line at random and choose that app,
-		// so long as not a browser app
-		var app : String = ""
-		var count = 0
-		let TRIES = 10
-		repeat {
-			let line = String(lines.randomElement() ?? "")
-			let parts = line.split {$0 == "\t" }
-			if (parts.count >= 2) {
-				app = String(parts[1])
-			}
-			count = count + 1
-		} while ((Config.browsers.contains(app)) && (count<TRIES))
-		if ((Config.browsers.contains(app)) || (count == TRIES)) {
-			print("WARNING: sampleLogData(): failed to sample app")
-			// strange, we'll come back later
-			return
-		}
-		
-		// now extract all the log lines for the chosen app
-		var lines_selected : [String] = []
-		count = 0
-		for line in lines {
-			let parts = line.split {$0 == "\t" }
-			if (String(parts[1]) == app) {
-				lines_selected.append(String(line))
-			}
-		}
-		if (lines_selected.count == 0) { // shouldn't happen
-			print("ERROR: sampleLogData(): sample size is zero");
-			return
-		}
-		
-		// concatenate the lines back together
-		// locale/time zone gives a v rough idea of location, so we can tell if app
-		// behaviour depends on whether in Europe, US, China etc
-		var str: String = "#OS version:\n"+ProcessInfo.processInfo.operatingSystemVersionString+"\n"
-		str = str + "#Locale:\n"+Locale.current.identifier+"\n"
-		str = str + NSTimeZone.local.identifier+"\n"
-		str = str + NSTimeZone.system.identifier+"\n"
-		str = str + "#App connections\n"
-		for line in lines_selected {
-			str = str + line + "\n"
-		}
-		//print("Sample from app connection log:")
-		//print(str)
-		
-		// TO DO: gzip the upload to save bandwidth.  Files are usually quite
-		// small though (10-100K) so sending uncompressed doesn't seem like a big
-		// deal plus using gzip from Swift seems a bit nasty.
-		// zip data to save upload bandwidth
-		/*let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: str.count)
-		var sourceBuffer = Array(str.utf8)
-		let algorithm = COMPRESSION_ZLIB
-		let compressedSize = compression_encode_buffer(destinationBuffer, str.count, &sourceBuffer, str.count, nil, algorithm)
-		if compressedSize == 0 {
-				print("Encoding failed.")
-		}*/
-		// now upload
-		uploadSample(str: str, type: "sample")
-		// and save a copy to ~/Library/Application Support/appFilewall/samples/
-		// so that use has a record of what has been uploaded
-		if let sampleDir = getSampleDir() {
-			let dateString = String(cString:get_date())
-			let dateString2 = dateString.replacingOccurrences(of: " ", with: "_", options: .literal, range: nil)
-			let sampleFile = sampleDir + "sample_" + dateString2
-			print("uploaded sample of app connections to ", Config.sampleURL, " and saved copy in ",sampleFile)
-			do {
-				try str.write(toFile: sampleFile, atomically: false, encoding: .utf8)
-			} catch {
-				print("WARNING: problem saving "+sampleFile+":"+error.localizedDescription)
-			}
-		}
+		flush_logtxt()
+		log_str = try String(contentsOfFile: path, encoding: String.Encoding.utf8)
 	} catch {
 		print("WARNING: sampleLogData() problem reading ",path,":", error.localizedDescription)
+		return
 	}
+	let lines = log_str.components(separatedBy: "\n")
+	if (lines.count == 0) { print("sampleLogData(): log empty"); return }
+
+	// pick a line at random and choose that app,
+	// so long as not a browser app
+	var app : String = ""
+	var count = 0
+	let TRIES = 10
+	repeat {
+		let line = String(lines.randomElement() ?? "")
+		let parts = line.split {$0 == "\t" }
+		if (parts.count >= 2) {
+			app = String(parts[1])
+		} else { // likely an empty line
+			app = ""
+		}
+		count = count + 1
+	} while ((Config.browsers.contains(app) || (app.count==0)) && (count<TRIES))
+	if ((Config.browsers.contains(app) || (app.count==0)) || (count == TRIES)) {
+		print("WARNING: sampleLogData(): failed to sample app")
+		// strange, we'll come back later
+		return
+	}
+	let _ = sampleApp(fname: fname, lines: lines, app:app);
 }
 
 func doCheckForUpdates(quiet: Bool, autoUpdate: Bool) {

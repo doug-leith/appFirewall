@@ -9,8 +9,8 @@
 #include "conn_list.h"
 
 // globals
-static connlist_t blocklist = CONNLIST_INITIALISER;
-static connlist_t whitelist = CONNLIST_INITIALISER;
+static connlist_t blocklist = BLACKLIST_INITIALISER;
+static connlist_t whitelist = WHITELIST_INITIALISER;
 
 connlist_t *get_blocklist() {
 	return &blocklist;

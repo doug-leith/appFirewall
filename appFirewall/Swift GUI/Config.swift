@@ -33,6 +33,7 @@ class Config: NSObject {
 	static let enableConsentForm = 1 // disable for testing
 	static let testFirst = false // enable for testing first run behaviour
 	static let testUpdates = false // enable for testing download of updates
+	static let testSample = true // enable for testing upload of app sample
 
 	static let minHelperVersion = 14 // required helper version, must be an Int
 	
