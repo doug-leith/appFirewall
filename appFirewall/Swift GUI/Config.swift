@@ -46,7 +46,7 @@ class Config: NSObject {
 	static let updateURL = "https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg"
 	static let checkUpdatesInterval: Double = 2592000 // 30 days, in seconds !
 	
-	static let browsers = ["firefox","Google Chrome H","Safari","Opera Helper","Brave Browser H","seamonkey","com.apple.WebKi"]
+	static let browsers = ["firefox","Google Chrome H","Safari","Opera Helper","Brave Browser H","seamonkey","com.apple.WebKi", "Microsoft Edge"]
 	
 	static let csrutil = "/usr/bin/csrutil"
 	static let pgrep = "/usr/bin/pgrep"
