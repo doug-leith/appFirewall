@@ -146,6 +146,9 @@ void append_dns(int af, struct in6_addr addr, char* name) {
 	}
 	strlcpy(it->names[(it->list_start+it->list_size)%MAXDNS],name,MAXDOMAINLEN);
 	it->list_size++;
+	// and we keep a copy of the most recent domain associated with this
+	// IP, we use this to resolve lookups
+	strlcpy(it->name,name,MAXDOMAINLEN);
 	pthread_mutex_unlock(&dns_mutex);
 	//printf("appending domain %s: %s\n",name, get_dns_count_str(af,addr));
 	

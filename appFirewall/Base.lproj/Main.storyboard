@@ -1125,14 +1125,14 @@
             <objects>
                 <viewController title="Help" storyboardIdentifier="HelpViewController" id="2wT-ct-lHi" customClass="helpViewController" customModule="appFirewall" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" misplaced="YES" id="Nmr-wU-ADG">
-                        <rect key="frame" x="0.0" y="0.0" width="353" height="80"/>
+                        <rect key="frame" x="0.0" y="0.0" width="353" height="45"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="ptL-vh-ye8">
-                                <rect key="frame" x="8" y="10" width="337" height="60"/>
+                                <rect key="frame" x="8" y="10" width="337" height="25"/>
                                 <constraints>
                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="325" id="5L7-NI-roB"/>
-                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="60" id="8R0-xt-ig6"/>
+                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="25" id="8R0-xt-ig6"/>
                                 </constraints>
                                 <textFieldCell key="cell" selectable="YES" title="Multiline Label" id="y5e-6L-42k">
                                     <font key="font" usesAppearanceFont="YES"/>

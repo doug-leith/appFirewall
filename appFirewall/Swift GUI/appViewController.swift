@@ -174,9 +174,7 @@ class appViewController: NSViewController {
 		pasteBoard.setString(text, forType:NSPasteboard.PasteboardType.string)
 	}	
 	
-	@objc func pasteLine(sender: AnyObject?){
-		// do nothing
-	}
+	@objc func pasteLine(sender: AnyObject?) {}
 
 	func handleDrag(info: NSDraggingInfo, row: Int) {}
 		
@@ -193,13 +191,10 @@ class appViewController: NSViewController {
 		if (row<0) { return }
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in blockAll getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
-		/*if (in_allowalllist_htab(&bl_item,0) != nil) {
-			guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
-			let str = "Connections for this app are whitelisted, remove from whitelist before blocking all connections"
-			infoPopup(msg: str, sender: cell1, row:row)
-			return
-		}*/
 		add_connallitem(get_blocklist(),&bl_item);
+		// show feedback popover to user
+		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
+		infoPopup(msg: String(cString:&bl_item.name.0)+" blocked", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func blockDomain(sender: AnyObject?){
@@ -208,6 +203,9 @@ class appViewController: NSViewController {
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in blockDomain getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
 		add_conndomainitem(get_blocklist(),&bl_item);
+		// show feedback popover to user
+		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
+		infoPopup(msg: String(cString:&bl_item.domain.0)+" blocked", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func allowAll(sender: AnyObject?){
@@ -216,6 +214,9 @@ class appViewController: NSViewController {
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowAll getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
 		add_connallitem(get_whitelist(),&bl_item);
+		// show feedback popover to user
+		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
+		infoPopup(msg: String(cString:&bl_item.name.0)+" allowed", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func allowDomain(sender: AnyObject?){
@@ -224,6 +225,9 @@ class appViewController: NSViewController {
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in allowDomain getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
 		add_conndomainitem(get_whitelist(),&bl_item);
+		// show feedback popover to user
+		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
+		infoPopup(msg: String(cString:&bl_item.domain.0)+" allowed", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func reportApp(sender: NSMenuItem?){
