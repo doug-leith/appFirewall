@@ -6,6 +6,9 @@ A free, fully open-source application firewall for macOS 10.13 High Sierra and l
 
 The app is part of a research project in the [School of Computer Science and Statistics](https://www.scss.tcd.ie/doug.leith/) at Trinity College Dublin, Ireland.   By collecting data on the connections made by applications the study aims to highlight potential privacy issues (e.g. undocumented connections to known trackers/analytics), improve user security (data on baseline app behaviour can potentially be used to detect anomalous behaviour due to malware) and to improve our understanding of the app ecosystem.  See [information for participants](https://github.com/doug-leith/appFirewall/blob/master/INFORMATION.md).
 
+## Latest Reports
+* [Web Browser Privacy: What Do Browsers Say When They Phone Home? ](https://www.scss.tcd.ie/Doug.Leith/pubs/browser_privacy.pdf)
+
 ## Getting Started
 
 * [Download the .dmg](https://github.com/doug-leith/appFirewall/raw/master/latest%20release/appFirewall.dmg) and open it.  

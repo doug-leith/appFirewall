@@ -35,8 +35,10 @@ class PreferenceViewController: NSViewController {
 	override func viewWillDisappear() {
 		// window is closing, save state
 		if (changed) {
-			Config.load_hostlists()
-			changed = false
+			DispatchQueue.global(qos: .background).async {
+			  Config.load_hostlists()
+			  self.changed = false
+			}
 		}
 		timer.invalidate()
 		super.viewWillDisappear()

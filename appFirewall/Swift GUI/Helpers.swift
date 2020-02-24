@@ -124,9 +124,11 @@ func log_rotate(logName: String) {
 }
 
 func save_state() {
-	save_log(Config.logName)
-	save_connlist(get_blocklist(),Config.blockListName); save_connlist(get_whitelist(),Config.whiteListName)
-	save_dns_cache(Config.dnsName); save_dns_conn_list(Config.dnsConnListName)
+	DispatchQueue.global(qos: .background).async {
+		save_log(Config.logName)
+		save_connlist(get_blocklist(),Config.blockListName); save_connlist(get_whitelist(),Config.whiteListName)
+		save_dns_cache(Config.dnsName); save_dns_conn_list(Config.dnsConnListName)
+	}
 }
 
 func load_state() {

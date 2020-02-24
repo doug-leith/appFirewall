@@ -208,38 +208,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	}
 
 	@objc func refreshLogs() {
-		save_log(Config.logName)
-		
-		let date = UserDefaults.standard.object(forKey: "lastSampleDate") as? NSDate
-		let numSamples = UserDefaults.standard.integer(forKey: "numSamples")
-		if (date == nil) { // first time sent a sample
-			UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
-			UserDefaults.standard.set(0, forKey: "numSamples")
-		} else {
-			var interval = Config.firstSampleInterval // initially we sample daily
-			if numSamples > Config.firstSampleNum {
-				interval = Config.sampleInterval // then monthly
-			}
-			if let diff = date?.timeIntervalSinceNow {
-				if ( (diff < -interval) || Config.testSample) {
-					sampleLogData(fname: Config.logTxtName) // send a sample from log file
-					UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
-					UserDefaults.standard.set(numSamples+1, forKey: "numSamples")
-				}
+		DispatchQueue.global(qos: .background).async {
+			save_log(Config.logName)
+			
+			let date = UserDefaults.standard.object(forKey: "lastSampleDate") as? NSDate
+			let numSamples = UserDefaults.standard.integer(forKey: "numSamples")
+			if (date == nil) { // first time sent a sample
+				UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
+				UserDefaults.standard.set(0, forKey: "numSamples")
 			} else {
-				print("WARNING: Problem getting time interval in refreshLogs()")
+				var interval = Config.firstSampleInterval // initially we sample daily
+				if numSamples > Config.firstSampleNum {
+					interval = Config.sampleInterval // then monthly
+				}
+				if let diff = date?.timeIntervalSinceNow {
+					if ( (diff < -interval) || Config.testSample) {
+						sampleLogData(fname: Config.logTxtName) // send a sample from log file
+						UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
+						UserDefaults.standard.set(numSamples+1, forKey: "numSamples")
+					}
+				} else {
+					print("WARNING: Problem getting time interval in refreshLogs()")
+				}
 			}
-		}
-		if (need_log_rotate(logName: Config.logTxtName)) {
-			close_logtxt() // close human-readable log file
-			log_rotate(logName: Config.logTxtName)
-			open_logtxt(Config.logTxtName); // open new log file
-			sampleLogData(fname: Config.logTxtName+"0") // send a sample of last log file
-			UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
-		}
-		if (need_log_rotate(logName: Config.appLogName)) {
-			log_rotate(logName: Config.appLogName)
-			redirect_stdout(Config.appLogName); // redirect output to the new log file
+			if (need_log_rotate(logName: Config.logTxtName)) {
+				close_logtxt() // close human-readable log file
+				log_rotate(logName: Config.logTxtName)
+				open_logtxt(Config.logTxtName); // open new log file
+				sampleLogData(fname: Config.logTxtName+"0") // send a sample of last log file
+				UserDefaults.standard.set(NSDate(), forKey: "lastSampleDate")
+			}
+			if (need_log_rotate(logName: Config.appLogName)) {
+				log_rotate(logName: Config.appLogName)
+				redirect_stdout(Config.appLogName); // redirect output to the new log file
+			}			
 		}
 	}
 
