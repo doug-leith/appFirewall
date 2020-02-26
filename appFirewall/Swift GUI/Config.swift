@@ -35,7 +35,7 @@ class Config: NSObject {
 	static let testUpdates = false // enable for testing download of updates
 	static let testSample = false // enable for testing upload of app sample
 
-	static let minHelperVersion = 14 // required helper version, must be an Int
+	static let minHelperVersion = 15 // required helper version, must be an Int
 	
 	static let crashURL = URL(string: "https://leith.ie/logcrash.php")!
 	static let sampleURL = URL(string: "https://leith.ie/logsample.php")!

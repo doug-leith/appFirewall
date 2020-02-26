@@ -25,6 +25,7 @@
 #include "util.h"
 #include "conn.h"
 #include "dtrace.h"
+#include "cmd.h"
 
 // use apple libpcap header, uses private interface and has no
 // kernel filtering (we get every pkt), but big plus is that it provides
@@ -123,5 +124,4 @@ void start_listener(void);
 void close_sniffer_sock(void);
 void stop_sniffer(void);
 int get_DLT_offset2(int datalink);
-
 #endif /* pcap_sniffer_h */

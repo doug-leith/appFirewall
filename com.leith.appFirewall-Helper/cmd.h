@@ -31,5 +31,6 @@
 void start_cmd(void);
 int set_dns_server(char* dns);
 int kill_dnscrypt(void);
+void update_intf_dns(void);
 
 #endif /* cmd_h */

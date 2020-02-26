@@ -105,6 +105,24 @@ void* dnscrypt(void* ptr) {
 	return NULL;
 }
 
+void stop_dnscrypt() {
+	pthread_mutex_lock(&dns_mutex);
+	if (!dnscrypt_proxy_stopped) {
+		// there's a race here.  existing dnscrypt instance
+		// might be stopping, but not yet stopped.  its harmless
+		// to now tell it again here to stop.
+		dnscrypt_proxy_running=0; // flag to thread that it should stop
+		pthread_mutex_unlock(&dns_mutex);
+		// interrupt getline() in dns_thread so it checks
+		// dnscrypt_proxy_running flag
+		pthread_kill(dns_thread, SIGUSR1);
+		printf("stop dnscrypt-proxy signalled.\n");
+	} else {
+		pthread_mutex_unlock(&dns_mutex);
+		printf("stop dnscrypt-proxy: not running.\n");
+	}
+}
+
 int set_dns_server(char* dns) {
 	// get list of network services
 	FILE *out = popen("/usr/sbin/networksetup -listallnetworkservices","r");
@@ -138,6 +156,24 @@ int set_dns_server(char* dns) {
 	printf("set_dns_server() finished\n");
 	pclose(out);
 	return okforsome;
+}
+
+void update_intf_dns() {
+	// when interfaces change then if using DoH we update the DNS settings
+	// - this is called from refresh_sniffers_list() since it keeps
+	// an eye on interface changes
+	if (dnscrypt_proxy_running) {
+		int tries = 0, res=0;
+		while (((res=set_dns_server("127.0.0.1"))==0) && (tries<5)){tries++;}
+		if (res==0) {
+			// failed to set interfaces to point to DoH server
+			WARN("Problem in set_intf_dns() setting interface DNS to point to dnscrypt-proxy server.  Stopping dnscrypt-proxy!\n");
+			// this seems pretty bad, stop dnscrypt-proxy as otherwise
+			// we'll be left in a messed up state (dnscrypt running but
+			// interfaces incorrectly configured)
+			stop_dnscrypt();
+		}
+	}
 }
 
 void* cmd_accept_loop(void* ptr) {
@@ -297,21 +333,7 @@ void* cmd_accept_loop(void* ptr) {
 					break;
 				case StopDNScmd:
 					printf("Received stop dnscrypt-proxy command\n");
-					pthread_mutex_lock(&dns_mutex);
-					if (!dnscrypt_proxy_stopped) {
-						// there's a race here too.  existing dnscrypt instance
-						// might be stopping, but not yet stopped.  its harmless
-						// to now tell it again here to stop.
-						dnscrypt_proxy_running=0; // flag to thread that it should stop
-						pthread_mutex_unlock(&dns_mutex);
-						// interrupt getline() in dns_thread so it checks
-						// dnscrypt_proxy_running flag
-						pthread_kill(dns_thread, SIGUSR1);
-						printf("stop dnscrypt-proxy signalled.\n");
-					} else {
-						pthread_mutex_unlock(&dns_mutex);
-						printf("stop dnscrypt-proxy: not running.\n");
-					}
+					stop_dnscrypt();
 					ok=1;
 					break;
 				case GetDNSOutputcmd:

@@ -511,6 +511,10 @@ int refresh_sniffers_list(sniffers_t *sn, char* filter_exp, int quiet) {
 			continue;
 		}
 		// a new interface has appeared
+		
+		// set new interface to use DoH if enabled.
+		update_intf_dns();
+		
 		if (sn->num_pds >= MAX_INTS) {
 			WARN("In refresh_sniffers_list() have reached max number of interfaces\n");
 			// TO DO: handle this situation better
