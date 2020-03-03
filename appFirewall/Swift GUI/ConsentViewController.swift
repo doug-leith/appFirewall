@@ -16,8 +16,9 @@ class ConsentViewController: NSViewController {
 		super.viewDidLoad()
     if let rtfPath = Bundle.main.url(forResource: "consent", withExtension: "rtf") {
 			do {
-					let attributedStringWithRtf: NSAttributedString = try NSAttributedString(url: rtfPath, options: [NSAttributedString.DocumentReadingOptionKey.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil)
+				let attributedStringWithRtf: NSAttributedString = try NSAttributedString(url: rtfPath, options: [NSAttributedString.DocumentReadingOptionKey.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil)
 				docView?.textStorage?.setAttributedString(attributedStringWithRtf)
+				docView?.textStorage?.foregroundColor = .textColor // set color so that adapt to light/dark mode
 			 } catch let error {
 					print("ERROR: Couldn't parse consent.rtf:", error )
 			 }
