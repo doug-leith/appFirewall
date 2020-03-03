@@ -64,7 +64,6 @@
 		9180E181238DECEB007002CB /* codesign.m in Sources */ = {isa = PBXBuildFile; fileRef = 9180E17F238DC38C007002CB /* codesign.m */; };
 		9183583723A1BF81008FDBB4 /* appViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9183583623A1BF81008FDBB4 /* appViewController.swift */; };
 		9183583A23A4B86B008FDBB4 /* pgrep.c in Sources */ = {isa = PBXBuildFile; fileRef = 9183583923A4B86B008FDBB4 /* pgrep.c */; };
-		9185AD2923C066F3002AE0D6 /* netstats.c in Sources */ = {isa = PBXBuildFile; fileRef = 9185AD2823C066F3002AE0D6 /* netstats.c */; };
 		919074182397BA7900DE49DE /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919074172397BA7900DE49DE /* Config.swift */; };
 		9190741A2399077100DE49DE /* dns_connlist.dat in Resources */ = {isa = PBXBuildFile; fileRef = 919074192399072500DE49DE /* dns_connlist.dat */; };
 		91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
@@ -90,9 +89,7 @@
 		91EF664B23E36B4B008A2FE7 /* addRuleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */; };
 		91EF665123E517D5008A2FE7 /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
 		91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FDE82623D856130097BBCA /* ConsentViewController.swift */; };
-		91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; };
 		91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		91FDE83D23DBFF0F0097BBCA /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */; };
 		91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE84223DC00BC0097BBCA /* libcurl.tbd */; };
 		91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */; };
 		91FDE8B423E1A8AE0097BBCA /* dnscrypt-proxy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE89523E0B8210097BBCA /* dnscrypt-proxy */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -275,8 +272,6 @@
 		9183583623A1BF81008FDBB4 /* appViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appViewController.swift; sourceTree = "<group>"; };
 		9183583823A4B86B008FDBB4 /* pgrep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pgrep.h; sourceTree = "<group>"; };
 		9183583923A4B86B008FDBB4 /* pgrep.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pgrep.c; sourceTree = "<group>"; };
-		9185AD2723C066F3002AE0D6 /* netstats.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = netstats.h; sourceTree = "<group>"; };
-		9185AD2823C066F3002AE0D6 /* netstats.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = netstats.c; sourceTree = "<group>"; };
 		9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = ../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework; sourceTree = "<group>"; };
 		919074152397B59100DE49DE /* Screenshot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Screenshot.png; sourceTree = "<group>"; };
 		919074172397BA7900DE49DE /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -349,8 +344,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */,
-				91FDE83923D893300097BBCA /* NetworkStatistics.framework in Frameworks */,
-				91FDE83D23DBFF0F0097BBCA /* NetworkExtension.framework in Frameworks */,
 				91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -566,8 +559,6 @@
 				9139F681237D355600600D37 /* circular_list.c */,
 				91ABB26D237680B7007F8FFE /* table.h */,
 				91ABB26C237680B7007F8FFE /* table.c */,
-				9185AD2723C066F3002AE0D6 /* netstats.h */,
-				9185AD2823C066F3002AE0D6 /* netstats.c */,
 			);
 			path = "C workers";
 			sourceTree = "<group>";
@@ -880,7 +871,6 @@
 				91607BC8236AB7CA002E50A8 /* LogViewController.swift in Sources */,
 				91607BCA236AD090002E50A8 /* sniffer_blocker.c in Sources */,
 				9180E1702388A91F007002CB /* connection.c in Sources */,
-				9185AD2923C066F3002AE0D6 /* netstats.c in Sources */,
 				9139F67F237BC49A00600D37 /* helper.c in Sources */,
 				9139F685237D8EBB00600D37 /* blocklists.c in Sources */,
 				9180E1662387F407007002CB /* percentile.c in Sources */,
