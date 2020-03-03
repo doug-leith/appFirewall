@@ -89,7 +89,6 @@
 		91EF664B23E36B4B008A2FE7 /* addRuleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */; };
 		91EF665123E517D5008A2FE7 /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
 		91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FDE82623D856130097BBCA /* ConsentViewController.swift */; };
-		91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE83823D893300097BBCA /* NetworkStatistics.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE84223DC00BC0097BBCA /* libcurl.tbd */; };
 		91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */; };
 		91FDE8B423E1A8AE0097BBCA /* dnscrypt-proxy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE89523E0B8210097BBCA /* dnscrypt-proxy */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -144,7 +143,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				91FDE83A23D8937C0097BBCA /* NetworkStatistics.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -272,7 +270,6 @@
 		9183583623A1BF81008FDBB4 /* appViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appViewController.swift; sourceTree = "<group>"; };
 		9183583823A4B86B008FDBB4 /* pgrep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pgrep.h; sourceTree = "<group>"; };
 		9183583923A4B86B008FDBB4 /* pgrep.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pgrep.c; sourceTree = "<group>"; };
-		9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = ../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework; sourceTree = "<group>"; };
 		919074152397B59100DE49DE /* Screenshot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Screenshot.png; sourceTree = "<group>"; };
 		919074172397BA7900DE49DE /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		919074192399072500DE49DE /* dns_connlist.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = dns_connlist.dat; sourceTree = "<group>"; };
@@ -288,7 +285,6 @@
 		91B67F2723793C1C00706027 /* TODO */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
 		91B976FC23D3108A00B4BE16 /* cmd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cmd.h; sourceTree = "<group>"; };
 		91B976FD23D3108A00B4BE16 /* cmd.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = cmd.c; sourceTree = "<group>"; };
-		91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 		91C0DF9623B0B05500E5215B /* appFirewall-loginLaunch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "appFirewall-loginLaunch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		91C0DF9823B0B05500E5215B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91C0DF9C23B0B05600E5215B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -313,9 +309,6 @@
 		91FDE82A23D85D760097BBCA /* consent.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = consent.rtf; path = "/Users/doug/Desktop/stuff/appFirewall/appFirewall/Swift GUI/../../../../appFirewall/appFirewall/Swift GUI/consent.rtf"; sourceTree = "<absolute>"; };
 		91FDE82C23D869D30097BBCA /* INFORMATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = INFORMATION.md; path = /Users/doug/Desktop/appFirewall/INFORMATION.md; sourceTree = "<absolute>"; };
 		91FDE82F23D8901B0097BBCA /* consent.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = consent.rtf; sourceTree = "<group>"; };
-		91FDE83123D8909F0097BBCA /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = ../../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework; sourceTree = "<group>"; };
-		91FDE83423D891830097BBCA /* NetworkStatistics */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = NetworkStatistics; path = ../../../../../System/Library/PrivateFrameworks/NetworkStatistics.framework/Versions/A/NetworkStatistics; sourceTree = "<group>"; };
-		91FDE83823D893300097BBCA /* NetworkStatistics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkStatistics.framework; path = appFirewall/NetworkStatistics.framework; sourceTree = "<group>"; };
 		91FDE84223DC00BC0097BBCA /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91FDE89523E0B8210097BBCA /* dnscrypt-proxy */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "dnscrypt-proxy"; sourceTree = "<group>"; };
 		91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "dnscrypt-proxy.toml"; sourceTree = "<group>"; };
@@ -449,11 +442,6 @@
 			isa = PBXGroup;
 			children = (
 				91FDE84223DC00BC0097BBCA /* libcurl.tbd */,
-				91FDE83823D893300097BBCA /* NetworkStatistics.framework */,
-				91FDE83423D891830097BBCA /* NetworkStatistics */,
-				91FDE83123D8909F0097BBCA /* NetworkStatistics.framework */,
-				91B976FF23D5D2B500B4BE16 /* NetworkExtension.framework */,
-				9185AD2A23C07069002AE0D6 /* NetworkStatistics.framework */,
 				91494786239F909F00C01432 /* libSystem.B_asan.tbd */,
 				91494783239F907700C01432 /* libSystem_asan.tbd */,
 				91B5909923925620000F418D /* libdtrace.tbd */,
