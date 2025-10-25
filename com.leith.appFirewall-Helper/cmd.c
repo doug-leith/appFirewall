@@ -16,7 +16,7 @@ static char dnscrypt_cmd[STR_SIZE], dnscrypt_arg[STR_SIZE];
 static char dnscrypt_lastline[STR_SIZE]; // last line of output
 static int dnscrypt_pid=-1;
 
-int kill_dnscrypt() {
+int kill_dnscrypt(void) {
 	// stop dnscrypt external process.  called by dnscrypt thread below
 	// and also by SIGTERM handler with helper exits
 	int res = 0;
@@ -105,7 +105,7 @@ void* dnscrypt(void* ptr) {
 	return NULL;
 }
 
-void stop_dnscrypt() {
+void stop_dnscrypt(void) {
 	pthread_mutex_lock(&dns_mutex);
 	if (!dnscrypt_proxy_stopped) {
 		// there's a race here.  existing dnscrypt instance
@@ -131,10 +131,10 @@ int set_dns_server(char* dns) {
 		pclose(out);
 		return -3;
 	}
-	int count = 0, res = 0;
+	int count = 0;
 	int failedforsome=0, okforsome=0;
 	char service[STR_SIZE], cmd_str[STR_SIZE];
-	while ((res=readline_timed(service, STR_SIZE, out,CMD_TIMEOUT))>0) {
+	while (readline_timed(service, STR_SIZE, out,CMD_TIMEOUT)>0) {
 		count++;
 		if (count==1) continue; // ignore first line of output
 		char *tmp = trimwhitespace(service);
@@ -158,7 +158,7 @@ int set_dns_server(char* dns) {
 	return okforsome;
 }
 
-void update_intf_dns() {
+void update_intf_dns(void) {
 	// when interfaces change then if using DoH we update the DNS settings
 	// - this is called from refresh_sniffers_list() since it keeps
 	// an eye on interface changes
@@ -364,7 +364,7 @@ void* cmd_accept_loop(void* ptr) {
 	}
 }
 
-void start_cmd() {
+void start_cmd(void) {
 	// start listening for requests to do stuff
 	c_sock = bind_to_port(CMD_PORT,2);
 	INFO("Now listening on localhost port %d (%s)\n", CMD_PORT, "recv_cmd");

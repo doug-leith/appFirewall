@@ -10,15 +10,16 @@
 
 #include <stdio.h>
 #include <netinet/in.h>
+//#include <net/ethernet.h>
 #include "libnet.h"
-#include <sys/types.h>
-#include <net/ethernet.h>
+//#include <sys/types.h>
 #include "util.h"
 #include "conn.h"
 #include "pcap_sniffer.h"
 
 #define RST_PORT 2
 #define IPV6_SELECT_TIMEOUT 1000 // 1ms in microseconds, for RST rate limiting
+#define _ETHER_ADDR_LEN 6 // define here to avoid irritating xcode warnings
 
 typedef struct libnet_data_t {
 	libnet_t *l4, *l6;  // libnet state

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -46,13 +46,14 @@
 		91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607BCD236AD702002E50A8 /* libpcap.tbd */; };
 		91607BF6237142A0002E50A8 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF5237142A0002E50A8 /* log.c */; };
 		91607BFA23714D46002E50A8 /* dns_sniffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 91607BF923714D46002E50A8 /* dns_sniffer.m */; };
-		91607C2B2372FF7F002E50A8 /* libnet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 91607C252372FF7E002E50A8 /* libnet.a */; };
 		91607C2C2372FF7F002E50A8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C262372FF7E002E50A8 /* main.c */; };
 		91607C2D2372FFAE002E50A8 /* com.leith.appFirewall-Helper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		91607C312374080C002E50A8 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 91607C302374080B002E50A8 /* util.c */; };
 		916ECAFD23ABA1BB00023AEA /* UpdateInstallerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */; };
 		916ECAFF23AF5BAA00023AEA /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */; };
 		916ECB0323AF8EF900023AEA /* version in Resources */ = {isa = PBXBuildFile; fileRef = 916ECB0223AF8EF900023AEA /* version */; };
+		9174EE002EAD2570006EE493 /* libnet_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9174EDFF2EAD2554006EE493 /* libnet_universal.a */; };
+		9174EE012EAD257A006EE493 /* libnet_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9174EDFF2EAD2554006EE493 /* libnet_universal.a */; };
 		9180E1662387F407007002CB /* percentile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1652387F407007002CB /* percentile.c */; };
 		9180E1692387F4BB007002CB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E1672387F4BB007002CB /* heap.c */; };
 		9180E1702388A91F007002CB /* connection.c in Sources */ = {isa = PBXBuildFile; fileRef = 9180E16F2388A91F007002CB /* connection.c */; };
@@ -87,8 +88,6 @@
 		91ED43EA23E6050B00966771 /* sniffer_blocker_test.m in Sources */ = {isa = PBXBuildFile; fileRef = 91ED43E923E6050B00966771 /* sniffer_blocker_test.m */; };
 		91ED43EC23E6051D00966771 /* pid_conn_info_test.m in Sources */ = {isa = PBXBuildFile; fileRef = 91ED43EB23E6051D00966771 /* pid_conn_info_test.m */; };
 		91EF664B23E36B4B008A2FE7 /* addRuleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */; };
-		91EF665123E517D5008A2FE7 /* consent.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE82F23D8901B0097BBCA /* consent.rtf */; };
-		91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FDE82623D856130097BBCA /* ConsentViewController.swift */; };
 		91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 91FDE84223DC00BC0097BBCA /* libcurl.tbd */; };
 		91FDE89823E0B8740097BBCA /* dnscrypt-proxy.toml in Resources */ = {isa = PBXBuildFile; fileRef = 91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */; };
 		91FDE8B423E1A8AE0097BBCA /* dnscrypt-proxy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 91FDE89523E0B8210097BBCA /* dnscrypt-proxy */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -240,7 +239,6 @@
 		91607BF7237144D2002E50A8 /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		91607BF823714D46002E50A8 /* dns_sniffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dns_sniffer.h; sourceTree = "<group>"; };
 		91607BF923714D46002E50A8 /* dns_sniffer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = dns_sniffer.m; sourceTree = "<group>"; };
-		91607C0B2372AC51002E50A8 /* libnet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnet.a; path = appFirewall_Helper/libnet.a; sourceTree = "<group>"; };
 		91607C1E2372FF40002E50A8 /* com.leith.appFirewall-Helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "com.leith.appFirewall-Helper"; sourceTree = BUILT_PRODUCTS_DIR; };
 		91607C252372FF7E002E50A8 /* libnet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libnet.a; sourceTree = "<group>"; };
 		91607C262372FF7E002E50A8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -252,6 +250,10 @@
 		916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallerViewController.swift; sourceTree = "<group>"; };
 		916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		916ECB0223AF8EF900023AEA /* version */ = {isa = PBXFileReference; lastKnownFileType = text; path = version; sourceTree = "<group>"; };
+		9174EDF52EAA6970006EE493 /* libnet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnet.a; path = appFirewall/libnet.a; sourceTree = "<group>"; };
+		9174EDFB2EACCE66006EE493 /* libnet_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnet_universal.a; path = appFirewall/libnet_universal.a; sourceTree = "<group>"; };
+		9174EDFD2EACCEB4006EE493 /* libnet_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnet_universal.a; path = "com.leith.appFirewall-Helper/libnet_universal.a"; sourceTree = "<group>"; };
+		9174EDFF2EAD2554006EE493 /* libnet_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libnet_universal.a; sourceTree = "<group>"; };
 		9180E1642387F407007002CB /* percentile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = percentile.h; sourceTree = "<group>"; };
 		9180E1652387F407007002CB /* percentile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = percentile.c; sourceTree = "<group>"; };
 		9180E1672387F4BB007002CB /* heap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = heap.c; sourceTree = "<group>"; };
@@ -305,10 +307,6 @@
 		91ED43E923E6050B00966771 /* sniffer_blocker_test.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = sniffer_blocker_test.m; sourceTree = "<group>"; };
 		91ED43EB23E6051D00966771 /* pid_conn_info_test.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = pid_conn_info_test.m; sourceTree = "<group>"; };
 		91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = addRuleViewController.swift; sourceTree = "<group>"; };
-		91FDE82623D856130097BBCA /* ConsentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentViewController.swift; sourceTree = "<group>"; };
-		91FDE82A23D85D760097BBCA /* consent.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = consent.rtf; path = "/Users/doug/Desktop/stuff/appFirewall/appFirewall/Swift GUI/../../../../appFirewall/appFirewall/Swift GUI/consent.rtf"; sourceTree = "<absolute>"; };
-		91FDE82C23D869D30097BBCA /* INFORMATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = INFORMATION.md; path = /Users/doug/Desktop/appFirewall/INFORMATION.md; sourceTree = "<absolute>"; };
-		91FDE82F23D8901B0097BBCA /* consent.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = consent.rtf; sourceTree = "<group>"; };
 		91FDE84223DC00BC0097BBCA /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
 		91FDE89523E0B8210097BBCA /* dnscrypt-proxy */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "dnscrypt-proxy"; sourceTree = "<group>"; };
 		91FDE89723E0B8740097BBCA /* dnscrypt-proxy.toml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "dnscrypt-proxy.toml"; sourceTree = "<group>"; };
@@ -336,6 +334,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9174EE002EAD2570006EE493 /* libnet_universal.a in Frameworks */,
 				91FDE84323DC00BC0097BBCA /* libcurl.tbd in Frameworks */,
 				91607BCF236AD7F5002E50A8 /* libpcap.tbd in Frameworks */,
 			);
@@ -345,9 +344,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9174EE012EAD257A006EE493 /* libnet_universal.a in Frameworks */,
 				91B5909A23925620000F418D /* libdtrace.tbd in Frameworks */,
 				91ABB26B2375D659007F8FFE /* libpcap.tbd in Frameworks */,
-				91607C2B2372FF7F002E50A8 /* libnet.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,7 +390,6 @@
 				916ECB0223AF8EF900023AEA /* version */,
 				9157B04A238FB09E0027457A /* README.md */,
 				9190741C239B9FD000DE49DE /* KNOWN_ISSUES.md */,
-				91FDE82C23D869D30097BBCA /* INFORMATION.md */,
 				919074152397B59100DE49DE /* Screenshot.png */,
 				9180E16A2387FCC9007002CB /* LICENSE.md */,
 				91607BB1236AB280002E50A8 /* appFirewall */,
@@ -441,12 +439,15 @@
 		91607BCB236AD6BA002E50A8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9174EDFB2EACCE66006EE493 /* libnet_universal.a */,
+				9174EDFD2EACCEB4006EE493 /* libnet_universal.a */,
+				9174EDFF2EAD2554006EE493 /* libnet_universal.a */,
+				9174EDF52EAA6970006EE493 /* libnet.a */,
 				91FDE84223DC00BC0097BBCA /* libcurl.tbd */,
 				91494786239F909F00C01432 /* libSystem.B_asan.tbd */,
 				91494783239F907700C01432 /* libSystem_asan.tbd */,
 				91B5909923925620000F418D /* libdtrace.tbd */,
 				91607C3723741D65002E50A8 /* OSLog.framework */,
-				91607C0B2372AC51002E50A8 /* libnet.a */,
 				91607BCE236AD717002E50A8 /* libpcap.A.tbd */,
 				91607BCD236AD702002E50A8 /* libpcap.tbd */,
 			);
@@ -483,7 +484,6 @@
 		9180E16223865418007002CB /* Swift GUI */ = {
 			isa = PBXGroup;
 			children = (
-				91FDE82F23D8901B0097BBCA /* consent.rtf */,
 				9139F68D2381E3FF00600D37 /* blButton.swift */,
 				9139F68F2382890700600D37 /* helpButton.swift */,
 				9139F68B2380936800600D37 /* helpViewController.swift */,
@@ -497,13 +497,11 @@
 				91EF664A23E36B4B008A2FE7 /* addRuleViewController.swift */,
 				91ABB28B2376F01F007F8FFE /* PreferenceViewController.swift */,
 				916ECAFE23AF5BAA00023AEA /* SettingsViewController.swift */,
-				91FDE82623D856130097BBCA /* ConsentViewController.swift */,
 				919074172397BA7900DE49DE /* Config.swift */,
 				916ECAFC23ABA1BB00023AEA /* UpdateInstallerViewController.swift */,
 				9180E17B238D2882007002CB /* installHelper.swift */,
 				9180E17D238D2D07007002CB /* Helpers.swift */,
 				91B590952390F7BC000F418D /* HyperlinkTextView.swift */,
-				91FDE82A23D85D760097BBCA /* consent.rtf */,
 			);
 			path = "Swift GUI";
 			sourceTree = "<group>";
@@ -724,8 +722,9 @@
 		91607BA7236AB280002E50A8 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1120;
-				LastUpgradeCheck = 1130;
+				LastUpgradeCheck = 1540;
 				ORGANIZATIONNAME = "Doug Leith";
 				TargetAttributes = {
 					9148890F23E92355003EDF02 = {
@@ -793,7 +792,6 @@
 				91ABB293237734DE007F8FFE /* BlackLists in Resources */,
 				91607BBA236AB282002E50A8 /* Main.storyboard in Resources */,
 				916ECB0323AF8EF900023AEA /* version in Resources */,
-				91EF665123E517D5008A2FE7 /* consent.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -844,7 +842,6 @@
 				91607BF6237142A0002E50A8 /* log.c in Sources */,
 				91D96AD3239648D400AAA73B /* dns_conn_cache.c in Sources */,
 				9139F687237FDE8E00600D37 /* WhiteListViewController.swift in Sources */,
-				91FDE82723D856130097BBCA /* ConsentViewController.swift in Sources */,
 				9139F68E2381E3FF00600D37 /* blButton.swift in Sources */,
 				9180E17E238D2D07007002CB /* Helpers.swift in Sources */,
 				91EF664B23E36B4B008A2FE7 /* addRuleViewController.swift in Sources */,
@@ -956,6 +953,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				INFOPLIST_FILE = "appFirewall-HelperTests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -978,6 +976,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				INFOPLIST_FILE = "appFirewall-HelperTests/Info.plist";
@@ -1023,6 +1022,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -1030,6 +1030,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1084,6 +1085,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -1091,6 +1093,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1124,8 +1127,10 @@
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1133,6 +1138,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = appFirewall/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1142,9 +1148,10 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/appFirewall",
 					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks/NetworkStatistics.framework/Versions/A",
+					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 2.04;
+				MARKETING_VERSION = 2.05;
 				OTHER_CFLAGS = "";
 				"OTHER_CFLAGS[arch=*]" = "-Wthread-safety";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
@@ -1172,8 +1179,10 @@
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CODE_SIGN_ENTITLEMENTS = appFirewall/appFirewall.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1181,6 +1190,7 @@
 					"$(PROJECT_DIR)/appFirewall",
 				);
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = appFirewall/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1190,9 +1200,10 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/appFirewall",
 					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks/NetworkStatistics.framework/Versions/A",
+					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MARKETING_VERSION = 2.04;
+				MARKETING_VERSION = 2.05;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.leith.appFirewall;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1213,6 +1224,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";
@@ -1220,6 +1232,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
+					"$(PROJECT_DIR)",
 				);
 				MARKETING_VERSION = 14;
 				"OTHER_LDFLAGS[arch=*]" = (
@@ -1245,6 +1258,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "$(SRCROOT)/com.leith.appFirewall-Helper/Info.plist";
@@ -1252,6 +1266,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/com.leith.appFirewall-Helper",
+					"$(PROJECT_DIR)",
 				);
 				MARKETING_VERSION = 14;
 				"OTHER_LDFLAGS[arch=*]" = (
@@ -1277,6 +1292,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "appFirewall-loginLaunch/Info.plist";
@@ -1301,6 +1317,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1326,6 +1343,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				INFOPLIST_FILE = appFirewallTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1348,6 +1366,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				INFOPLIST_FILE = appFirewallTests/Info.plist;
@@ -1369,6 +1388,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "$(SRCROOT)/dnscrypt-proxy/Info.plist";
@@ -1396,6 +1416,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Z4G8Q5Z5LN;
 				ENABLE_HARDENED_RUNTIME = YES;

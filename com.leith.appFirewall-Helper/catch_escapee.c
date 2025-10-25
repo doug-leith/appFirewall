@@ -226,7 +226,7 @@ void sigusr1_handler(int signum) {
 	//pthread_exit(NULL); // occasionally get fault if call this from signal handler
 }
 
-void stop_catcher() {
+void stop_catcher(void) {
 	pthread_kill(catcher_thread,SIGUSR1);
 	pthread_join(catcher_thread,NULL);
 	if (sn_esc.num_pds>0) {
@@ -296,18 +296,18 @@ void *catcher_listener(void *ptr) {
 		struct timeval start; gettimeofday(&start, NULL);
 		int8_t ok=0;
 
-		ssize_t res; uint8_t vpn;
+		uint8_t vpn;
 		memset(&a.target_dst,0,sizeof(struct in6_addr));
 		uint32_t ack, seq;
 		set_recv_timeout(c_sock2, RECV_TIMEOUT); // to be safe, will eventually timeout of read
-		if ( (res=readn(c_sock2, &vpn, sizeof(uint8_t)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &a.target_pid, sizeof(int)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &a.af, sizeof(int)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &a.target_dst, sizeof(struct in6_addr)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &a.target_sport, sizeof(uint16_t)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &a.target_dport, sizeof(uint16_t)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &seq, sizeof(uint32_t)) )<=0) goto err;
-		if ( (res=readn(c_sock2, &ack, sizeof(uint32_t)) )<=0) goto err;
+		if ( readn(c_sock2, &vpn, sizeof(uint8_t)) <=0) goto err;
+		if ( readn(c_sock2, &a.target_pid, sizeof(int)) <=0) goto err;
+		if ( readn(c_sock2, &a.af, sizeof(int)) <=0) goto err;
+		if ( readn(c_sock2, &a.target_dst, sizeof(struct in6_addr)) <=0) goto err;
+		if ( readn(c_sock2, &a.target_sport, sizeof(uint16_t)) <=0) goto err;
+		if ( readn(c_sock2, &a.target_dport, sizeof(uint16_t)) <=0) goto err;
+		if ( readn(c_sock2, &seq, sizeof(uint32_t)) <=0) goto err;
+		if ( readn(c_sock2, &ack, sizeof(uint32_t)) <=0) goto err;
 		
 		char dn[INET6_ADDRSTRLEN], sn[INET6_ADDRSTRLEN];
 		inet_ntop(a.af, &a.target_dst, dn, INET6_ADDRSTRLEN);
@@ -322,7 +322,7 @@ void *catcher_listener(void *ptr) {
 			close(c_sock2);
 			continue;
 		}
-				
+    int res;
 		res = find_fds(a.target_pid, a.af, a.target_dst, a.target_sport, a.target_dport, &estimated_c);
 		if (res<0) {
 			INFO("Couldn't find PID with those connection details (catch_escapee): %d %s:%u\n",a.target_pid,dn,a.target_dport);
@@ -505,7 +505,7 @@ void *catcher_listener(void *ptr) {
 	return NULL;
 }
 
-void start_catcher_listener() {
+void start_catcher_listener(void) {
 	c_sock = bind_to_port(CATCHER_PORT,2);
 	INFO("Now listening on localhost port %u (catch_escapee)\n", CATCHER_PORT);
 	pthread_create(&catcher_listener_thread, NULL, catcher_listener, NULL);

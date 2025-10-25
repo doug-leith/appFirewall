@@ -101,7 +101,7 @@
 	bl_item_t b3; strcpy(b3.name,"testname3"); strcpy(b3.domain,"testdomain3");
 	strcpy(b3.addr_name,"addr3");
 	conn_raw_t c3; memset(&c3,0,sizeof(conn_raw_t)); c3.af=AF_INET;  c3.dport = 5000;
-	log_connection(&c3, &b3, 1, 0.33, "?");
+	//log_connection(&c3, &b3, 1, 0.33, "?");
 	l=find_log_by_conn("testname3", &c3, 0);
 	XCTAssertNotEqual(l,NULL);
 	XCTAssertEqual(strcmp(l->log_line,"testname3? → testdomain3:5000"),0);

@@ -242,6 +242,8 @@ func getSampleDir()->String? {
 }
 
 func uploadSample(str: String, type: String) {
+  // disable uploads
+  /*
 	var request = URLRequest(url: Config.sampleURL); request.httpMethod = "POST"
 	let uploadData=(type+"="+String(str)+"&compression=none").data(using: .ascii)
 	let session = URLSession(configuration: .default)
@@ -259,6 +261,7 @@ func uploadSample(str: String, type: String) {
 	}
 	task.resume()
 	session.finishTasksAndInvalidate()
+ */
 }
 
 func sampleApp(fname: String, lines: [String], app:String)->String {

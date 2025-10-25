@@ -142,6 +142,9 @@ if (payload_s)                                                               \
     }                                                                        \
 }                                                                            \
 
+/* used internally for LLDP stuff */
+#define LIBNET_LLDP_TLV_SET_TYPE(tlv, type) (tlv |= (type << 9))
+#define LIBNET_LLDP_TLV_SET_LEN(tlv, len)   (tlv |= len)
 
 /* used internally for checksum stuff */
 #define LIBNET_CKSUM_CARRY(x) \
@@ -170,9 +173,9 @@ if (payload_s)                                                               \
 /* context queue macros and constants */
 #define LIBNET_LABEL_SIZE   64
 #define LIBNET_LABEL_DEFAULT "cardshark"
-#define CQ_LOCK_UNLOCKED    (u_int)0x00000000
-#define CQ_LOCK_READ        (u_int)0x00000001
-#define CQ_LOCK_WRITE       (u_int)0x00000002
+#define CQ_LOCK_UNLOCKED    (uint32_t)0x00000000
+#define CQ_LOCK_READ        (uint32_t)0x00000001
+#define CQ_LOCK_WRITE       (uint32_t)0x00000002
 
 /**
  * Provides an interface to iterate through the context queue of libnet

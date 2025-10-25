@@ -78,12 +78,13 @@ struct pktap_header {
 #define SNAPLEN 768 // needs to be big enough to capture dns payload and allow for PKTAP header (which is around 150B)
 #define MAX_INTS 5 // max number of interfaces to monitor, not too large
 #define PCAP_BUFFER_SIZE 2097152*8  // default is 2M=2097152, but we increase it to 16M
+#define _ETHER_ADDR_LEN 6 // define here to avoid irritating xcode warnings
 
 typedef struct interface_t {
 	char name[STR_SIZE];
 	int num_addr;
 	struct sockaddr_storage addr[MAX_INTS];
-	uint8_t eth[ETHER_ADDR_LEN];
+	uint8_t eth[_ETHER_ADDR_LEN];
 	int dlt; // type of link, ethernet or loopback
 } interface_t;
 
@@ -114,8 +115,8 @@ int get_interfaces(interface_t intf[MAX_INTS], int use_pktap);
 char* get_intf_name(char* ifa_name, int use_pktap, char* name);
 interface_t* find_intf(conn_raw_t* c, interface_t* intf);
 void print_sockaddr(struct sockaddr* daddr);
-void print_eth(uint8_t eth[ETHER_ADDR_LEN]);
-uint8_t* get_default_gateway_eth(int af, uint8_t eth[ETHER_ADDR_LEN]);
+void print_eth(uint8_t eth[_ETHER_ADDR_LEN]);
+uint8_t* get_default_gateway_eth(int af, uint8_t eth[_ETHER_ADDR_LEN]);
 
 void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_exp, sniffers_t *sn, int use_pktap);
 void sniffer_callback(u_char* args, const struct pcap_pkthdr *pkthdr, const u_char* pkt);

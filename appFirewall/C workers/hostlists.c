@@ -13,7 +13,7 @@ static int host_list_size=0;
 static Hashtable *hl_htab=NULL; // hash table of pointers into black list for fast lookup
 static pthread_mutex_t hl_mutex = MUTEX_INITIALIZER;
 
-void init_hosts_list() {
+void init_hosts_list(void) {
 	// initialise hash table
 	if (hl_htab!=NULL) hashtable_free(hl_htab);
 	hl_htab = hashtable_new(HTABSIZE);
@@ -68,8 +68,7 @@ int_sw load_hostsfile(const char* fname) {
 
 	char * line = NULL;
 	size_t len = 0;
-	ssize_t read;
-	while ((read = getline(&line, &len, fp)) != -1) {
+	while (getline(&line, &len, fp) != -1) {
 			//printf("%s", line);
 			// split line using spaces as delimiter
 			char* ptr;

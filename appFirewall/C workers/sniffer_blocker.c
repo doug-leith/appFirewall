@@ -182,15 +182,15 @@ void process_conn(conn_raw_t *cr, bl_item_t *c, double confidence, int *r_sock, 
 		return;
 }
 
-size_t get_waiting_list_size() {
+size_t get_waiting_list_size(void) {
 	return get_list_size(&waiting_list);
 }
 
-void clear_waiting_list() {
+void clear_waiting_list(void) {
 	clear_list(&waiting_list);
 }
 
-void init_waiting_list() {
+void init_waiting_list(void) {
 	init_list(&waiting_list,conn_raw_hash,NULL,1,-1,"waiting_list");
 }
 
@@ -367,7 +367,7 @@ int in_udp_cache(conn_raw_t *cr) {
 	return 0; // no match
 }
 
-void clear_udp_cache() {
+void clear_udp_cache(void) {
 	udp_cache_size = 0;
 	udp_cache_start = 0;
 }
@@ -495,7 +495,6 @@ void handle_tcp_conn(conn_raw_t *cr, int pkt_pid, char* pkt_name, int syn, int s
 void *listener(void *ptr) {
 	struct pcap_pkthdr pkthdr;
 	u_char pkt[SNAPLEN];
-	ssize_t res;
 	
 	is_running=1; // flag that thread is running
 	
@@ -527,7 +526,7 @@ void *listener(void *ptr) {
 		
 		// read sniffed pkt, this will block
 		DEBUG2("waiting to read sniffed pkt ... %d\n",p_sock);
-		if ( (res=readn(p_sock, &pkthdr, sizeof(struct pcap_pkthdr)) )<=0) goto err_p;
+		if ( readn(p_sock, &pkthdr, sizeof(struct pcap_pkthdr)) <=0) goto err_p;
 		if (pkthdr.caplen>SNAPLEN) {
 			WARN("Sniffer listener: our snaplen %d is too small for received pkt len %d\n",SNAPLEN,pkthdr.caplen);
 			pkthdr.caplen=SNAPLEN; // we truncate packet and hope for the best !
@@ -536,15 +535,15 @@ void *listener(void *ptr) {
 		int pkt_pid=-1;
 		char pkt_name[MAXCOMLEN]; memset(pkt_name,0,MAXCOMLEN);
 		ssize_t len=0;
-		if ( (res=readn(p_sock, &pkt_pid, sizeof(int)) )<=0) goto err_p;
-		if ( (res=readn(p_sock, &len, sizeof(ssize_t)) )<=0) goto err_p;
+		if ( readn(p_sock, &pkt_pid, sizeof(int)) <=0) goto err_p;
+		if ( readn(p_sock, &len, sizeof(ssize_t)) <=0) goto err_p;
 		if (len>0) {
-			if ( (res=readn(p_sock, pkt_name, len) )<=0) goto err_p;
+			if ( readn(p_sock, pkt_name, len) <=0) goto err_p;
 		} else {
 			printf("pid=%d, len=%zd ...",pkt_pid,len);
 		}
-		if ( (res=readn(p_sock, &pkt_proper_len, sizeof(size_t)) )<=0) goto err_p;
-		if ( (res=readn(p_sock, pkt, (ssize_t)pkt_proper_len) )<=0) goto err_p;
+		if ( readn(p_sock, &pkt_proper_len, sizeof(size_t)) <=0) goto err_p;
+		if ( readn(p_sock, pkt, (ssize_t)pkt_proper_len) <=0) goto err_p;
 		
 		// we got a pkt, let's process it ...		
 		// nb: link layer header has already been removed by helper.
@@ -606,21 +605,21 @@ void *listener(void *ptr) {
 //--------------------------------------------------------
 // swift interface
 
-void start_listener() {
+void start_listener(void) {
 	// fire up thread that listens for pkts sent by helper
 	pthread_create(&thread, NULL, listener, NULL);
 }
 
-void stop_listener() {
+void stop_listener(void) {
 	pthread_kill(thread, SIGTERM);
 	close(p_sock); // end connection to helper, this will let helper close pktap dev
 }
 
-int sniffer_blocker_error() {
+int sniffer_blocker_error(void) {
 	return !is_running;
 }
 
-int check_for_error() {
+int check_for_error(void) {
 	// nb: we can only generate error popup from
 	// within the main GUI thread, not from within listener() thread.
 	// so we get GUI thread to poll listener status using this routing
@@ -630,7 +629,7 @@ int check_for_error() {
 	return sniffer_blocker_error();
 }
 
-int_sw get_num_conns_blocked() {
+int_sw get_num_conns_blocked(void) {
 	return num_conns_blocked;
 }
 

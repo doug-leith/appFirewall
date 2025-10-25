@@ -50,6 +50,7 @@
 #define LIBNET_BGP4_UPDATE_H    0x04    /**< BGP open header:      4 bytes */
 #define LIBNET_BGP4_NOTIFICATION_H 0x02 /**< BGP notif. header:    2 bytes */
 #define LIBNET_CDP_H            0x08    /**< CDP header base:      8 bytes */
+#define LIBNET_LLDP_H           0x02    /**< LLDP header base:     2 bytes */
 #define LIBNET_DHCPV4_H         0xf0    /**< DHCP v4 header:     240 bytes */
 #define LIBNET_UDP_DNSV4_H      0x0c    /**< UDP DNS v4 header:   12 bytes */
 #define LIBNET_TCP_DNSV4_H      0x0e    /**< TCP DNS v4 header:   14 bytes */
@@ -106,6 +107,7 @@
 #define LIBNET_SEBEK_H          0x30    /* sebek header:          48 bytes */   
 #define LIBNET_STP_CONF_H       0x23    /**< STP conf header:     35 bytes */
 #define LIBNET_STP_TCN_H        0x04    /**< STP tcn header:       4 bytes */
+#define LIBNET_UDLD_H           0x04    /**< UDLD header:          4 bytes */
 #define LIBNET_TOKEN_RING_H     0x16    /**< Token Ring header:   22 bytes */
 #define LIBNET_TCP_H            0x14    /**< TCP header:          20 bytes */
 #define LIBNET_UDP_H            0x08    /**< UDP header:           8 bytes */
@@ -297,7 +299,96 @@ struct libnet_bgp4_notification_hdr
     uint8_t err_subcode;
 };
 
+/*
+ * LLDP header
+ * Link Layer Discovery Protocol
+ * Base header size : 2 bytes
+ */
+struct libnet_lldp_hdr
+{
+#define LIBNET_LLDP_ETH_TYPE (0x88cc)   /* LLDP Ethernet type */
 
+#define LIBNET_LLDP_TLV_HDR_SIZE 0x02   /* LLDP TLV's header size  2 bytes */
+#define LIBNET_LLDP_SUBTYPE_SIZE 0x01   /* LLDP Subtype field size 2 bytes */
+    uint16_t tlv_info;                  /* Type = 7 bits, Length = 9 bits */
+
+/* Mandatory TLVs Types */
+#define LIBNET_LLDP_END_LLDPDU 0x00     /* End of LLDPDU  (Mandatory) */
+
+#define LIBNET_LLDP_CHASSIS_ID 0x01     /* Chassis ID     (Mandatory) */
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_RESERVED  0x00
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_COMPONENT 0x01 /* Chassis Component */
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_IF_ALIAS  0x02 /* Interface Alias */
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_PORT      0x03 /* Port Component */
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_MAC       0x04 /* MAC Address */
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_NETWORK   0x05 /* Network Address */
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_IF_NAME   0x06 /* Interface Name */
+    #define LIBNET_LLDP_CHASSIS_ID_SUBTYPE_LOCALLY   0x07 /* Locally Assigned */
+
+#define LIBNET_LLDP_PORT_ID    0x02    /* Port ID         (Mandatory) */
+    #define LIBNET_LLDP_PORT_ID_SUBTYPE_RESERVED     0x00
+    #define LIBNET_LLDP_PORT_ID_SUBTYPE_IF_ALIAS     0x01 /* Interface Alias */
+    #define LIBNET_LLDP_PORT_ID_SUBTYPE_MAC          0x03 /* MAC Address */
+    #define LIBNET_LLDP_PORT_ID_SUBTYPE_NETWORK      0x04 /* Network Address */
+    #define LIBNET_LLDP_PORT_ID_SUBTYPE_IF_NAME      0x05 /* Interface Name */
+    #define LIBNET_LLDP_PORT_ID_SUBTYPE_AGENT_ID     0x06 /* Agent circuit ID */
+    #define LIBNET_LLDP_PORT_ID_SUBTYPE_LOCALLY      0x07 /* Locally Assigned */
+                                                     /* 8 - 255 Reserved */
+
+#define LIBNET_LLDP_TTL        0x03    /* Time To Live    (Mandatory) */
+
+/* Optional TLVs Types */
+/* Organization Specific TLV */
+#define LIBNET_LLDP_ORG_SPEC   0x7f    /* Organizationally Specific TLV type = 127 */
+
+#define LIBNET_LLDP_IEEE802_1  0x0080c2 /* IEEE 802.1 */
+    #define LIBNET_LLDP_IEEE802_1_SUB_PORT_VLAN_ID   0x01 /* IEEE 802.1 Port VLAN ID TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_PORT_PROTO     0x02 /* IEEE 802.1 Port and Protocol VLAN ID TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_VLAN_NAME      0x03 /* IEEE 802.1 VLAN Name TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_PROTO_ID       0x04 /* IEEE 802.1 Protocol Identity TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_VID_USAGE      0x05 /* IEEE 802.1 VID Usage Digest TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_MNGMNT_VID     0x06 /* IEEE 802.1 Management VID TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_LINK_AGGR      0x07 /* IEEE 802.1 Link Aggregation TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_CONG_NOTIF     0x08 /* IEEE 802.1 Congestion Notification TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_ETS_CONFIG     0x09 /* IEEE 802.1 ETS Configuration TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_ETS_RECOM      0x0a /* IEEE 802.1 ETC Recommendation TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_PRIORITY       0x0b /* IEEE 802.1 Priority-based Flow Control Configuration TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_APP_PRIORITY   0x0c /* IEEE 802.1 Application Pririty TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_EVB            0x0d /* IEEE 802.1 EVB TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_CDCP           0x0e /* IEEE 802.1 CDCP TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_1_SUB_PORT_EXTNSN    0x0f /* IEEE 802.1 Port Extension TLV Subtype */
+
+#define LIBNET_LLDP_IEEE802_3  0x00120f /* IEEE 802.3 */
+    #define LIBNET_LLDP_IEEE802_3_SUB_MAC_PHY        0x01 /* IEEE802.3 MAC/PHY Configuration/Status TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_3_SUB_POWER          0x02 /* IEEE802.3 Power Via MDI TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_3_SUB_LINK_AGGR      0x03 /* IEEE802.3 Link Aggregation TLV Subtype */
+    #define LIBNET_LLDP_IEEE802_3_SUB_MAX_FRAME_SIZE 0x04 /* IEEE802.3 Maximum Frame Size TLV Subtype */
+
+#define LIBNET_LLDP_TIA_TR_41  0x0012bb /* TIA TR-41 Committee - Media Endpoint Discovery (LLDP-MED, ANSI/TIA-1057) */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_CAPAB          0x01 /* TIA TR-41 Committee LLDP-MED Capabilities TLV Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_NET_POLIC      0x02 /* TIA TR-41 Committee Network Policy TLV Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_LOCAL_ID       0x03 /* TIA TR-41 Committee Local Identification TLV Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_EXT_POWER      0x04 /* TIA TR-41 Committee Extended Power-via-MDI TLV  Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_INV_HRDWR_REV  0x05 /* TIA TR-41 Committee Inventory - Hardware Revision TLV Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_INV_FRMWR_REV  0x06 /* TIA TR-41 Committee Inventory - Firmware Revision TLV  Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_INV_SFTWR_REV  0x07 /* TIA TR-41 Committee Inventory - Inventory - Software Revision TLV  Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_INV_SERIAL_NUM 0x08 /* TIA TR-41 Committee Inventory - Serial Number TLV Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_INV_MAN_NAME   0x09 /* TIA TR-41 Committee Inventory - Manufacturer Name TLV Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_INV_MOD_NAME   0x0a /* TIA TR-41 Committee Inventory - Model Name TLV  Subtype */
+    #define LIBNET_LLDP_TIA_TR_41_SUB_INV_ASSET_ID   0x0b /* TIA TR-41 Committee Inventory - Asset ID TLV Subtype */
+
+#define LIBNET_LLDP_PROFIBUS   0x000ecf /* PROFIBUS International (PNO) Extension for PROFINET discovery information */
+    #define LIBNET_LLDP_PROFIBUS_DELAY_VALS          0x01 /* PROFINET Measured Delay Values TLV Subtype */
+    #define LIBNET_LLDP_PROFIBUS_PORT_STATUS         0x02 /* PROFINET Measured Port Status TLV Subtype */
+    #define LIBNET_LLDP_PROFIBUS_ALIAS               0x03 /* PROFINET Alias TLV Subtype */
+    #define LIBNET_LLDP_PROFIBUS_MRP_PORT_STAT       0x04 /* PROFINET MRP Port Status TLV Subtype */
+    #define LIBNET_LLDP_PROFIBUS_CHASSIS_MAC         0x05 /* PROFINET Chassis MAC TLV Subtype */
+    #define LIBNET_LLDP_PROFIBUS_PTC_STATUS          0x06 /* PROFINET PTC Status TLV Subtype */
+
+#define LIBNET_LLDP_HYTEC      0x30b216 /* Hytec Geraetebau GmbH Extensions */
+    #define LIBNET_LLDP_HYTEC_TRANS                  0x01 /* Hytec Transceiver TLV Subtype */
+    #define LIBNET_LLDP_HYTEC_TRACE                  0x02 /* Hytec Trace TLV Subtype */
+};
 
 /*
  *  For checksum stuff -- IANA says 135-254 is "unassigned" as of 12.2001.
@@ -340,7 +431,7 @@ struct libnet_cdp_hdr
 /*
  *  Used as an overlay for type/len/values
  */
-#define LIBNET_CDP_VALUE_H  0x04 /* CDP value header base: 4 bytes */
+#define LIBNET_CDP_VALUE_H  0x04 /*< CDP value header base: 4 bytes */
 struct libnet_cdp_value_hdr
 {
     uint16_t cdp_type;
@@ -762,7 +853,6 @@ struct libnet_ipv6_hdr
     uint8_t ip_nh;           /* next header */
     uint8_t ip_hl;           /* hop limit */
     struct libnet_in6_addr ip_src, ip_dst; /* source and dest address */
-
 };
 
 /*
@@ -1645,6 +1735,64 @@ struct libnet_stp_tcn_hdr
     uint8_t stp_bpdu_type;   /* bridge protocol data unit type */
 };
 
+/*
+ * UDLD header
+ * UniDirectional Link Detection
+ * Base header size: 4 bytes
+*/
+struct libnet_udld_hdr
+{
+    /* LLC Info */
+#define LIBNET_UDLD_DEST_MAC {0x01, 0x00, 0x0C, 0xCC, 0xCC, 0xCC}
+
+    /* UDLD SNAP Format */
+#define LIBNET_UDLD_LLC_DSAP        0xAA
+#define LIBNET_UDLD_LLC_SSAP        0xAA
+#define LIBNET_UDLD_LLC_CONTROL     0x03
+#define LIBNET_UDLD_OID             {0x00, 0x00, 0x0C}
+#define LIBNET_UDLD_HDLC_PROTO_TYPE 0x0111
+
+    /* Protocol Data Unit (PDU) Format */
+    uint8_t version_opcode;
+#define LIBNET_UDLD_PDU_VERSION                0x01
+#define LIBNET_UDLD_PDU_VERSION_OFFSET         (5)
+
+#define LIBNET_UDLD_PDU_OPCODE_RESERVED        0x00 /* Reserved opcode message           */
+#define LIBNET_UDLD_PDU_OPCODE_PROBE           0x01 /* Probe opcode message              */
+#define LIBNET_UDLD_PDU_OPCODE_ECHO            0x02 /* Echo opcode message               */
+#define LIBNET_UDLD_PDU_OPCODE_FLUSH           0x03 /* Flush opcode message              */
+#define LIBNET_UDLD_PDU_OPCODE_RESERVED_FUTURE 0x04 /* Reserved for future use 0x04-0x1F */
+#define LIBNET_UDLD_PDU_OPCODE_MASK            0x1F
+
+    uint8_t flags;
+#define LIBNET_UDLD_FLAG_RT       0x01 /* Bit 0  : Recommended timeout flag (RT) */
+#define LIBNET_UDLD_FLAG_RSY      0x02 /* Bit 1  : ReSynch flag (RSY)            */
+#define LIBNET_UDLD_FLAG_RESERVED 0x03 /* Bit 2-7: Reserved for future use       */
+
+    uint16_t checksum; /* IP-like checksum */
+#define LIBNET_PROTO_UDLD    202
+
+    /* TLVs */
+#define LIBNET_UDLD_TLV_HDR_SIZE               0x04 /* UDLD TLV's header size 4 bytes */
+
+    uint16_t tlv__type;
+#define LIBNET_UDLD_DEVICE_ID        0x0001   /* Value format: ASCII character string           */
+#define LIBNET_UDLD_PORT_ID          0x0002   /* Value format: ASCII character string           */
+#define LIBNET_UDLD_ECHO             0x0003   /* Value format: List of ID pairs                 */
+#define LIBNET_UDLD_MESSAGE_INTERVAL 0x0004   /* Value format: 8-bit unsigned integer           */
+#define LIBNET_UDLD_TIMEOUT_INTERVAL 0x0005   /* Value format: 8-bit unsigned integer           */
+#define LIBNET_UDLD_DEVICE_NAME      0x0006   /* Value format: ASCII character string           */
+#define LIBNET_UDLD_SEQUENCE_NUMBER  0x0007   /* Value format: 32-bit unsigned integer          */
+/* Reserved TLVs                     >0x0007     Value format: To be skipped by parsing routine */
+
+    uint16_t tlv__length;
+
+    /* TLV value types */
+#define LIBNET_UDLD_VALUE_TYPE_ASCII       (0)
+#define LIBNET_UDLD_VALUE_TYPE_ID_PAIRS    (1)
+#define LIBNET_UDLD_VALUE_TYPE_8_BIT_UINT  (2)
+#define LIBNET_UDLD_VALUE_TYPE_32_BIT_UINT (3)
+};
 
 /*
  *  TCP header

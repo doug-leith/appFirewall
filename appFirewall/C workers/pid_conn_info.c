@@ -43,7 +43,6 @@ void *pid_watcher(void *ptr) {
 	struct timespec ts, now, timeout;
 	struct timeval last_full_refresh;
 	timeout.tv_sec = 0;
-	#define NSEC_PER_SEC 1000000000
 	timeout.tv_nsec = PID_WATCHER_TIMEOUT*(NSEC_PER_SEC/1000);
 
 	struct timeval t_last;
@@ -114,7 +113,7 @@ void *pid_watcher(void *ptr) {
 	}
 }
 
-void start_pid_watcher() {
+void start_pid_watcher(void) {
 	// fire up watcher thread
 	if (pid_thread_started==0) {
 		init_pid_lists();
@@ -152,7 +151,7 @@ char* gui_pid_hash(const void *it) {
 	return temp;
 }
 
-void update_gui_pid_list() {
+void update_gui_pid_list(void) {
 	// called by swift GUI
 	
 	TAKE_LOCK(&gui_pid_mutex,"update_gui_pid_list");
@@ -195,14 +194,14 @@ void free_conn(conn_t* c) {
 	if (c) free(c);
 }
 
-int_sw get_num_gui_conns() {
+int_sw get_num_gui_conns(void) {
 	// for use by swift GUI
 	int_sw res = (int_sw)get_list_size(&pid_info.gui_pid_list);
 	//dump_connlist(&gui_pid_list);
 	return res;
 }
 
-int_sw get_pid_changed() {
+int_sw get_pid_changed(void) {
 	// for use by swift GUI
 	TAKE_LOCK(&pid_mutex,"get_pid_changed");
 	int res=pid_info.changed;
@@ -210,14 +209,14 @@ int_sw get_pid_changed() {
 	return res;
 }
 
-void clear_pid_changed() {
+void clear_pid_changed(void) {
 	// for use by swift GUI
 	TAKE_LOCK(&pid_mutex,"clear_pid_changed");
 	pid_info.changed=0;
 	pthread_mutex_unlock(&pid_mutex);
 }
 
-void print_escapees() {
+void print_escapees(void) {
 	// called by swift GUI
 	TAKE_LOCK(&escapee_mutex,"print_escapees");
 	if (get_list_size(&pid_info.escapee_list)>0) {
@@ -323,7 +322,7 @@ int find_pid(conn_raw_t *cr, char*name, int syn){
 //--------------------------------------------------------
 //private.
 
-pid_info_t* get_pid_info() {
+pid_info_t* get_pid_info(void) {
 	return &pid_info;
 }
 
@@ -390,7 +389,7 @@ char* pid_path_name_hash(const void *it) {
 	return temp;
 }
 
-void init_pid_lists() {
+void init_pid_lists(void) {
 	// should hold lock when call this
 	init_list(&pid_info.pid_list,conn_hash,NULL,0,-1,"pid_list");
 	init_list(&pid_info.gui_pid_list,gui_pid_hash,NULL,0,-1,"pid_list");
@@ -636,7 +635,7 @@ int refresh_active_conns(int full_refresh) {
 	return pid_info.changed;
 }
 
-void find_escapees() {
+void find_escapees(void) {
 	// this is called after refresh of pid_list, so pid list is up to date
 	TAKE_LOCK(&pid_mutex,"find_escapees");
 	for (size_t j=0; j< get_list_size(&pid_info.pid_list); j++) {
@@ -750,22 +749,21 @@ void *catch_escapee(void *ptr) {
 	// disable SIGPIPE, we'll catch such errors ourselves
 	signal(SIGPIPE, SIG_IGN);
 
-	ssize_t res;
 	int vpn = is_ppp(e->raw.af, &e->raw.src_addr, &e->raw.dst_addr);
 	if (vpn < 0) {WARN("escapee: interface down/gone away\n"); goto stop;}
 	uint8_t vpn_bool = (vpn>0);
 	set_snd_timeout(c_sock, SND_TIMEOUT); // to be safe, will eventually timeout of send
-	if ( (res=send(c_sock, &vpn_bool, sizeof(uint8_t),0) )<=0) goto err;
-	if ( (res=send(c_sock, &e->pid, sizeof(int),0) )<=0) goto err;
-	if ( (res=send(c_sock, &e->raw.af, sizeof(int),0) )<=0) goto err;
-	if ( (res=send(c_sock, &e->raw.dst_addr, sizeof(struct in6_addr),0) )<=0) goto err;
-	if ( (res=send(c_sock, &e->raw.sport, sizeof(uint16_t),0) )<=0) goto err;
-	if ( (res=send(c_sock, &e->raw.dport, sizeof(uint16_t),0) )<=0) goto err;
+	if ( send(c_sock, &vpn_bool, sizeof(uint8_t),0)<=0) goto err;
+	if ( send(c_sock, &e->pid, sizeof(int),0) <=0) goto err;
+	if ( send(c_sock, &e->raw.af, sizeof(int),0) <=0) goto err;
+	if ( send(c_sock, &e->raw.dst_addr, sizeof(struct in6_addr),0) <=0) goto err;
+	if ( send(c_sock, &e->raw.sport, sizeof(uint16_t),0) <=0) goto err;
+	if ( send(c_sock, &e->raw.dport, sizeof(uint16_t),0) <=0) goto err;
 	// details in e are for an outgoing connection, so rst to self should echo back the
 	// outgoing ack.  this ack is from a syn-ack so we need to add 1 to it
-	if ( (res=send(c_sock, &e->raw.seq, sizeof(uint32_t),0) )<=0) goto err;
+	if ( send(c_sock, &e->raw.seq, sizeof(uint32_t),0) <=0) goto err;
 	//e->raw.ack++; // TEST, forces incorrect RST seq number to check RST probing works
-	if ( (res=send(c_sock, &e->raw.ack, sizeof(uint32_t),0) )<=0) goto err;
+	if ( send(c_sock, &e->raw.ack, sizeof(uint32_t),0) <=0) goto err;
 	int8_t ok=0;
 	set_recv_timeout(c_sock, RECV_TIMEOUT); // to be safe, read() will eventually timeout
 	if (read(c_sock, &ok, 1)<=0) goto err; // wait here until helper is done
@@ -773,7 +771,7 @@ void *catch_escapee(void *ptr) {
 	// next time find_fds() is called.
 	struct timeval end; gettimeofday(&end, NULL);
 	double t=(end.tv_sec - start.tv_sec) +(end.tv_usec - start.tv_usec)/1000000.0;
-	char *result="";
+	char *result;
 	if (ok==1) {
 		result="STOPPED";
 		stats.escapees_hits++;

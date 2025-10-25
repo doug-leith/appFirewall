@@ -7,6 +7,26 @@
 
 #include "connection.h"
 
+char* get_conn_dst_addr_name(conn_t* item) {
+  return item->dst_addr_name;
+}
+
+char* get_conn_src_addr_name(conn_t* item) {
+  return item->src_addr_name;
+}
+
+char* get_conn_name(conn_t* item) {
+  return item->name;
+}
+
+char* get_bl_domain(bl_item_t* item) {
+   return item->domain;
+}
+
+char* get_bl_name(bl_item_t* item) {
+   return item->name;
+}
+
 char* conn_raw_hash(const void *it) {
 	// generate table lookup key string from conn_raw_t connection tuple
 	conn_raw_t *item = (conn_raw_t*) it;

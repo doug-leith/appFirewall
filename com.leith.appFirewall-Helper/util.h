@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/errno.h>

@@ -82,7 +82,7 @@ char* get_dns_count_str(int af, struct in6_addr addr){
 	return res;
 }
 
-void dump_dns_cache() {
+void dump_dns_cache(void) {
 	list_t *l = &dns_cache;
 	printf("dns_cache start/size: %zu/%zu\n", l->list_start, l->list_size);
 	for (size_t i=0; i<get_list_size(l); i++) {
@@ -95,6 +95,7 @@ void dump_dns_cache() {
 			printf("%s(%zu) ", c->name[j], c->count[j]);
 		}
 		printf("\n");
+    free(c);
 	}
 }
 

@@ -38,11 +38,11 @@ static libnet_data_t ld_rst_remote, ld_rst_toself;
 static int select_timeouts=0, select_num=0, select_count=0; // for monitoring IPv6 rate limiting
 static time_t select_time={0};
 
-void close_rst_sock() {
+void close_rst_sock(void) {
 	close(sock); close(s2);
 }
 
-void start_rst() {
+void start_rst(void) {
 	// start listening for commands to send RST packets
 	sock = bind_to_port(RST_PORT,2);
 	INFO("Now listening on localhost port %d (send_rst)\n", RST_PORT);
@@ -74,7 +74,7 @@ void init_libnet(libnet_data_t *ld) {
 	
 	// no IP_HDRINCL option for IPV6 though, sigh
 	ld->l6 = NULL; memset(&ld->last_intf,0,sizeof(interface_t)); ld->pd=NULL;
-	memset(ld->last_dst_eth,0,ETHER_ADDR_LEN);
+	memset(ld->last_dst_eth,0,_ETHER_ADDR_LEN);
 }
 
 void free_libnet(libnet_data_t *ld) {
@@ -85,10 +85,10 @@ void free_libnet(libnet_data_t *ld) {
 	memset(ld,0,sizeof(libnet_data_t));
 }
 
-libnet_ptag_t append_ether6(libnet_t *l, libnet_ptag_t *eth_ptag, uint8_t eth_src[ETHER_ADDR_LEN], uint8_t eth_dst[ETHER_ADDR_LEN]) {
+libnet_ptag_t append_ether6(libnet_t *l, libnet_ptag_t *eth_ptag, uint8_t eth_src[_ETHER_ADDR_LEN], uint8_t eth_dst[_ETHER_ADDR_LEN]) {
 	// construct link-layer ethernet header, only used for IPv6 packets
 	//int i; for(i=0; i<ETHER_ADDR_LEN;i++) printf("%02x ",eth_dst[i]); printf("\n");
-	uint8_t tmp[ETHER_ADDR_LEN]; memset(tmp,0,ETHER_ADDR_LEN);
+	uint8_t tmp[_ETHER_ADDR_LEN]; memset(tmp,0,_ETHER_ADDR_LEN);
 	*eth_ptag = libnet_build_ethernet(
 		eth_dst,      				 /* ethernet destination */
 		eth_src,     					 /* ethernet source */
@@ -128,7 +128,7 @@ libnet_ptag_t append_ipheader(int af, struct in6_addr *src_addr, struct in6_addr
 	return *ip_ptag;
 }
 
-int setup_ipv6(conn_raw_t* c, interface_t* intf, uint8_t dst_eth[ETHER_ADDR_LEN], libnet_data_t *l){
+int setup_ipv6(conn_raw_t* c, interface_t* intf, uint8_t dst_eth[_ETHER_ADDR_LEN], libnet_data_t *l){
 	// clean up old state
 	if (l->l6) {libnet_destroy(l->l6); l->l6 = NULL;}
 	if (l->pd) {pcap_close(l->pd); l->pd=NULL;}
@@ -249,8 +249,8 @@ int rst_write(libnet_t *l_hdr, int dlt, pcap_t *pd, int toself) {
 				//break;
 		} else {
 				if (FD_ISSET(fd,&readfds)) {
-					struct pcap_pkthdr buf; const u_char* ptr;
-					while ((ptr=pcap_next(pd, &buf))!=NULL) pkts_read++;
+					struct pcap_pkthdr buf; 
+					while (pcap_next(pd, &buf)!=NULL) pkts_read++;
 					//printf("read %d pkts from pcap\n", count);
 				}
 		}
@@ -267,7 +267,7 @@ int rst_write(libnet_t *l_hdr, int dlt, pcap_t *pd, int toself) {
 	return 1;
 }
 
-int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth[ETHER_ADDR_LEN], int num, int try_data) {
+int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth[_ETHER_ADDR_LEN], int num, int try_data) {
 	// send RST.  parameter c contains connection details, intf is the outgoing
 	// interface to use (can be NULL for IPv4, but needs to be meaningful for IPv6),
 	// and dst_eth is the gateway MAC address (again only used for IPv6).  num is
@@ -305,12 +305,12 @@ int snd_rst(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, uint8_t dst_eth
 		memcpy(&temp_intf,intf,sizeof(interface_t));
 		if ((ld->l6==NULL) || (ld->pd==NULL) // initial call
 				|| (strcmp(ld->last_intf.name,intf->name)!=0) // change in interface being used
-				|| (memcmp(ld->last_dst_eth,dst_eth,ETHER_ADDR_LEN)!=0) ){// change in gateway MAC addr
+				|| (memcmp(ld->last_dst_eth,dst_eth,_ETHER_ADDR_LEN)!=0) ){// change in gateway MAC addr
 			if (setup_ipv6(c, &temp_intf, dst_eth, ld)<0) goto err;
 			// remember link layer details for next time
 			memcpy(&ld->last_intf,&temp_intf,sizeof(interface_t));
-			memcpy(ld->last_dst_eth,dst_eth,ETHER_ADDR_LEN);
-			ld->toself = (memcmp(dst_eth,temp_intf.eth,ETHER_ADDR_LEN)==0);
+			memcpy(ld->last_dst_eth,dst_eth,_ETHER_ADDR_LEN);
+			ld->toself = (memcmp(dst_eth,temp_intf.eth,_ETHER_ADDR_LEN)==0);
 		}
 		l_hdr = ld->l6; tcp_hdr_ptag=&ld->tcp6_ptag; ip_hdr_ptag=&ld->ip6_ptag;
 	}
@@ -404,7 +404,7 @@ int snd_rst_toself(conn_raw_t* c, libnet_data_t *ld, interface_t* intf) {
 }
 
 int snd_rst_toremote(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, int try_data) {
-	uint8_t dst_eth[ETHER_ADDR_LEN]; memset(dst_eth,0,ETHER_ADDR_LEN);
+	uint8_t dst_eth[_ETHER_ADDR_LEN]; memset(dst_eth,0,_ETHER_ADDR_LEN);
 	if (c->af == AF_INET6) {
 		if (strlen(intf->name)==0) {
 			// caller wants us to figure out which interface to use ourselves
@@ -429,7 +429,7 @@ int snd_rst_toremote(conn_raw_t* c, libnet_data_t *ld, interface_t* intf, int tr
 
 }
 
-void rst_accept_loop() {
+void rst_accept_loop(void) {
 	// now wait in accept() loop to handle connections from GUI to send RST pkts
 	size_t res=0;
 	struct sockaddr_in remote;

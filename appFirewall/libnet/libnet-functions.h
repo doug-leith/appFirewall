@@ -90,7 +90,7 @@ libnet_clear_packet(libnet_t *l);
  */
 LIBNET_API
 void
-libnet_stats(libnet_t *l, struct libnet_stats *ls);
+libnet_stats(const libnet_t *l, struct libnet_stats *ls);
 
 /**
  * Returns the FILENO of the file descriptor used for packet injection.
@@ -99,7 +99,19 @@ libnet_stats(libnet_t *l, struct libnet_stats *ls);
  */
 LIBNET_API
 int 
-libnet_getfd(libnet_t *l);
+libnet_getfd(const libnet_t *l);
+
+#ifdef SO_SNDBUF
+/**
+ * Tries to set the TX buffer size to a max_bytes value
+ * @param l pointer to a libnet context
+ * @param max_bytes new TX buffer size
+ * @return 0 on success, -1 on failure
+ */
+LIBNET_API
+int 
+libnet_setfd_max_sndbuf(libnet_t *l, int max_bytes);
+#endif /* SO_SNDBUF */
 
 /**
  * Returns the canonical name of the device used for packet injection.
@@ -109,7 +121,7 @@ libnet_getfd(libnet_t *l);
  */
 LIBNET_API
 const char *
-libnet_getdevice(libnet_t *l);
+libnet_getdevice(const libnet_t *l);
 
 /**
  * Returns the pblock buffer contents for the specified ptag; a
@@ -154,7 +166,7 @@ libnet_geterror(libnet_t *l);
  */ 
 LIBNET_API
 uint32_t
-libnet_getpacket_size(libnet_t *l);
+libnet_getpacket_size(const libnet_t *l);
 
 /**
  * Seeds the pseudo-random number generator.
@@ -274,12 +286,24 @@ struct libnet_in6_addr
 libnet_name2addr6(libnet_t *l, const char *host_name, uint8_t use_name);
 
 /**
- * Should document this baby right here.
+ * Translate an IPv6 address to a canonical DNS name or hexadecimal string.
+
+ * This may incur a DNS lookup if the mode is set to LIBNET_RESOLVE.  If
+ * mode is set to LIBNET_DONT_RESOLVE, no DNS lookup will be performed.
+ * The function cannot fail -- if no canonical name exists, it will fall
+ * back to the hexadecimal string representation.
+ *
+ * This function is reentrant.
+ *
+ * @param addr          address to convert
+ * @param use_name      LIBNET_RESOLVE or LIBNET_DONT_RESOLVE
+ * @param host_name     Buffer to return result in
+ * @param host_name_len Length of @p host_name buffer
  */
 LIBNET_API
 void
 libnet_addr2name6_r(struct libnet_in6_addr addr, uint8_t use_name,
-char *host_name, int host_name_len);
+	char *host_name, int host_name_len);
 
 /**
  * Creates a new port list. Port list chains are useful for TCP and UDP-based
@@ -496,7 +520,7 @@ const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 LIBNET_API
 libnet_ptag_t
 libnet_build_802_2snap(uint8_t dsap, uint8_t ssap, uint8_t control, 
-uint8_t *oui, uint16_t type, const uint8_t* payload, uint32_t payload_s,
+const uint8_t *oui, uint16_t type, const uint8_t* payload, uint32_t payload_s,
 libnet_t *l, libnet_ptag_t ptag); 
 
 /**
@@ -653,7 +677,7 @@ const uint8_t *tpa, libnet_t *l);
  * @param sum checksum (0 for libnet to auto-fill)
  * @param urg urgent pointer
  * @param len total length of the TCP packet (for checksum calculation)
- * @param payload payload
+ * @param payload
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
  * @param ptag protocol tag to modify an existing header, 0 to build a new one
@@ -732,6 +756,81 @@ uint16_t value_s, const uint8_t *value, const uint8_t* payload, uint32_t payload
 libnet_t *l, libnet_ptag_t ptag);
 
 /**
+ * Builds a LLDP Chassis ID TLV. The Chassis ID TLV is the _first_ mandatory TLV in the LLDPDU.
+ * @param subtype Chassis ID Subtype
+ * @param value the Chassis ID string
+ * @param value_s length of value argument
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t libnet_build_lldp_chassis(uint8_t subtype,
+const uint8_t *value, uint8_t value_s,
+libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds a LLDP Port ID TLV. The Port ID TLV is the _second_ mandatory TLV in the LLDPDU.
+ * @param subtype Port ID Subtype
+ * @param value the Port ID string
+ * @param value_s length of value argument
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t libnet_build_lldp_port(uint8_t subtype,
+const uint8_t *value, uint8_t value_s,
+libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds a LLDP TTL TLV. The TTL TLV is the _third_ mandatory TLV in the LLDPDU.
+ * @param ttl number of seconds
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t libnet_build_lldp_ttl(uint16_t ttl,
+libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds a LLDP End of LLDPDU TLV.
+ * The End of LLDPDU TLV used to mark the end of the TLV sequence in LLDPDU.
+ * Is a 2 octet all-zero TLV
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t libnet_build_lldp_end(libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds a LLDP Organization Specific TLV.
+ * @param value the TLV information string
+ * @param value_s length of value argument
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t libnet_build_lldp_org_spec(const uint8_t *value,
+uint16_t value_s, libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * At the moment, this function is not implemented.
+ *
+ * This stub may be useful in feature to let to the user build the
+ * LLDPDU in one function by passing corresponding arguments.
+ */
+//libnet_ptag_t libnet_build_lldp(libnet_t *l, libnet_ptag_t ptag);
+
+/**
  * Builds an IP version 4 RFC 792 Internet Control Message Protocol (ICMP)
  * echo request/reply header
  * @param type type of ICMP packet (should be ICMP_ECHOREPLY or ICMP_ECHO)
@@ -800,7 +899,7 @@ const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  * @param type type of ICMP packet (should be ICMP_REDIRECT)
  * @param code code of ICMP packet (should be one of the four redirect codes)
  * @param sum checksum (0 for libnet to auto-fill)
- * @param gateway gateway
+ * @param gateway
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -818,6 +917,7 @@ libnet_ptag_t ptag);
  * Builds an IP version 4 RFC 792 Internet Control Message Protocol (ICMP) time
  * exceeded header.  The IP header that caused the error message should be 
  * built by a previous call to libnet_build_ipv4().
+ *
  * @param type type of ICMP packet (should be ICMP_TIMXCEED)
  * @param code code of ICMP packet (ICMP_TIMXCEED_INTRANS / ICMP_TIMXCEED_REASS)
  * @param sum checksum (0 for libnet to auto-fill)
@@ -836,6 +936,7 @@ const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 /**
  * Builds an IP version 4 RFC 792 Internet Control Message Protocol (ICMP)
  * timestamp request/reply header.
+ *
  * @param type type of ICMP packet (should be ICMP_TSTAMP or ICMP_TSTAMPREPLY)
  * @param code code of ICMP packet (should be 0)
  * @param sum checksum (0 for libnet to auto-fill)
@@ -860,6 +961,7 @@ const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 /**
  * Builds an IP version 6 RFC 4443 Internet Control Message Protocol (ICMP)
  * echo or echo reply header.
+ *
  * @param type type of ICMP packet (should be ICMP6_ECHO_REQUEST or ICMP6_ECHO_REPLY)
  * @param code code of ICMP packet (should be zero)
  * @param sum checksum (0 for libnet to auto-fill)
@@ -874,13 +976,14 @@ const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  */
 LIBNET_API
 libnet_ptag_t libnet_build_icmpv6_echo(uint8_t type, uint8_t code, uint16_t
-        sum, uint16_t id, uint16_t seq, uint8_t *payload, uint32_t payload_s,
-        libnet_t *l, libnet_ptag_t ptag);
+        sum, uint16_t id, uint16_t seq, const uint8_t *payload,
+        uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
  * Builds an IP version 6 RFC 4443 Internet Control Message Protocol (ICMP)
- * unreachable header. The IP header that caused the error message should be 
+ * unreachable header. The IP header that caused the error message should be
  * built by a previous call to libnet_build_ipv6().
+ *
  * @param type type of ICMP packet (should be ICMP6_DST_UNREACH)
  * @param code code of ICMP packet (should be one of the 5 ICMP6_DST_UNREACH_* codes)
  * @param sum checksum (0 for libnet to auto-fill)
@@ -894,7 +997,7 @@ libnet_ptag_t libnet_build_icmpv6_echo(uint8_t type, uint8_t code, uint16_t
 LIBNET_API
 libnet_ptag_t
 libnet_build_icmpv6_unreach(uint8_t type, uint8_t code, uint16_t sum,
-uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
+const uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
  * Builds an IP version 6 RFC 2461 Internet Control Message Protocol (ICMP)
@@ -913,8 +1016,8 @@ uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  */
 LIBNET_API
 libnet_ptag_t libnet_build_icmpv6_ndp_nsol(uint8_t type, uint8_t code,
-        uint16_t sum, struct libnet_in6_addr target, uint8_t *payload, uint32_t
-        payload_s, libnet_t* l, libnet_ptag_t ptag);
+        uint16_t sum, struct libnet_in6_addr target, const uint8_t *payload,
+        uint32_t payload_s, libnet_t* l, libnet_ptag_t ptag);
 
 /**
  * Builds an IP version 6 RFC 2461 Internet Control Message Protocol (ICMP)
@@ -934,8 +1037,9 @@ libnet_ptag_t libnet_build_icmpv6_ndp_nsol(uint8_t type, uint8_t code,
  */
 LIBNET_API
 libnet_ptag_t libnet_build_icmpv6_ndp_nadv(uint8_t type, uint8_t code,
-        uint16_t sum, uint32_t flags, struct libnet_in6_addr target, uint8_t
-        *payload, uint32_t payload_s, libnet_t* l, libnet_ptag_t ptag);
+        uint16_t sum, uint32_t flags, struct libnet_in6_addr target,
+        const uint8_t *payload, uint32_t payload_s, libnet_t* l,
+        libnet_ptag_t ptag);
 
 /**
  * Builds ICMPv6 NDP options.
@@ -948,7 +1052,7 @@ libnet_ptag_t libnet_build_icmpv6_ndp_nadv(uint8_t type, uint8_t code,
  * @retval -1 on error
  */
 LIBNET_API
-libnet_ptag_t libnet_build_icmpv6_ndp_opt(uint8_t type, uint8_t* option,
+libnet_ptag_t libnet_build_icmpv6_ndp_opt(uint8_t type, const uint8_t *option,
         uint32_t option_s, libnet_t* l, libnet_ptag_t ptag);
 
 /**
@@ -1185,8 +1289,8 @@ libnet_t *l, libnet_ptag_t ptag);
  */
 LIBNET_API
 libnet_ptag_t
-libnet_build_isl(uint8_t *dhost, uint8_t type, uint8_t user,
-uint8_t *shost, uint16_t len, const uint8_t *snap, uint16_t vid,
+libnet_build_isl(const uint8_t *dhost, uint8_t type, uint8_t user,
+const uint8_t *shost, uint16_t len, const uint8_t *snap, uint16_t vid,
 uint16_t portindex, uint16_t reserved, const uint8_t* payload,
 uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
@@ -1248,7 +1352,7 @@ uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 /**
  * Builds an RFC 1035 version 4 DNS header. Additional DNS payload information
  * should be specified using the payload interface.
- * @param h_len  h_len
+ * @param h_len
  * @param id DNS packet id
  * @param flags control flags
  * @param num_q number of questions
@@ -1321,7 +1425,7 @@ LIBNET_API
 libnet_ptag_t
 libnet_build_rpc_call(uint32_t rm, uint32_t xid, uint32_t prog_num,
 uint32_t prog_vers, uint32_t procedure, uint32_t cflavor, uint32_t clength,
-uint8_t *cdata, uint32_t vflavor, uint32_t vlength, const uint8_t *vdata,
+const uint8_t *cdata, uint32_t vflavor, uint32_t vlength, const uint8_t *vdata,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
@@ -1373,6 +1477,121 @@ LIBNET_API
 libnet_ptag_t
 libnet_build_stp_tcn(uint16_t id, uint8_t version, uint8_t bpdu_type,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) header.
+ * UDLD frames are usually encapsulated inside of an 802.2 + 802.3 frame 
+ * combination.
+ * @param version UDLD PDU version number
+ * @param opcode operation code
+ * @param flags flags
+ * @param checksum checksum (0 for libnet to auto-fill)
+ * @param payload optional payload or NULL
+ * @param payload_s payload length or 0
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_hdr(uint8_t version, uint8_t opcode, uint8_t flags, uint8_t checksum,
+const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) Device ID TLV.
+ * @param value device id(ASCII character string)
+ * @param value_s device id(ASCII character string) length
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_device_id(const uint8_t *value, uint8_t value_s,
+libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) Port ID TLV.
+ * @param value port id(ASCII character string)
+ * @param value_s port id(ASCII character string) length
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_port_id(const uint8_t *value, uint8_t value_s,
+libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) Echo TLV.
+ * @param value list of ID pairs
+ * @param value_s ID pairs length
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_echo(const uint8_t *value, uint8_t value_s,
+libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) Message Interval TLV.
+ * @param value time interval(8-bit unsigned integer)
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_message_interval(const uint8_t *value, libnet_t *l,
+libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) Timeout Interval TLV.
+ * @param value timeout interval(8-bit unsigned integer)
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_timeout_interval(const uint8_t *value, libnet_t *l,
+libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) Device Name TLV.
+ * @param value device name(ASCII character string)
+ * @param value_s device name length
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_device_name(const uint8_t *value, uint8_t value_s,
+libnet_t *l, libnet_ptag_t ptag);
+
+/**
+ * Builds an UniDirectional Link Detection(UDLD) Sequence Number TLV.
+ * @param value sequence number(32-bit unsigned integer)
+ * @param l pointer to a libnet context
+ * @param ptag protocol tag to modify an existing header, 0 to build a new one
+ * @return protocol tag value on success
+ * @retval -1 on error
+ */
+LIBNET_API
+libnet_ptag_t
+libnet_build_udld_sequence_number(const uint8_t *value, libnet_t *l,
+libnet_ptag_t ptag);
 
 /**
  * Builds a token ring header.
@@ -1503,12 +1722,12 @@ uint32_t rec_ts_frac, uint32_t xmt_ts_int, uint32_t xmt_ts_frac,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
- * @param len len
- * @param type type
- * @param rtr_id rtr_id
- * @param area_id area_id
- * @param sum sum
- * @param autype autype
+ * @param len
+ * @param type
+ * @param rtr_id
+ * @param area_id
+ * @param sum
+ * @param autype
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1523,13 +1742,13 @@ uint32_t area_id, uint16_t sum, uint16_t autype, const uint8_t* payload,
 uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
- * @param netmask netmask
- * @param interval interval
- * @param opts opts
- * @param priority priority
- * @param dead_int dead_int
- * @param des_rtr des_rtr
- * @param bkup_rtr  bkup rtr
+ * @param netmask
+ * @param interval
+ * @param opts
+ * @param priority
+ * @param dead_int
+ * @param des_rtr
+ * @param bkup_rtr
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1544,6 +1763,14 @@ uint8_t priority, uint32_t dead_int, uint32_t des_rtr, uint32_t bkup_rtr,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
+ * @param netmask
+ * @param interval
+ * @param opts
+ * @param priority
+ * @param dead_int
+ * @param des_rtr
+ * @param bkup_rtr
+ * @param neighbor
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1557,6 +1784,10 @@ uint8_t priority, uint32_t dead_int, uint32_t des_rtr, uint32_t bkup_rtr, uint32
 const uint8_t *payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
+ * @param dgram_len
+ * @param opts
+ * @param type
+ * @param seqnum
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1571,6 +1802,9 @@ uint32_t seqnum, const uint8_t* payload, uint32_t payload_s, libnet_t *l,
 libnet_ptag_t ptag);
  
 /**
+ * @param type
+ * @param lsid
+ * @param advrtr
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1584,6 +1818,7 @@ libnet_build_ospfv2_lsr(uint32_t type, uint32_t lsid, uint32_t advrtr,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  
 /**
+ * @param num
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1597,6 +1832,14 @@ libnet_build_ospfv2_lsu(uint32_t num, const uint8_t* payload, uint32_t payload_s
 libnet_t *l, libnet_ptag_t ptag);
 
 /**
+ * @param age
+ * @param opts
+ * @param type
+ * @param lsid
+ * @param advrtr
+ * @param seqnum
+ * @param sum
+ * @param len
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1611,6 +1854,13 @@ uint32_t lsid, uint32_t advrtr, uint32_t seqnum, uint16_t sum, uint16_t len,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  
 /**
+ * @param flags
+ * @param num
+ * @param id
+ * @param data
+ * @param type
+ * @param tos
+ * @param metric
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1625,6 +1875,8 @@ uint32_t data, uint8_t type, uint8_t tos, uint16_t metric, const uint8_t* payloa
 uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  
 /**
+ * @param nmask
+ * @param rtrid
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1638,6 +1890,9 @@ libnet_build_ospfv2_lsa_net(uint32_t nmask, uint32_t rtrid, const uint8_t* paylo
 uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  
 /**
+ * @param nmask
+ * @param metric
+ * @param tos
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1651,6 +1906,10 @@ libnet_build_ospfv2_lsa_sum(uint32_t nmask, uint32_t metric, uint32_t tos,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
  
 /**
+ * @param nmask
+ * @param metric
+ * @param fwdaddr
+ * @param tag
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1682,6 +1941,17 @@ libnet_build_data(const uint8_t* payload, uint32_t payload_s, libnet_t *l,
 libnet_ptag_t ptag);
 
 /**
+ * @param opcode
+ * @param htype
+ * @param hlen
+ * @param hopcount
+ * @param xid
+ * @param secs
+ * @param flags
+ * @param cip
+ * @param yip
+ * @param sip
+ * @param gip
  * @param chaddr client hardware address, length is hlen
  * @param sname server host name, a null terminated string
  * @param file boot file name, a null terminated string
@@ -1701,6 +1971,17 @@ const char *sname, const char *file, const uint8_t* payload, uint32_t payload_s,
 libnet_t *l, libnet_ptag_t ptag);
 
 /**
+ * @param opcode
+ * @param htype
+ * @param hlen
+ * @param hopcount
+ * @param xid
+ * @param secs
+ * @param flags
+ * @param cip
+ * @param yip
+ * @param sip
+ * @param gip
  * @param chaddr client hardware address, length is hlen
  * @param sname server host name, a null terminated string
  * @param file boot file name, a null terminated string
@@ -1744,6 +2025,8 @@ libnet_getgre_length(uint16_t fv);
  * @param key inserted by the encapsulator to authenticate the source
  * @param seq sequence number used by the receiver to sort the packets
  * @param len size of the GRE packet
+ * @param payload
+ * @param payload_s payload length or 0
  * @param l pointer to a libnet context
  * @param ptag protocol tag to modify an existing header, 0 to build a new one
  * @return protocol tag value on success
@@ -1784,6 +2067,10 @@ uint16_t offset, uint32_t key, uint32_t seq, uint16_t len,
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
+ * @param af
+ * @param offset
+ * @param length
+ * @param routing
  * @param payload optional payload or NULL
  * @param payload_s payload length or 0
  * @param l pointer to a libnet context
@@ -1794,8 +2081,8 @@ const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 LIBNET_API
 libnet_ptag_t
 libnet_build_gre_sre(uint16_t af, uint8_t offset, uint8_t length,
-uint8_t *routing, const uint8_t* payload, uint32_t payload_s, libnet_t *l,
-libnet_ptag_t ptag);
+const uint8_t *routing, const uint8_t* payload, uint32_t payload_s,
+libnet_t *l, libnet_ptag_t ptag);
 
 /**
  * @param l pointer to a libnet context
@@ -1878,7 +2165,7 @@ LIBNET_API
 libnet_ptag_t
 libnet_build_bgp4_update(uint16_t unfeasible_rt_len, const uint8_t *withdrawn_rt,
 uint16_t total_path_attr_len, const uint8_t *path_attributes, uint16_t info_len,
-uint8_t *reachability_info, const uint8_t* payload, uint32_t payload_s,
+const uint8_t *reachability_info, const uint8_t* payload, uint32_t payload_s,
 libnet_t *l, libnet_ptag_t ptag);
 
 /**
@@ -1925,7 +2212,7 @@ LIBNET_API
 libnet_ptag_t
 libnet_build_sebek(uint32_t magic, uint16_t version, uint16_t type, 
 uint32_t counter, uint32_t time_sec, uint32_t time_usec, uint32_t pid,
-uint32_t uid, uint32_t fd, uint8_t cmd[SEBEK_CMD_LENGTH], uint32_t length, 
+uint32_t uid, uint32_t fd, const uint8_t cmd[SEBEK_CMD_LENGTH], uint32_t length, 
 const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
 
 /**
@@ -1952,8 +2239,9 @@ LIBNET_API
 libnet_ptag_t
 libnet_build_hsrp(uint8_t version, uint8_t opcode, uint8_t state, 
 uint8_t hello_time, uint8_t hold_time, uint8_t priority, uint8_t group,
-uint8_t reserved, uint8_t authdata[HSRP_AUTHDATA_LENGTH], uint32_t virtual_ip,
-const uint8_t* payload, uint32_t payload_s, libnet_t *l, libnet_ptag_t ptag);
+uint8_t reserved, const uint8_t authdata[HSRP_AUTHDATA_LENGTH],
+uint32_t virtual_ip, const uint8_t* payload, uint32_t payload_s, libnet_t *l,
+libnet_ptag_t ptag);
 
 /**
  * Builds a link layer header for an initialized l. The function
@@ -2149,7 +2437,7 @@ libnet_adv_write_raw_ipv4(libnet_t *l, const uint8_t *packet, uint32_t packet_s)
  */
 LIBNET_API
 void
-libnet_adv_free_packet(libnet_t *l, uint8_t *packet);
+libnet_adv_free_packet(const libnet_t *l, uint8_t *packet);
 
 /**
  * [Context Queue] 
@@ -2166,7 +2454,7 @@ libnet_adv_free_packet(libnet_t *l, uint8_t *packet);
  * @retval -1 on failure
 */
 int 
-libnet_cq_add(libnet_t *l, char *label);
+libnet_cq_add(libnet_t *l, const char *label);
 
 /**
  * [Context Queue] 
@@ -2201,7 +2489,7 @@ libnet_cq_remove(libnet_t *l);
  */
 LIBNET_API   
 libnet_t *
-libnet_cq_remove_by_label(char *label);
+libnet_cq_remove_by_label(const char *label);
  
 /**
  * [Context Queue] 
@@ -2211,7 +2499,7 @@ libnet_cq_remove_by_label(char *label);
  */
 LIBNET_API   
 const char *
-libnet_cq_getlabel(libnet_t *l);
+libnet_cq_getlabel(const libnet_t *l);
  
 /**
  * [Context Queue] 
@@ -2222,7 +2510,7 @@ libnet_cq_getlabel(libnet_t *l);
  */
 LIBNET_API
 libnet_t *
-libnet_cq_find_by_label(char *label);
+libnet_cq_find_by_label(const char *label);
   
 /**
  * [Context Queue] 
@@ -2286,6 +2574,9 @@ libnet_cq_size(void);
 
 /**
  * [Context Queue]
+ * Cleanup from iterating through the context queue.
+ * @retval 1 Cleanup completed OK
+ * @retval 0 failed clearing the write lock
  */
 LIBNET_API
 uint32_t
@@ -2298,7 +2589,7 @@ libnet_cq_end_loop(void);
  */
 LIBNET_API
 void
-libnet_diag_dump_context(libnet_t *l);
+libnet_diag_dump_context(const libnet_t *l);
 
 /**
  * [Diagnostic] 
@@ -2307,7 +2598,7 @@ libnet_diag_dump_context(libnet_t *l);
  */
 LIBNET_API
 void
-libnet_diag_dump_pblock(libnet_t *l);
+libnet_diag_dump_pblock(const libnet_t *l);
 
 /**
  * [Diagnostic] 
@@ -2435,21 +2726,21 @@ libnet_inet_checksum(libnet_t *l, uint8_t *iphdr, int protocol, int h_len, const
  */
 LIBNET_API
 uint32_t
-libnet_compute_crc(uint8_t *buf, uint32_t len);
+libnet_compute_crc(const uint8_t *buf, uint32_t len);
 
 /*
  * [Internal] 
  */
 LIBNET_API
 uint16_t
-libnet_ip_check(uint16_t *addr, int len);
+libnet_ip_check(const uint16_t *addr, int len);
 
 /*
  * [Internal] 
  */
 LIBNET_API
 int
-libnet_in_cksum(uint16_t *addr, int len);
+libnet_in_cksum(const uint16_t *addr, int len);
 
 /*
  * [Internal] 

@@ -56,7 +56,7 @@ void add_dns_conn(char* domain, char* name) {
 	it->list_size++;
 }
 
-void dump_dns_conn_list() {
+void dump_dns_conn_list(void) {
 	list_t *l = &dns_conn_list;
 	printf("dns_conn_list start/size: %zu/%zu\n", l->list_start, l->list_size);
 	for (size_t i=0; i<get_list_size(l); i++) {

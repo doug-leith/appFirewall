@@ -52,7 +52,7 @@ class ActiveConnsViewController: appViewController {
 	}
 	
 	override func numTableRows()->Int {return Int(get_num_gui_conns())}
-	
+  
 	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		// decide on table contents at specified col and row
 		let r = mapRow(row: row)
@@ -63,9 +63,9 @@ class ActiveConnsViewController: appViewController {
 		let c_ptr = conn_hash(&item)
 		let hashStr = String(cString:c_ptr!)
 		free(c_ptr)
-		let ip = String(cString: &item.dst_addr_name.0)
-		let src = String(cString:&item.src_addr_name.0)
-		var domain = String(cString: &bl_item.domain.0)
+		let ip = String(cString:get_conn_dst_addr_name(&item))
+		let src = String(cString:get_conn_src_addr_name(&item))
+		var domain = String(cString:get_bl_domain(&bl_item))
 		if (domain.count == 0) { domain = ip }
 		
 		var cellIdentifier: String = ""
@@ -77,12 +77,12 @@ class ActiveConnsViewController: appViewController {
 			var blocked_log = blocked
 			if (white==1) { blocked_log = 0; }
 			let ppp = is_ppp(item.raw.af,&item.raw.src_addr,&item.raw.dst_addr)
-			tip = getTip(srcIP: src, ppp: ppp, ip: ip, domain: domain, name: String(cString: &bl_item.name.0), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
+			tip = getTip(srcIP: src, ppp: ppp, ip: ip, domain: domain, name: String(cString:get_bl_name(&bl_item)), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
 		}
 		
 		if tableColumn == tableView.tableColumns[0] {
 			cellIdentifier = "ProcessCell"
-			content=String(cString: &item.name.0)
+			content=String(cString:get_conn_name(&item))
 		} else if tableColumn == tableView.tableColumns[1] {
 			cellIdentifier = "ConnCell"
 			content = domain

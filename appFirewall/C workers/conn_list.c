@@ -12,11 +12,11 @@
 static connlist_t blocklist = BLACKLIST_INITIALISER;
 static connlist_t whitelist = WHITELIST_INITIALISER;
 
-connlist_t *get_blocklist() {
+connlist_t *get_blocklist(void) {
 	return &blocklist;
 }
 
-connlist_t *get_whitelist() {
+connlist_t *get_whitelist(void) {
 	return &whitelist;
 }
 

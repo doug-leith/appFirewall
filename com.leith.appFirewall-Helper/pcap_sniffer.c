@@ -26,7 +26,7 @@ or (tcp and (tcp[tcpflags]&tcp-syn!=0)) \
 or (ip6[6] == 6 and (ip6[53]&tcp-syn!=0)) \
 or (udp and sport 443)";
 
-void close_sniffer_sock() {
+void close_sniffer_sock(void) {
 	close(p_sock); close(p_sock2);
 }
 
@@ -776,7 +776,7 @@ void sniffer_loop(pcap_handler callback, int *running, char* tag, char* filter_e
 	sn->num_pds = 0;
 }
 
-void stop_sniffer() {
+void stop_sniffer(void) {
 	// called by SIGTERM handler,
 	// hard stop on pcap devices might cause segfault later, but
 	// that's ok as (i) stopping anyway, (ii) won't return from this
@@ -836,7 +836,7 @@ void *listener(void *ptr) {
 	return NULL;
 }
 
-void start_listener() {
+void start_listener(void) {
 	// start listening for requests to receive pcap info
 	p_sock = bind_to_port(PCAP_PORT,2);
 	INFO("Now listening on localhost port %d (%s)\n", PCAP_PORT, pcap_lib_version());

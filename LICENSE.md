@@ -1,6 +1,6 @@
 # License (BSD 3-Clause)
 
-Copyright (c) 2019, Doug Leith
+Copyright (c) 2019-25, Doug Leith
 All rights reserved.
 
 This software makes use of libnet which is:

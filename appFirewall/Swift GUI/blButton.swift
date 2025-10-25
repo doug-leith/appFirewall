@@ -64,13 +64,13 @@ class blButton: NSButton {
 	func clickButton() {
 		guard var bl_item = self.bl_item else { print("WARNING: click blButton problem getting bl_item"); return }
 		
-		let name = String(cString: &bl_item.name.0)
+		let name = String(cString: get_bl_name(&bl_item))
 		if ((name.count==0) || name.contains(NOTFOUND) ) {
 				print("Tried to block item with process name ",NOTFOUND," or ''")
 				return // PID name is missing, we can't add this to block list
 		}
 			
-		let domain = String(cString: &bl_item.domain.0)
+		let domain = String(cString: get_bl_domain(&bl_item))
 		var white: Int = 0
 		if (in_connlist_htab(get_whitelist(), &bl_item, 0) != nil) {
 			white = 1

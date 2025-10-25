@@ -138,17 +138,17 @@ void *dtrace_listener(void *ptr) {
 //--------------------------------------------------------
 // swift interface
 
-void start_dtrace_listener() {
+void start_dtrace_listener(void) {
 	// fire up thread that listens for pkts sent by helper
 	init_list(&dtrace_cache,conn_hash,NULL,1,-1,"dtrace_cache");	
 	pthread_create(&thread, NULL, dtrace_listener, NULL);
 }
 
-void stop_dtrace_listener() {
+void stop_dtrace_listener(void) {
 	pthread_kill(thread, SIGTERM);
 	close(d_sock);
 }
 
-int dtrace_error() {
+int dtrace_error(void) {
 	return !is_running;
 }

@@ -176,7 +176,9 @@ void append_log(char* str, char* long_str, struct bl_item_t* bl_item, conn_raw_t
 	log_line_t *l = calloc(1,sizeof(log_line_t)+2);
 	strlcpy(l->log_line,str,LOGSTRSIZE);
 	time_t t; time(&t);
-	strftime(l->time_str,LOGSTRSIZE,"%b %d %H:%M:%S %Y",localtime(&t));
+	if (strftime(l->time_str,LOGSTRSIZE,"%b %d %H:%M:%S %Y",localtime(&t))==0) {
+     memset(l->time_str,0,LOGSTRSIZE);
+  };
 	memcpy(&l->bl_item,bl_item,sizeof(struct bl_item_t));
 	memcpy(&l->raw,raw,sizeof(conn_raw_t));
 	l->blocked = blocked;
@@ -221,7 +223,7 @@ void log_connection(conn_raw_t *cr, bl_item_t *c, int blocked, double confidence
 	append_log(str, long_str, c, cr, blocked, confidence);
 }
 
-void clear_log() {
+void clear_log(void) {
 	TAKE_LOCK(&log_list_mutex,"clear_log()");
 	changed = 2; // record fact that log has been updated
 	free_list(&log_list);
@@ -277,6 +279,16 @@ int_sw get_filter_log_size(void) {
 log_line_t* get_filter_log_row(int_sw row) {
 	// no need for lock, only called by GUI thread
 	return (log_line_t*)get_list_item(&filtered_log_list,(size_t)row);
+}
+
+char* get_time_str(log_line_t* item) {
+	// no need for lock, only called by GUI thread
+	return item->time_str;
+}
+
+char* get_log_line(log_line_t* item) {
+	// no need for lock, only called by GUI thread
+	return item->log_line;
 }
 
 static char _name[INET6_ADDRSTRLEN];
@@ -350,12 +362,12 @@ void open_logtxt(const char* logTxtName) {
 	}
 }
 
-void close_logtxt() {
+void close_logtxt(void) {
 	if (fp_txt != NULL) fclose(fp_txt);
 	fp_txt = NULL;
 }
 
-void reopen_logtxt() {
+void reopen_logtxt(void) {
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE); strlcat(path,_logTxtName,STR_SIZE);
 	if (fp_txt) close_logtxt();
@@ -365,7 +377,7 @@ void reopen_logtxt() {
 	}
 }
 
-void flush_logtxt() {
+void flush_logtxt(void) {
 	if (fp_txt) fflush(fp_txt);
 }
 

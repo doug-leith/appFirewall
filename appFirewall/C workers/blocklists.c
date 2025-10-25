@@ -20,7 +20,7 @@ static Hashtable *bls_app_htab=NULL; // black list based on app name only
 static Hashtable *wls_app_htab=NULL; // whitelist based on (app name,domain) pairs
 static pthread_mutex_t bls_mutex = MUTEX_INITIALIZER;
 
-void init_blocklists_tabs() {
+void init_blocklists_tabs(void) {
 	// initialise hash table
 	// must hold lock when call
 	// - only called by load() below
@@ -99,8 +99,7 @@ int_sw load_blocklistfile(const char* fname) {
 	char * line = NULL;
 	size_t len = 0; int count=0;
 	int allapps=0; bl_item_t b;
-	ssize_t read;
-	while ((read = getline(&line, &len, fp)) != -1) {
+	while (getline(&line, &len, fp) != -1) {
 		//printf("%s", line);
 		// split line using comma as delimiter
 		char* ptr;

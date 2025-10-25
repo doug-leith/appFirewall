@@ -35,7 +35,7 @@ class appViewController: NSViewController {
 		menu.addItem(NSMenuItem(title: "Block this domain for all apps", action: #selector(blockDomain), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Allow this app for all domains", action: #selector(allowAll), keyEquivalent: ""))
 		menu.addItem(NSMenuItem(title: "Allow this domain for all apps", action: #selector(allowDomain), keyEquivalent: ""))
-		menu.addItem(NSMenuItem(title: "Report this app (send its connections for analysis)", action: #selector(reportApp), keyEquivalent: ""))
+		//menu.addItem(NSMenuItem(title: "Report this app (send its connections for analysis)", //action: #selector(reportApp), keyEquivalent: ""))
 
 		// force using ! since shouldn't fail here and its serious if it does
 		guard tableView != nil else {
@@ -194,7 +194,7 @@ class appViewController: NSViewController {
 		add_connallitem(get_blocklist(),&bl_item);
 		// show feedback popover to user
 		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
-		infoPopup(msg: String(cString:&bl_item.name.0)+" blocked", sender: cell1, row:row, time: 2)
+		infoPopup(msg: String(cString:get_bl_name(&bl_item))+" blocked", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func blockDomain(sender: AnyObject?){
@@ -205,7 +205,7 @@ class appViewController: NSViewController {
 		add_conndomainitem(get_blocklist(),&bl_item);
 		// show feedback popover to user
 		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
-		infoPopup(msg: String(cString:&bl_item.domain.0)+" blocked", sender: cell1, row:row, time: 2)
+		infoPopup(msg: String(cString:get_bl_domain(&bl_item))+" blocked", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func allowAll(sender: AnyObject?){
@@ -216,7 +216,7 @@ class appViewController: NSViewController {
 		add_connallitem(get_whitelist(),&bl_item);
 		// show feedback popover to user
 		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
-		infoPopup(msg: String(cString:&bl_item.name.0)+" allowed", sender: cell1, row:row, time: 2)
+		infoPopup(msg: String(cString:get_bl_name(&bl_item))+" allowed", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func allowDomain(sender: AnyObject?){
@@ -227,7 +227,7 @@ class appViewController: NSViewController {
 		add_conndomainitem(get_whitelist(),&bl_item);
 		// show feedback popover to user
 		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
-		infoPopup(msg: String(cString:&bl_item.domain.0)+" allowed", sender: cell1, row:row, time: 2)
+		infoPopup(msg: String(cString:get_bl_domain(&bl_item))+" allowed", sender: cell1, row:row, time: 2)
 	}
 	
 	@objc func reportApp(sender: NSMenuItem?){
@@ -236,7 +236,7 @@ class appViewController: NSViewController {
 		guard let cell = appTableView?.view(atColumn:2, row:row, makeIfNecessary: true) as? blButton else {print("WARNING: problem in reportApp getting cell"); return}
 		guard var bl_item = cell.bl_item else {return}
 		guard let cell1 = appTableView?.view(atColumn:1, row:row, makeIfNecessary: true) as? NSTableCellView else {return}
-		let app = String(cString:&bl_item.name.0)
+		let app = String(cString:get_bl_name(&bl_item))
 		infoPopup(msg: "Report for "+app+" queued for upload", sender: cell1, row:row, time: 2)
 		DispatchQueue.global(qos: .background).async {
 			let _ = sampleApp(fname: Config.logTxtName, lines:[], app: app)

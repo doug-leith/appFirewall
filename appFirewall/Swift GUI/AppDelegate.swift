@@ -257,14 +257,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// important to call make_data_dir() first so that logfile has somewhere to live
 		redirect_stdout(Config.appLogName)
 		
-		UserDefaults.standard.register(defaults: ["first_run": true])
-		let first = UserDefaults.standard.bool(forKey: "first_run")
+    UserDefaults.standard.register(defaults: ["first_run": true])
+    let first = UserDefaults.standard.bool(forKey: "first_run")
 		if (first || Config.testFirst) {
 			// things to do on first run of app
-			if (Config.enableConsentForm > 0) {
+			if (Config.enableConsentForm > 0) { // now disabled
 				// get consent or exit, we check for this early of course
 				let storyboard = NSStoryboard(name:"Main", bundle:nil)
-				let controller : ConsentViewController = storyboard.instantiateController(withIdentifier: "ConsentViewController") as! ConsentViewController
+				let controller : appViewController = storyboard.instantiateController(withIdentifier: "appViewController") as! appViewController
 				let window = NSWindow(contentViewController: controller)
 				window.styleMask.remove(.miniaturizable)
 				window.styleMask.remove(.resizable) // fixed size
@@ -272,10 +272,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 				NSApp.runModal(for: window)
 			}
 			// log basic security settings (SIP, gatekeeper etc)
+      // - this is now disabled
 			DispatchQueue.global(qos: .background).async {
 				getSecuritySettings()
 			}
-			UserDefaults.standard.set(false, forKey: "first_run")
+    UserDefaults.standard.set(false, forKey: "first_run")
 		}
 
 		// set default logging level, again do this early
@@ -431,6 +432,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// setup handler for window close event
 		print("mainWindow != nil: ",NSApp.mainWindow != nil)
 		NSApp.mainWindow?.delegate = self
+  
+    // hide the app window on startup, can be opened by clicking on menubar icon
+    for window in NSApp.windows {
+			print(window, window.title)
+			// as well as the main window the status bar button has a window
+			if (window.title == "appFirewall") {
+					window.close() // bring to front
+          window.delegate = self // just being careful
+          disableMenu()
+			}
+		}
 	}
 	
 	func applicationWillTerminate(_ aNotification: Notification) {

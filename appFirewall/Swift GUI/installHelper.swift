@@ -119,39 +119,45 @@ func start_helper(force: Bool) {
 	
 	// ask user for authorisation to install helper
 	var authRef:AuthorizationRef?
-	let authItem = AuthorizationItem(name: kSMRightBlessPrivilegedHelper,valueLength: 0, value:UnsafeMutableRawPointer(bitPattern: 0), flags: 0)
-	var authItems = [authItem]
-	var authRights:AuthorizationRights = AuthorizationRights(count: UInt32(authItems.count), items:&authItems)
-	let authFlags: AuthorizationFlags = [
-		[],
-		.extendRights,
-		.interactionAllowed,
-		.preAuthorize
-	]
-	let status = AuthorizationCreate(&authRights, nil, authFlags, &authRef)
-	if (status != errAuthorizationSuccess){
-		let error = NSError(domain:NSOSStatusErrorDomain, code:Int(status), userInfo:nil)
-		exit_popup(msg:"Authorization error: \(error)", force: 1)
-	}else{
-		// We have authorisation from user, go ahead and install helper
-		// Call SMJobBless to verify appFirewall-Helper and,
-		// once verification has passed, to install the
-		// helper.  The embedded launchd.plist
-		// is extracted and placed in /Library/LaunchDaemons and then loaded.
-		// The helper executable is placed in /Library/PrivilegedHelperTools.
-		// See https://developer.apple.com/documentation/servicemanagement/1431078-smjobbless
-		var cfError: Unmanaged<CFError>? = nil
-		if !SMJobBless(kSMDomainSystemLaunchd, kHelperToolName as CFString, authRef, &cfError) {
-			let blessError = cfError!.takeRetainedValue()
-			exit_popup(msg:"Problem installing helper: \(blessError), exiting.", force: 1)
-		}else{
-			print(kHelperToolName+" installed successfully")
-			AuthorizationFree(authRef!, [])
-			var count = 0
-			while (count<10) && (!is_helper_running(Name: kHelperToolName)) {
-				sleep(1)
-				count += 1
-			}
-		}
-	}
+  //let authItem = AuthorizationItem(name: kSMRightBlessPrivilegedHelper, valueLength: 0, value:UnsafeMutableRawPointer(bitPattern: 0), flags: 0)
+  //var authRights:AuthorizationRights = AuthorizationRights(count: UInt32(authItems.count), items:&authItems_ptr)
+   // need this nasty hack to make sure pointer to kSMRightBlessPrivilegedHelper stays valid as long as we need it
+  kSMRightBlessPrivilegedHelper.withCString {(namePointer: UnsafePointer<Int8>) in
+    var authItem = AuthorizationItem(name: namePointer, valueLength: 0, value:nil, flags: 0)
+    withUnsafeMutablePointer(to:&authItem) { authItem_ptr in
+      var authRights:AuthorizationRights = AuthorizationRights(count: UInt32(1), items:authItem_ptr)
+      let authFlags: AuthorizationFlags = [
+        [],
+        .extendRights,
+        .interactionAllowed,
+        .preAuthorize
+      ]
+      let status = AuthorizationCreate(&authRights, nil, authFlags, &authRef)
+      if (status != errAuthorizationSuccess){
+        let error = NSError(domain:NSOSStatusErrorDomain, code:Int(status), userInfo:nil)
+        exit_popup(msg:"Authorization error: \(error)", force: 1)
+      }else{
+        // We have authorisation from user, go ahead and install helper
+        // Call SMJobBless to verify appFirewall-Helper and,
+        // once verification has passed, to install the
+        // helper.  The embedded launchd.plist
+        // is extracted and placed in /Library/LaunchDaemons and then loaded.
+        // The helper executable is placed in /Library/PrivilegedHelperTools.
+        // See https://developer.apple.com/documentation/servicemanagement/1431078-smjobbless
+        var cfError: Unmanaged<CFError>? = nil
+        if !SMJobBless(kSMDomainSystemLaunchd, kHelperToolName as CFString, authRef, &cfError) {
+          let blessError = cfError!.takeRetainedValue()
+          exit_popup(msg:"Problem installing helper: \(blessError), exiting.", force: 1)
+        }else{
+          print(kHelperToolName+" installed successfully")
+          AuthorizationFree(authRef!, [])
+          var count = 0
+          while (count<10) && (!is_helper_running(Name: kHelperToolName)) {
+            sleep(1)
+            count += 1
+          }
+        }
+      }
+    }
+  }
 }

@@ -49,11 +49,12 @@ extern "C" {
  * TODO move the stuff we ALWAYS need out of the DOXYGEN ifndef block
  * and minimize their redundancies (see doc/TODO)
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS // mess
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <sys/stat.h>
@@ -82,7 +83,6 @@ extern "C" {
 #if (__CYGWIN__)
 #include <sys/socket.h>
 #endif
-#include <stdint.h>
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <winsock2.h>
@@ -92,7 +92,7 @@ extern "C" {
 #include <net/ethernet.h>
 #endif  /* HAVE_NET_ETHERNET_H */
 
-#define LIBNET_VERSION  "1.2"
+#define LIBNET_VERSION  "1.3"
 
 #define LIBNET_LIL_ENDIAN 1
 

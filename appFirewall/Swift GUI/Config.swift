@@ -30,7 +30,7 @@ class Config: NSObject {
 	static let enableDtrace = 0 // disable, replaced by nstat
 	static let enableNstat = 0 // disable, replaced by pktap
 	static let enableUpdates = 1 // disable for testing
-	static let enableConsentForm = 1 // disable for testing
+	static let enableConsentForm = 0 // disabled
 	static let testFirst = false // enable for testing first run behaviour
 	static let testUpdates = false // enable for testing download of updates
 	static let testSample = false // enable for testing upload of app sample
@@ -106,7 +106,7 @@ class Config: NSObject {
 	}
 	
 	static func initTimedCheckForUpdate() {
-		UserDefaults.standard.register(defaults: ["autoCheckUpdates":true])
+		UserDefaults.standard.register(defaults: ["autoCheckUpdates":false])
 		print("initTimedCheckForUpdate: autoCheckUpdates ",UserDefaults.standard.bool(forKey: "autoCheckUpdates"))
 		if UserDefaults.standard.bool(forKey: "autoCheckUpdates") {
 			// we periodically check to see if we need to
@@ -358,7 +358,7 @@ class Config: NSObject {
 	}
 	
 	static func getAutoCheckUpdates()->Bool {
-		return getSetting(label: "autoCheckUpdates", def: true)
+		return getSetting(label: "autoCheckUpdates", def: false)
 	}
 
 	static func getAutoUpdate()->Bool {
@@ -404,7 +404,7 @@ class Config: NSObject {
 		// set default host list(s) to use
 		UserDefaults.standard.register(defaults: Config.defaultNameList)
 		// reload enabled lists, persistent across runs of app
-		// and wil default to above if not previously set
+		// and will default to above if not previously set
 		EnabledLists = UserDefaults.standard.array(forKey: "host_lists") as? [String] ?? []
 		updateAvailableLists()
 		

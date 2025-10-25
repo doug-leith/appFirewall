@@ -77,7 +77,7 @@ class LogViewController: appViewController {
 	}
 	
 	override func numTableRows()->Int {return Int(get_filter_log_size())}
-	
+  
 	override 	func getTableCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		// decide on table contents at specified col and row
 		// we display log in reverse order, i.e. youngest first
@@ -85,15 +85,15 @@ class LogViewController: appViewController {
 		if (r<0) { return nil }
 		let item_ptr = get_filter_log_row(Int32(r))
 		guard var item = item_ptr?.pointee else {print("WARNING: problem in logView getting item_ptr"); return nil}
-		let time_str = String(cString: &item.time_str.0)
-		let log_line = String(cString: &item.log_line.0)
+    let time_str = String(cString: get_time_str(item_ptr))
+		let log_line = String(cString: get_log_line(item_ptr))
 		let blocked_log = Int(item.blocked)
 		let c_ptr = filtered_log_hash(item_ptr)
 		let hashStr = String(cString:c_ptr!)
 		free(c_ptr)
 
 		let ppp = is_ppp(item.raw.af,&item.raw.src_addr,&item.raw.dst_addr)
-		let tip = getTip(ppp:ppp, ip: String(cString:get_filter_log_addr_name(Int32(r))), domain: String(cString: &item.bl_item.domain.0), name: String(cString: &item.bl_item.name.0), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
+		let tip = getTip(ppp:ppp, ip: String(cString:get_filter_log_addr_name(Int32(r))), domain: String(cString: get_bl_domain(&item.bl_item)), name: String(cString: get_bl_name(&item.bl_item)), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
 
 		var cellIdentifier: String = ""
 		var content: String = ""
@@ -111,7 +111,6 @@ class LogViewController: appViewController {
 		if (cellIdentifier == "ButtonCell") {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? blButton else {print("WARNING: problem in logView making button cell"); return nil}
 			// maintain state for button
-			let log_line = String(cString: &item.log_line.0)
 			cell.udp = log_line.contains("QUIC")
 			cell.bl_item = item.bl_item
 			cell.hashStr = hashStr;

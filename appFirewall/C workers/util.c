@@ -22,7 +22,7 @@ void set_logging_level(int_sw level) {
 	verbose = level;
 }
 
-void init_stats() {
+void init_stats(void) {
 	memset(&stats,0,sizeof(stats_t));
 	double quants[] = {0.5, 0.90, 0.99};
 	init_cm_quantile(0.01, (double*)&quants, 3, &stats.cm_t_notblocked);
@@ -50,7 +50,7 @@ int cm_add_sample_lock(cm_quantile *cm, double sample) {
 	return res;
 }
 
-void print_stats() {
+void print_stats(void) {
 	TAKE_LOCK(&cm_mutex, "print_stats");
 	INFO("pktap hits %d/misses %d, pidinfo hits %d/misses %d, pidinfo_cache hits %d/misses %d, waitinglist hits %d/misses %d, escapees fresh %d/stale %d/old %d hits %d/misses %d/gone away %d, escapee timeouts %d/%d, procname hits %d/guesses %d/notfound %d, fdtab same %d/changed %d/%d, DNS snaplen misses %d/count %d, mDNS snaplen misses %d/count %d, DNS snaplen shortfall %.2f/%.2f, mDNS snaplen shortfall %.2f/%.2f\ntiming 50th/90th percentiles: sniff %.2f/%.2f, not blocked %.2f/%.2f, blocked %.2f/%.2f, dns %.2f/%.2f, udp %.2f/%.2f, waitinglist hits %.2f/%.2f. waitinglist misses %.2f/%.2f, pidinfo cache hit %.2f/%.2f, pidinfo cache miss %.2f/%.2f\n",
 	stats.pktap_hits,stats.pktap_misses, 
@@ -79,11 +79,11 @@ void print_stats() {
 }
 
 // swift interface
-char* get_error_msg() {
+char* get_error_msg(void) {
 	return error_msg;
 }
 
-int get_error_force() {
+int get_error_force(void) {
 	return force_helper_restart;
 }
 
@@ -92,7 +92,7 @@ void set_error_msg(char* msg, int force) {
 	force_helper_restart = force;
 }
 
-char* get_path() {
+char* get_path(void) {
 	return data_path;
 }
 
@@ -188,6 +188,7 @@ char *trimwhitespace(char *str) {
 
 
 void redirect_stdout(const char* appLog) {
+  // return; // do nothing (used when debugging)
 	// set up logging
 	char path[STR_SIZE];
 	strlcpy(path,get_path(),STR_SIZE);
@@ -299,7 +300,7 @@ inline void set_snd_timeout(int sockfd, int timeout) {
 	}
 }
 
-char* get_date() {
+char* get_date(void) {
 	time_t t; time(&t);
 	strftime(date,STR_SIZE,"%d %b %H:%M:%S %Y",localtime(&t));
 	return date;
@@ -358,11 +359,11 @@ int is_ppp(int af, struct in6_addr *src_addr, struct in6_addr *dst_addr) {
 }
 
 static int unit_testing = 0;
-void set_unit_testing() {
+void set_unit_testing(void) {
 	unit_testing = 1;
 }
 
-int get_unit_testing() {
+int get_unit_testing(void) {
 	return unit_testing;
 }
 

@@ -40,9 +40,14 @@ typedef struct bl_item_t {
 	char domain[MAXDOMAINLEN]; // domain name of non-local address, if we know it
 } bl_item_t;
 
+char* get_conn_dst_addr_name(conn_t* item);
+char* get_conn_src_addr_name(conn_t* item);
+char* get_conn_name(conn_t* item);
 char* conn_raw_hash(const void *it);
 char* conn_hash(const void *it);
 char* cl_hash(const void *it);
 void dump_connlist(list_t *l);
+char* get_bl_domain(bl_item_t* item);
+char* get_bl_name(bl_item_t* item);
 
 #endif /* connection_h */

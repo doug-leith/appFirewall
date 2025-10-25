@@ -210,7 +210,7 @@ int dtrace_buffered(const dtrace_bufdata_t *bufdata, void *arg){
 	return (DTRACE_HANDLE_OK);
 }
 
-int init_dtrace() {
+int init_dtrace(void) {
 	int err;
 	if ((g_dtp = dtrace_open(DTRACE_VERSION, 0, &err)) == NULL) {
 		WARN("Failed to initialize dtrace: %s\n", dtrace_errmsg(NULL, err));
@@ -249,7 +249,7 @@ int init_dtrace() {
 	return 0;
 }
 
-void signal_dtrace() {
+void signal_dtrace(void) {
 	// called when sniff a SYN
 	pthread_mutex_lock(&dtrace_mutex);
 	wakeup = 1;
@@ -326,11 +326,11 @@ void *dtrace(void *ptr) {
 	return NULL;
 }
 
-int dtrace_active() {
+int dtrace_active(void) {
 	return (d_sock2!=-1);
 }
 
-void start_dtrace() {
+void start_dtrace(void) {
 	// start listening for commands to receive dtrace info
 	d_sock = bind_to_port(DTRACE_PORT,2);
 	INFO("Now listening on localhost port %d\n", DTRACE_PORT);
