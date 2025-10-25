@@ -291,6 +291,20 @@ char* get_log_line(log_line_t* item) {
 	return item->log_line;
 }
 
+int get_blocked_log(log_line_t* item) {
+	// no need for lock, only called by GUI thread
+	return item->blocked;
+}
+
+bl_item_t get_log_bl_item(log_line_t* item) {
+	// no need for lock, only called by GUI thread
+	return item->bl_item;
+}
+
+conn_raw_t get_log_conn_raw(log_line_t* item) {
+  return item->raw;
+}
+
 static char _name[INET6_ADDRSTRLEN];
 char* get_filter_log_addr_name(int_sw row) {
 	TAKE_LOCK(&log_list_mutex,"get_filter_log_addr_name()");

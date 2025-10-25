@@ -84,16 +84,18 @@ class LogViewController: appViewController {
 		let r = mapRow(row: row)
 		if (r<0) { return nil }
 		let item_ptr = get_filter_log_row(Int32(r))
-		guard var item = item_ptr?.pointee else {print("WARNING: problem in logView getting item_ptr"); return nil}
+		//guard var item = item_ptr?.pointee else {print("WARNING: problem in logView getting item_ptr"); return nil}
     let time_str = String(cString: get_time_str(item_ptr))
 		let log_line = String(cString: get_log_line(item_ptr))
-		let blocked_log = Int(item.blocked)
+		let blocked_log = Int(get_blocked_log(item_ptr))
+    var bl_item = get_log_bl_item(item_ptr)
+    var conn_raw = get_log_conn_raw(item_ptr)
 		let c_ptr = filtered_log_hash(item_ptr)
 		let hashStr = String(cString:c_ptr!)
 		free(c_ptr)
 
-		let ppp = is_ppp(item.raw.af,&item.raw.src_addr,&item.raw.dst_addr)
-		let tip = getTip(ppp:ppp, ip: String(cString:get_filter_log_addr_name(Int32(r))), domain: String(cString: get_bl_domain(&item.bl_item)), name: String(cString: get_bl_name(&item.bl_item)), port: String(Int(item.raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(item.raw.af, item.raw.dst_addr)))
+		let ppp = is_ppp(conn_raw.af,&conn_raw.src_addr,&conn_raw.dst_addr)
+		let tip = getTip(ppp:ppp, ip: String(cString:get_filter_log_addr_name(Int32(r))), domain: String(cString: get_bl_domain(&bl_item)), name: String(cString: get_bl_name(&bl_item)), port: String(Int(conn_raw.dport)), blocked_log: blocked_log, domains: String(cString:get_dns_count_str(conn_raw.af, conn_raw.dst_addr)))
 
 		var cellIdentifier: String = ""
 		var content: String = ""
@@ -112,8 +114,9 @@ class LogViewController: appViewController {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? blButton else {print("WARNING: problem in logView making button cell"); return nil}
 			// maintain state for button
 			cell.udp = log_line.contains("QUIC")
-			cell.bl_item = item.bl_item
-			cell.hashStr = hashStr;
+			cell.bl_item = bl_item
+      cell.blocked = blocked_log
+			cell.hashStr = hashStr
 			// restore selected state of this row
 			restoreSelected(row: row, hashStr: cell.hashStr)
 			// set tool tip and title

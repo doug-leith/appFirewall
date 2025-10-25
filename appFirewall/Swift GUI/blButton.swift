@@ -21,11 +21,12 @@ class blButton: NSButton {
 	var udp : Bool = false
 	var hashStr: String = ""
 	var tip: String = ""
+  var blocked: Int=0
 	
 	func updateButton() {
 		// refresh the contents based on current data
 		guard var bl_item = self.bl_item else { print("WARNING: update blButton problem getting bl_item"); return }
-		let blocked = Int(blocked_status(&bl_item))
+		//let blocked = Int(blocked_status(&bl_item))
 		let white = Int(is_white(&bl_item))
 				
 		if (self.udp) { // QUIC, can't block yet
@@ -33,7 +34,7 @@ class blButton: NSButton {
 			self.isEnabled = false
 			return
 		}
-		if (blocked > 1) {
+		if (self.blocked > 1) {
 			if (white == 1) {
 				self.title = "Block"
 				self.toolTip = "Remove from white list"
@@ -41,7 +42,7 @@ class blButton: NSButton {
 				self.title = "Allow"
 				self.toolTip = "Add to white list"
 			}
-		} else if (blocked==1) {
+		} else if (self.blocked==1) {
 			if (white==1) {
 				self.title = "Block"
 				self.toolTip = "Remove from white list"
