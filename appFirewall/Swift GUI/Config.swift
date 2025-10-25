@@ -61,8 +61,8 @@ class Config: NSObject {
 		["Name": "AdAway","File":"hosts.txt","URL":"https://adaway.org/hosts.txt","Tip":"Blocks ads and some analytics but quite limited (only 525 hosts)", "Type":"Hostlist"],
     // hpHosts no longer availablw
 		//["Name": "hpHosts","File": "ad_servers.txt" ,"URL":"https://hosts-file.net/ad_servers.txt", "Tip":"Ad and trackers list from hpHosts, moderately sizesd (45K hosts)."],
-    ["Name": "Hagezi Multi Normal", "File": "multi.txt", "URL": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/multi.txt", "Tip":"Blocking type: Relaxed/Balanced.  This list version should not lead to any restrictions for the most part. It is particularly suitable for environments in which there is no admin nearby who can unblock something. (252K entries)"],
-		["Name": "Doug's Annoyances Block List","File": "dougs_blocklist.txt","URL": "https://github.com/doug-leith/appFirewall/raw/master/appFirewall/BlackLists/dougs_blocklist.txt", "Tip": "Based on MAC OS application traffic.", "Type":"Blocklist"]
+    ["Name": "Hagezi Multi Normal", "File": "multi.txt", "URL": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/multi.txt", "Tip":"A good general blocking list (252K entries). See https://www.reddit.com/r/nextdns/comments/13vroxd/hagezis_lists_dns_blocking_analysis/ for discussion","Type":"Hostlist"],
+		["Name": "Doug's Annoyances Block List","File": "dougs_blocklist.txt","URL": "https://github.com/doug-leith/appFirewall/raw/master/appFirewall/BlackLists/dougs_blocklist.txt", "Tip": "Based on MAC OS application traffic.  To modify edit file '~/Library/Application Support/appFirewall/dougs_blocklist.txt'", "Type":"Blocklist"]
 		//["Name": "","File": "","URL": "", "Tip": "", "Type":"Hostlist"]
 	]
 	
