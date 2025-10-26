@@ -21,20 +21,20 @@ class blButton: NSButton {
 	var udp : Bool = false
 	var hashStr: String = ""
 	var tip: String = ""
-  var blocked: Int=0
+  var conn_was_blocked: Int=0 // this records whether connection was actually blocked or not
 	
 	func updateButton() {
 		// refresh the contents based on current data
 		guard var bl_item = self.bl_item else { print("WARNING: update blButton problem getting bl_item"); return }
-		//let blocked = Int(blocked_status(&bl_item))
+		let blocked_by_rules = Int(blocked_status(&bl_item)) // this records whether connection would be blocked by current rules (which may have changed since connection was first dealt with)
 		let white = Int(is_white(&bl_item))
 				
-		if (self.udp) { // QUIC, can't block yet
+		if (self.udp) { // likely QUIC or DNS, we don't block these (yet)
 			self.title = ""
 			self.isEnabled = false
 			return
 		}
-		if (self.blocked > 1) {
+		if (blocked_by_rules > 1) {
 			if (white == 1) {
 				self.title = "Block"
 				self.toolTip = "Remove from white list"
@@ -42,7 +42,7 @@ class blButton: NSButton {
 				self.title = "Allow"
 				self.toolTip = "Add to white list"
 			}
-		} else if (self.blocked==1) {
+		} else if (blocked_by_rules==1) {
 			if (white==1) {
 				self.title = "Block"
 				self.toolTip = "Remove from white list"

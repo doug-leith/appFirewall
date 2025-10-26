@@ -113,9 +113,9 @@ class LogViewController: appViewController {
 		if (cellIdentifier == "ButtonCell") {
 			guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? blButton else {print("WARNING: problem in logView making button cell"); return nil}
 			// maintain state for button
-			cell.udp = log_line.contains("QUIC")
+			cell.udp = log_line.contains("UDP") // usually QUIC or DNS
 			cell.bl_item = bl_item
-      cell.blocked = blocked_log
+      cell.conn_was_blocked = blocked_log
 			cell.hashStr = hashStr
 			// restore selected state of this row
 			restoreSelected(row: row, hashStr: cell.hashStr)

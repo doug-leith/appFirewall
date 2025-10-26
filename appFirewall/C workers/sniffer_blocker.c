@@ -48,7 +48,7 @@ bl_item_t create_blockitem_from_addr(conn_raw_t *cr, int syn, int pkt_pid, char*
 	int pid;
 	
 	if ((pkt_pid>0) && pkt_name && (strnlen(pkt_name,MAXCOMLEN)>0)) {
-		// great, we got the pid and nanme from the pcap header.
+		// great, we got the pid and name from the pcap header.
 		pid = pkt_pid;
 		strlcpy(c.name,pkt_name,MAXCOMLEN);
 		cache_pid(pid, c.name);
