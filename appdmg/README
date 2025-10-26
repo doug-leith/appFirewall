@@ -1,5 +1,0 @@
-https://github.com/LinusU/node-appdmg
-
-cmd to create dmg is:
-
-appdmg appdmg.json appFirewall.dmg
